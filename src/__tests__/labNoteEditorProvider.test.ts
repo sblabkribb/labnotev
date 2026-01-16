@@ -23,7 +23,7 @@ describe('LabNoteEditorProvider', () => {
 
   describe('viewType', () => {
     it('should have correct view type', () => {
-      expect(LabNoteEditorProvider.viewType).toBe('labnotevis.editor');
+      expect(LabNoteEditorProvider.viewType).toBe('labnotev.editor');
     });
   });
 

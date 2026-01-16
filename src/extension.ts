@@ -21,7 +21,7 @@ export function activate(context: vscode.ExtensionContext) {
 
   // Register new note command
   context.subscriptions.push(
-    vscode.commands.registerCommand('labnotevis.newNote', async () => {
+    vscode.commands.registerCommand('labnotev.newNote', async () => {
       const workspaceFolders = vscode.workspace.workspaceFolders;
       if (!workspaceFolders) {
         vscode.window.showErrorMessage('Please open a folder first');

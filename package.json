@@ -1,9 +1,9 @@
 {
-  "name": "labnotevis",
+  "name": "labnotev",
   "displayName": "Lab Note Editor",
   "description": "Notion-style block editor for lab notes using BlockNote",
   "version": "0.1.0",
-  "publisher": "labnotevis",
+  "publisher": "labnotev",
   "engines": {
     "vscode": "^1.85.0"
   },
@@ -15,7 +15,7 @@
   "contributes": {
     "customEditors": [
       {
-        "viewType": "labnotevis.editor",
+        "viewType": "labnotev.editor",
         "displayName": "Lab Note Editor",
         "selector": [
           {
@@ -27,7 +27,7 @@
     ],
     "commands": [
       {
-        "command": "labnotevis.newNote",
+        "command": "labnotev.newNote",
         "title": "Lab Note: New Note"
       }
     ]

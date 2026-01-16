@@ -2,7 +2,7 @@ import * as vscode from 'vscode';
 import * as path from 'path';
 
 export class LabNoteEditorProvider implements vscode.CustomTextEditorProvider {
-  public static readonly viewType = 'labnotevis.editor';
+  public static readonly viewType = 'labnotev.editor';
 
   constructor(private readonly context: vscode.ExtensionContext) {}
 

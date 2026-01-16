@@ -40,7 +40,7 @@ describe('Extension', () => {
       activate(mockContext as unknown as Parameters<typeof activate>[0]);
 
       expect(mockVscode.commands.registerCommand).toHaveBeenCalledWith(
-        'labnotevis.newNote',
+        'labnotev.newNote',
         expect.any(Function)
       );
     });
@@ -61,7 +61,7 @@ describe('Extension', () => {
 
       // Get the registered command handler
       const commandCall = mockVscode.commands.registerCommand.mock.calls.find(
-        (call) => call[0] === 'labnotevis.newNote'
+        (call) => call[0] === 'labnotev.newNote'
       );
       const commandHandler = commandCall?.[1] as () => Promise<void>;
 
@@ -80,7 +80,7 @@ describe('Extension', () => {
       activate(mockContext as unknown as Parameters<typeof activate>[0]);
 
       const commandCall = mockVscode.commands.registerCommand.mock.calls.find(
-        (call) => call[0] === 'labnotevis.newNote'
+        (call) => call[0] === 'labnotev.newNote'
       );
       const commandHandler = commandCall?.[1] as () => Promise<void>;
 
@@ -98,7 +98,7 @@ describe('Extension', () => {
       activate(mockContext as unknown as Parameters<typeof activate>[0]);
 
       const commandCall = mockVscode.commands.registerCommand.mock.calls.find(
-        (call) => call[0] === 'labnotevis.newNote'
+        (call) => call[0] === 'labnotev.newNote'
       );
       const commandHandler = commandCall?.[1] as () => Promise<void>;
 
@@ -118,7 +118,7 @@ describe('Extension', () => {
       activate(mockContext as unknown as Parameters<typeof activate>[0]);
 
       const commandCall = mockVscode.commands.registerCommand.mock.calls.find(
-        (call) => call[0] === 'labnotevis.newNote'
+        (call) => call[0] === 'labnotev.newNote'
       );
       const commandHandler = commandCall?.[1] as () => Promise<void>;
 
