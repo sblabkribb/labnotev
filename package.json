@@ -1,0 +1,55 @@
+{
+  "name": "labnotevis",
+  "displayName": "Lab Note Editor",
+  "description": "Notion-style block editor for lab notes using BlockNote",
+  "version": "0.1.0",
+  "publisher": "labnotevis",
+  "engines": {
+    "vscode": "^1.85.0"
+  },
+  "categories": [
+    "Other"
+  ],
+  "activationEvents": [],
+  "main": "./dist/extension.js",
+  "contributes": {
+    "customEditors": [
+      {
+        "viewType": "labnotevis.editor",
+        "displayName": "Lab Note Editor",
+        "selector": [
+          {
+            "filenamePattern": "*.labnote.md"
+          }
+        ],
+        "priority": "default"
+      }
+    ],
+    "commands": [
+      {
+        "command": "labnotevis.newNote",
+        "title": "Lab Note: New Note"
+      }
+    ]
+  },
+  "scripts": {
+    "vscode:prepublish": "npm run build",
+    "build": "node esbuild.js --production && npm run build:webview",
+    "build:extension": "node esbuild.js --production",
+    "build:webview": "cd webview && npm run build",
+    "watch": "node esbuild.js --watch",
+    "dev": "concurrently \"npm run watch\" \"cd webview && npm run dev\"",
+    "install:all": "npm install && cd webview && npm install",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:all": "npm test && cd webview && npm test"
+  },
+  "devDependencies": {
+    "@types/node": "^20.10.0",
+    "@types/vscode": "^1.85.0",
+    "concurrently": "^8.2.2",
+    "esbuild": "^0.19.8",
+    "typescript": "^5.3.2",
+    "vitest": "^1.6.1"
+  }
+}
