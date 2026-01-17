@@ -8,6 +8,26 @@ export function markdownToBlocks(markdown: string): PartialBlock[] {
   const blocks: PartialBlock[] = [];
   let i = 0;
 
+  // YAML front matter detection (must be at the very beginning)
+  if (lines[0]?.trim() === '---') {
+    let yamlEndIndex = -1;
+    for (let j = 1; j < lines.length; j++) {
+      if (lines[j].trim() === '---') {
+        yamlEndIndex = j;
+        break;
+      }
+    }
+    if (yamlEndIndex > 0) {
+      const yamlContent = lines.slice(1, yamlEndIndex).join('\n');
+      blocks.push({
+        type: 'codeBlock',
+        props: { language: 'yaml-frontmatter' },
+        content: yamlContent,
+      });
+      i = yamlEndIndex + 1;
+    }
+  }
+
   while (i < lines.length) {
     const line = lines[i];
 
@@ -282,6 +302,12 @@ function blockToMarkdown(block: Block): string | null {
     case 'codeBlock':
       const language = (block.props as { language?: string }).language || '';
       const code = typeof block.content === 'string' ? block.content : '';
+      
+      // YAML front matter special handling
+      if (language === 'yaml-frontmatter') {
+        return `---\n${code}\n---`;
+      }
+      
       return `\`\`\`${language}\n${code}\n\`\`\``;
 
     case 'image':

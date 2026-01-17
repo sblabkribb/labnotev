@@ -50,6 +50,11 @@ VS Code용 Notion 스타일 블록 에디터로, 실험실 노트 작성을 위�
   - `Ctrl+Shift+D` / `Cmd+Shift+D`: 날짜/시간 삽입
   - `Ctrl+Shift+U` / `Cmd+Shift+U`: 날짜 필드 업데이트
 
+### 📋 YAML Front Matter 지원
+- **YAML 보존**: 문서 시작의 `---` 블록이 에디터에서 코드 블록으로 표시되고 저장 시 복원
+- **Sample Tracking 설정**: `Sample Tracking: Yes/No`로 샘플 하이라이팅 활성화/비활성화
+- **메타데이터 편집**: `created_date`, `last_updated_date` 등 YAML 필드 편집 가능
+
 ### 🎨 VS Code 통합
 - **테마 지원**: VS Code 라이트/다크 테마에 자동 적응
 - **커스텀 에디터**: `.labnote.md` 파일 자동 열기
@@ -236,7 +241,7 @@ npm run test:all
 프로젝트에는 포괄적인 테스트 커버리지가 포함되어 있습니다:
 
 - **Extension 테스트**: 171개 (11개 파일)
-- **Webview 테스트**: 97개 (6개 파일)
+- **Webview 테스트**: 103개 (6개 파일)
 - **테스트 프레임워크**: Vitest
 
 테스트 실행:

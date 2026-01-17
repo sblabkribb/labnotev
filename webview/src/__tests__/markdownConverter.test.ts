@@ -259,5 +259,101 @@ const x = 1;
         expect(blocks.some(b => b.type === 'codeBlock')).toBe(true);
       });
     });
+
+    describe('YAML front matter', () => {
+      it('should parse YAML front matter as code block', () => {
+        const markdown = `---
+Title: My Document
+Sample Tracking: Yes
+---
+
+# Content`;
+        
+        const blocks = markdownToBlocks(markdown);
+        
+        expect(blocks.length).toBeGreaterThanOrEqual(2);
+        expect(blocks[0].type).toBe('codeBlock');
+        expect((blocks[0].props as { language: string }).language).toBe('yaml-frontmatter');
+        expect(blocks[0].content).toContain('Title: My Document');
+        expect(blocks[0].content).toContain('Sample Tracking: Yes');
+      });
+
+      it('should parse YAML front matter with Sample Tracking field', () => {
+        const markdown = `---
+Sample Tracking: Yes
+Author: Test User
+---
+
+Some content`;
+        
+        const blocks = markdownToBlocks(markdown);
+        
+        expect(blocks[0].type).toBe('codeBlock');
+        expect((blocks[0].props as { language: string }).language).toBe('yaml-frontmatter');
+        expect(blocks[0].content).toContain('Sample Tracking: Yes');
+      });
+
+      it('should handle YAML front matter at the beginning only', () => {
+        const markdown = `---
+Title: Test
+---
+
+# Heading
+
+---
+
+This is a horizontal rule`;
+        
+        const blocks = markdownToBlocks(markdown);
+        
+        // First block should be YAML
+        expect(blocks[0].type).toBe('codeBlock');
+        expect((blocks[0].props as { language: string }).language).toBe('yaml-frontmatter');
+        
+        // Following content should be heading and paragraph
+        expect(blocks.some(b => b.type === 'heading')).toBe(true);
+      });
+
+      it('should handle empty YAML front matter', () => {
+        const markdown = `---
+---
+
+# Content`;
+        
+        const blocks = markdownToBlocks(markdown);
+        
+        expect(blocks[0].type).toBe('codeBlock');
+        expect((blocks[0].props as { language: string }).language).toBe('yaml-frontmatter');
+        expect(blocks[0].content).toBe('');
+      });
+
+      it('should handle markdown without YAML front matter', () => {
+        const markdown = `# Title
+
+No YAML here`;
+        
+        const blocks = markdownToBlocks(markdown);
+        
+        expect(blocks[0].type).toBe('heading');
+      });
+
+      it('should handle multi-line YAML values', () => {
+        const markdown = `---
+Title: My Document
+Description: |
+  This is a multi-line
+  description text
+Sample Tracking: Yes
+---
+
+Content`;
+        
+        const blocks = markdownToBlocks(markdown);
+        
+        expect(blocks[0].type).toBe('codeBlock');
+        expect(blocks[0].content).toContain('Description: |');
+        expect(blocks[0].content).toContain('multi-line');
+      });
+    });
   });
 });
