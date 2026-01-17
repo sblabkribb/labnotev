@@ -42,6 +42,7 @@ export const mockVscode = {
       readFile: vi.fn(),
     },
     onDidChangeTextDocument: vi.fn(() => ({ dispose: vi.fn() })),
+    onDidSaveTextDocument: vi.fn(() => ({ dispose: vi.fn() })),
     applyEdit: vi.fn(),
   },
   Uri: {

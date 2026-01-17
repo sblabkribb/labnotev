@@ -1,4 +1,6 @@
 import * as vscode from 'vscode';
+import * as fs from 'fs';
+import * as path from 'path';
 import { LabNoteEditorProvider } from './labNoteEditorProvider';
 import {
   getSeoulDateString,
@@ -10,6 +12,8 @@ import {
 import { SAMPLE_TYPES, SampleType } from './lib/sampleUtils';
 import { sampleDecorations } from './lib/sampleDecorations';
 import { SampleInfoPanel } from './views/SampleInfoPanel';
+import { saveSamplesFromDocument } from './lib/sampleStorage';
+import { createLabnoteStructure } from './lib/labnoteStructure';
 
 export function activate(context: vscode.ExtensionContext) {
   console.log('Lab Note Editor is now active');
@@ -224,6 +228,22 @@ export function activate(context: vscode.ExtensionContext) {
     })
   );
 
+  // Save sample info to JSON on document save
+  context.subscriptions.push(
+    vscode.workspace.onDidSaveTextDocument(document => {
+      // Only process markdown files
+      if (document.languageId !== 'markdown') {
+        return;
+      }
+
+      try {
+        saveSamplesFromDocument(document.uri.fsPath, document.getText());
+      } catch (error) {
+        console.error('[LabNote] Failed to save sample info:', error);
+      }
+    })
+  );
+
   // Apply highlights to current active editor
   if (vscode.window.activeTextEditor && vscode.window.activeTextEditor.document.languageId === 'markdown') {
     applySampleIdHighlights(vscode.window.activeTextEditor);
@@ -233,6 +253,66 @@ export function activate(context: vscode.ExtensionContext) {
   context.subscriptions.push(
     vscode.commands.registerCommand('labnotev.showSampleInfo', () => {
       SampleInfoPanel.createOrShow(context.extensionUri);
+    })
+  );
+
+  // Register create labnote command
+  context.subscriptions.push(
+    vscode.commands.registerCommand('labnotev.createLabnote', async () => {
+      const workspaceFolders = vscode.workspace.workspaceFolders;
+      if (!workspaceFolders) {
+        vscode.window.showErrorMessage('먼저 폴더를 열어주세요');
+        return;
+      }
+
+      const workspaceRoot = workspaceFolders[0].uri.fsPath;
+
+      // Get existing labnote folders
+      const labnoteDir = path.join(workspaceRoot, 'labnote');
+      let existingFolders: string[] = [];
+      if (fs.existsSync(labnoteDir)) {
+        existingFolders = fs.readdirSync(labnoteDir, { withFileTypes: true })
+          .filter(entry => entry.isDirectory() && /^\d{3}_/.test(entry.name))
+          .map(entry => entry.name);
+      }
+
+      // Prompt for title
+      const title = await vscode.window.showInputBox({
+        prompt: '새 실험 노트 제목을 입력하세요',
+        placeHolder: 'Protein Folding Experiment',
+        validateInput: value => (!!value && value.trim().length > 0 ? undefined : '제목을 입력하세요')
+      });
+
+      if (!title) {
+        return;
+      }
+
+      // Prompt for author (optional)
+      const author = await vscode.window.showInputBox({
+        prompt: '작성자 이름 (선택 사항)',
+        placeHolder: '홍길동'
+      });
+
+      // Create structure
+      const structure = createLabnoteStructure(workspaceRoot, title.trim(), existingFolders, author?.trim());
+
+      try {
+        // Create folders
+        fs.mkdirSync(structure.labnoteFolder, { recursive: true });
+        fs.mkdirSync(structure.imagesFolder, { recursive: true });
+        fs.mkdirSync(structure.resourcesFolder, { recursive: true });
+
+        // Write README.md
+        fs.writeFileSync(structure.readmePath, structure.readmeContent, 'utf8');
+
+        // Open the README.md
+        const document = await vscode.workspace.openTextDocument(structure.readmePath);
+        await vscode.window.showTextDocument(document, { preview: false });
+
+        vscode.window.showInformationMessage(`실험 노트가 생성되었습니다: ${path.basename(structure.labnoteFolder)}`);
+      } catch (error) {
+        vscode.window.showErrorMessage(`실험 노트 생성 실패: ${error}`);
+      }
     })
   );
 }

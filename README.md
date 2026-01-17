@@ -31,6 +31,17 @@ VS Code용 Notion 스타일 블록 에디터로, 실험실 노트 작성을 위�
 - **샘플 ID 하이라이팅**: 타입별 색상으로 샘플 ID 강조 표시
   - DNA, RNA, Plasmid, Reagent, Primer, Protein, Equip, Labware 지원
 - **Sample Info 패널**: 문서 내 모든 샘플 ID 조회
+  - 별칭, 설명, 출처 표시
+  - 위치로 이동, Rename, Replace 기능
+- **자동 저장**: 문서 저장 시 샘플 정보를 JSON으로 자동 저장
+  - `resources/labsamples/{TYPE}.json`에 저장
+  - 형식: `ID|별칭:설명`, `ID|별칭`, `ID: 설명`
+
+### 📁 실험 노트 폴더 구조
+- **자동 폴더 생성**: 명령으로 표준화된 폴더 구조 생성
+  - `labnote/{번호}_{제목}/`
+  - `README.md`, `images/`, `resources/` 자동 생성
+- **자동 번호 부여**: 001, 002, ... 순차적 번호
 
 ### 📅 날짜 관리
 - **날짜 삽입**: 현재 날짜/시간을 한국 시간대(KST) 기준으로 삽입
@@ -118,6 +129,7 @@ VS Code에서 아무 `.labnote.md` 파일을 열면 커스텀 에디터가 자�
 | 명령어 | 설명 |
 |--------|------|
 | `Lab Note: New Note` | 새 실험 노트 생성 |
+| `Lab Note: Create New Labnote Folder` | 새 실험 노트 폴더 구조 생성 |
 | `Lab Note: Insert Current Date` | 현재 날짜 삽입 |
 | `Lab Note: Insert Current Date and Time` | 현재 날짜/시간 삽입 |
 | `Lab Note: Update Date Field on Current Line` | 현재 줄의 날짜 필드 업데이트 |
@@ -136,7 +148,9 @@ labnotev/
 │   ├── lib/                      # 공유 라이브러리 (Extension + Webview)
 │   │   ├── dateUtils.ts          # 날짜/시간 처리 함수
 │   │   ├── sampleUtils.ts        # 샘플 ID 생성 및 상수
-│   │   └── sampleDecorations.ts  # VS Code 텍스트 데코레이션
+│   │   ├── sampleDecorations.ts  # VS Code 텍스트 데코레이션
+│   │   ├── sampleStorage.ts      # 샘플 정보 저장/로드
+│   │   └── labnoteStructure.ts   # 실험 노트 폴더 구조 생성
 │   └── views/                    # Webview 패널
 │       └── SampleInfoPanel.ts
 ├── webview/                      # Webview (React 앱)
@@ -187,8 +201,8 @@ npm run test:all
 
 프로젝트에는 포괄적인 테스트 커버리지가 포함되어 있습니다:
 
-- **Extension 테스트**: 89개 (7개 파일)
-- **Webview 테스트**: 76개 (6개 파일)
+- **Extension 테스트**: 152개 (11개 파일)
+- **Webview 테스트**: 85개 (6개 파일)
 - **테스트 프레임워크**: Vitest
 
 테스트 실행:

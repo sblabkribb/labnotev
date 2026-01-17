@@ -90,4 +90,80 @@ describe('Sample Info Panel', () => {
       expect(html).toContain('No sample IDs found');
     });
   });
+
+  describe('Extended sample info extraction', () => {
+    it('should extract sample info with alias and description', async () => {
+      const { extractSampleInfoFromText } = await import('../views/SampleInfoPanel');
+      
+      const text = 'DNA-123|샘플1:설명 내용';
+      const samples = extractSampleInfoFromText(text);
+      
+      expect(samples.length).toBe(1);
+      expect(samples[0].id).toBe('DNA-123');
+      expect(samples[0].type).toBe('DNA');
+      expect(samples[0].alias).toBe('샘플1');
+      expect(samples[0].description).toBe('설명 내용');
+    });
+
+    it('should extract sample info with alias only', async () => {
+      const { extractSampleInfoFromText } = await import('../views/SampleInfoPanel');
+      
+      const text = 'RNA-456|별칭만';
+      const samples = extractSampleInfoFromText(text);
+      
+      expect(samples.length).toBe(1);
+      expect(samples[0].alias).toBe('별칭만');
+      expect(samples[0].description).toBeNull();
+    });
+  });
+
+  describe('Extended HTML generation with sample info', () => {
+    it('should generate HTML with alias and description', async () => {
+      const { generateSampleInfoHtml, SampleDisplayInfo } = await import('../views/SampleInfoPanel');
+      
+      const samples: SampleDisplayInfo[] = [
+        { id: 'DNA-123', type: 'DNA', alias: '샘플1', description: '설명 내용', sources: ['test.md'] }
+      ];
+      const html = generateSampleInfoHtml(samples);
+      
+      expect(html).toContain('DNA-123');
+      expect(html).toContain('샘플1');
+      expect(html).toContain('설명 내용');
+    });
+
+    it('should include action buttons (Rename, Replace, Go to)', async () => {
+      const { generateSampleInfoHtml, SampleDisplayInfo } = await import('../views/SampleInfoPanel');
+      
+      const samples: SampleDisplayInfo[] = [
+        { id: 'DNA-123', type: 'DNA', alias: null, description: null, sources: [] }
+      ];
+      const html = generateSampleInfoHtml(samples);
+      
+      expect(html).toContain('Rename');
+      expect(html).toContain('Replace');
+      expect(html).toContain('위치로 이동');
+    });
+  });
+
+  describe('findSampleLocation', () => {
+    it('should find sample location in text', async () => {
+      const { findSampleLocation } = await import('../views/SampleInfoPanel');
+      
+      const text = 'Line 1\nLine 2 with DNA-123\nLine 3';
+      const location = findSampleLocation(text, 'DNA-123');
+      
+      expect(location).not.toBeNull();
+      expect(location?.line).toBe(1); // 0-indexed
+      expect(location?.character).toBe(12); // "Line 2 with " = 12 characters
+    });
+
+    it('should return null for non-existent sample', async () => {
+      const { findSampleLocation } = await import('../views/SampleInfoPanel');
+      
+      const text = 'No samples here';
+      const location = findSampleLocation(text, 'DNA-999');
+      
+      expect(location).toBeNull();
+    });
+  });
 });

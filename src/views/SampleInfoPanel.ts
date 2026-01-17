@@ -1,8 +1,20 @@
 import * as vscode from 'vscode';
 import { SAMPLE_TYPES, SampleType, sampleTypeColors } from '../lib/sampleUtils';
+import { extractSampleInfoFromText as extractFromStorage, SampleInfo } from '../lib/sampleStorage';
 
 /**
- * Extract sample IDs from text
+ * Sample display information with all metadata
+ */
+export interface SampleDisplayInfo {
+  id: string;
+  type: string;
+  alias: string | null;
+  description: string | null;
+  sources: string[];
+}
+
+/**
+ * Extract sample IDs from text (simple extraction)
  */
 export function extractSampleIdsFromText(text: string): string[] {
   const sampleIds: string[] = [];
@@ -20,7 +32,31 @@ export function extractSampleIdsFromText(text: string): string[] {
 }
 
 /**
- * Generate HTML for sample list
+ * Extract sample info with alias and description from text
+ * Re-exports from sampleStorage for use in panel
+ */
+export function extractSampleInfoFromText(text: string): SampleInfo[] {
+  return extractFromStorage(text);
+}
+
+/**
+ * Find the location (line, character) of a sample ID in text
+ */
+export function findSampleLocation(text: string, sampleId: string): { line: number; character: number } | null {
+  const lines = text.split('\n');
+  
+  for (let i = 0; i < lines.length; i++) {
+    const charIndex = lines[i].indexOf(sampleId);
+    if (charIndex !== -1) {
+      return { line: i, character: charIndex };
+    }
+  }
+  
+  return null;
+}
+
+/**
+ * Generate HTML for sample list (simple version)
  */
 export function generateSampleListHtml(sampleIds: string[]): string {
   if (sampleIds.length === 0) {
@@ -55,6 +91,68 @@ export function generateSampleListHtml(sampleIds: string[]): string {
 }
 
 /**
+ * Generate HTML for sample info with alias, description, and action buttons
+ */
+export function generateSampleInfoHtml(samples: SampleDisplayInfo[]): string {
+  if (samples.length === 0) {
+    return `
+      <div class="no-samples">
+        <p>No sample IDs found in the current document.</p>
+      </div>
+    `;
+  }
+
+  const sampleListItems = samples.map(sample => {
+    const color = sampleTypeColors[sample.type as SampleType] || '#888888';
+    const aliasHtml = sample.alias ? `<span class="sample-alias">(${escapeHtml(sample.alias)})</span>` : '';
+    const descHtml = sample.description ? `<p class="sample-description">${escapeHtml(sample.description)}</p>` : '';
+    const sourcesHtml = sample.sources.length > 0 
+      ? `<p class="sample-sources">Sources: ${sample.sources.map(s => escapeHtml(s)).join(', ')}</p>` 
+      : '';
+
+    return `
+      <li class="sample-item" data-id="${escapeHtml(sample.id)}" data-type="${escapeHtml(sample.type)}">
+        <div class="sample-header">
+          <span class="sample-badge" style="background-color: ${color}99; border: 1px solid ${color};">
+            ${sample.type}
+          </span>
+          <span class="sample-id">${escapeHtml(sample.id)}</span>
+          ${aliasHtml}
+        </div>
+        ${descHtml}
+        ${sourcesHtml}
+        <div class="sample-actions">
+          <button class="action-btn goto-btn" data-action="goto" data-id="${escapeHtml(sample.id)}">위치로 이동</button>
+          <button class="action-btn rename-btn" data-action="rename" data-id="${escapeHtml(sample.id)}">Rename</button>
+          <button class="action-btn replace-btn" data-action="replace" data-id="${escapeHtml(sample.id)}" data-type="${escapeHtml(sample.type)}">Replace</button>
+        </div>
+      </li>
+    `;
+  }).join('');
+
+  return `
+    <div class="sample-list">
+      <h3>Sample IDs (${samples.length})</h3>
+      <ul>
+        ${sampleListItems}
+      </ul>
+    </div>
+  `;
+}
+
+/**
+ * Escape HTML to prevent XSS
+ */
+function escapeHtml(str: string): string {
+  return str
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#039;');
+}
+
+/**
  * Manages the Sample Info webview panel
  */
 export class SampleInfoPanel {
@@ -64,6 +162,7 @@ export class SampleInfoPanel {
   private readonly _panel: vscode.WebviewPanel;
   private readonly _extensionUri: vscode.Uri;
   private _disposables: vscode.Disposable[] = [];
+  private _currentDocUri: vscode.Uri | undefined;
 
   private constructor(panel: vscode.WebviewPanel, extensionUri: vscode.Uri) {
     this._panel = panel;
@@ -85,6 +184,130 @@ export class SampleInfoPanel {
       null,
       this._disposables
     );
+
+    // Handle messages from webview
+    this._panel.webview.onDidReceiveMessage(
+      async (message) => {
+        await this._handleMessage(message);
+      },
+      null,
+      this._disposables
+    );
+  }
+
+  /**
+   * Handle messages from webview
+   */
+  private async _handleMessage(message: { command: string; id?: string; type?: string }): Promise<void> {
+    switch (message.command) {
+      case 'goto': {
+        if (!message.id || !this._currentDocUri) return;
+        await this._goToSample(message.id);
+        break;
+      }
+      case 'rename': {
+        if (!message.id || !this._currentDocUri) return;
+        await this._renameSample(message.id);
+        break;
+      }
+      case 'replace': {
+        if (!message.id || !message.type || !this._currentDocUri) return;
+        await this._replaceSample(message.id, message.type);
+        break;
+      }
+    }
+  }
+
+  /**
+   * Navigate to sample location in document
+   */
+  private async _goToSample(sampleId: string): Promise<void> {
+    if (!this._currentDocUri) return;
+
+    const doc = await vscode.workspace.openTextDocument(this._currentDocUri);
+    const editor = await vscode.window.showTextDocument(doc, vscode.ViewColumn.One);
+    
+    const location = findSampleLocation(doc.getText(), sampleId);
+    if (location) {
+      const position = new vscode.Position(location.line, location.character);
+      const range = new vscode.Range(position, position.translate(0, sampleId.length));
+      editor.selection = new vscode.Selection(range.start, range.end);
+      editor.revealRange(range, vscode.TextEditorRevealType.InCenter);
+    }
+  }
+
+  /**
+   * Rename sample ID
+   */
+  private async _renameSample(oldId: string): Promise<void> {
+    if (!this._currentDocUri) return;
+
+    const newId = await vscode.window.showInputBox({
+      prompt: `${oldId}를 새로운 ID로 변경`,
+      value: oldId,
+      validateInput: (value) => {
+        if (!value || value.trim() === '') return 'ID를 입력하세요';
+        if (value === oldId) return '다른 ID를 입력하세요';
+        return null;
+      }
+    });
+
+    if (!newId) return;
+
+    const doc = await vscode.workspace.openTextDocument(this._currentDocUri);
+    const text = doc.getText();
+    const newText = text.replace(new RegExp(`\\b${oldId}\\b`, 'g'), newId);
+
+    const edit = new vscode.WorkspaceEdit();
+    edit.replace(
+      this._currentDocUri,
+      new vscode.Range(doc.positionAt(0), doc.positionAt(text.length)),
+      newText
+    );
+    await vscode.workspace.applyEdit(edit);
+    await doc.save();
+
+    vscode.window.showInformationMessage(`${oldId} → ${newId}로 변경되었습니다.`);
+    this._updateFromActiveEditor();
+  }
+
+  /**
+   * Replace sample ID with existing ID
+   */
+  private async _replaceSample(oldId: string, type: string): Promise<void> {
+    if (!this._currentDocUri) return;
+
+    const doc = await vscode.workspace.openTextDocument(this._currentDocUri);
+    const text = doc.getText();
+    
+    // Extract all IDs of the same type
+    const pattern = new RegExp(`\\b${type}-\\d+\\b`, 'g');
+    const existingIds = [...new Set(text.match(pattern) || [])].filter(id => id !== oldId);
+
+    if (existingIds.length === 0) {
+      vscode.window.showWarningMessage(`교체할 다른 ${type} ID가 없습니다.`);
+      return;
+    }
+
+    const selectedId = await vscode.window.showQuickPick(existingIds, {
+      placeHolder: `${oldId}를 대체할 ID 선택`
+    });
+
+    if (!selectedId) return;
+
+    const newText = text.replace(new RegExp(`\\b${oldId}\\b`, 'g'), selectedId);
+
+    const edit = new vscode.WorkspaceEdit();
+    edit.replace(
+      this._currentDocUri,
+      new vscode.Range(doc.positionAt(0), doc.positionAt(text.length)),
+      newText
+    );
+    await vscode.workspace.applyEdit(edit);
+    await doc.save();
+
+    vscode.window.showInformationMessage(`${oldId} → ${selectedId}로 교체되었습니다.`);
+    this._updateFromActiveEditor();
   }
 
   /**
@@ -124,20 +347,46 @@ export class SampleInfoPanel {
     this._panel.webview.html = this._getHtmlForWebview(sampleIds);
   }
 
+  /**
+   * Update the panel content with full sample info
+   */
+  public updateContentWithInfo(samples: SampleDisplayInfo[]): void {
+    this._panel.webview.html = this._getHtmlForWebviewWithInfo(samples);
+  }
+
   private _updateFromActiveEditor(): void {
     const editor = vscode.window.activeTextEditor;
     if (editor && editor.document.languageId === 'markdown') {
+      this._currentDocUri = editor.document.uri;
       const text = editor.document.getText();
-      const sampleIds = extractSampleIdsFromText(text);
-      this.updateContent(sampleIds);
+      const samples = extractSampleInfoFromText(text);
+      
+      // Convert SampleInfo to SampleDisplayInfo
+      const displaySamples: SampleDisplayInfo[] = samples.map(s => ({
+        id: s.id,
+        type: s.type,
+        alias: s.alias,
+        description: s.description,
+        sources: []
+      }));
+      
+      this.updateContentWithInfo(displaySamples);
     }
   }
 
   private _getHtmlForWebview(sampleIds: string[]): string {
     const sampleListHtml = generateSampleListHtml(sampleIds);
+    return this._wrapHtml(sampleListHtml);
+  }
 
+  private _getHtmlForWebviewWithInfo(samples: SampleDisplayInfo[]): string {
+    const sampleListHtml = generateSampleInfoHtml(samples);
+    return this._wrapHtml(sampleListHtml);
+  }
+
+  private _wrapHtml(content: string): string {
     return `<!DOCTYPE html>
-<html lang="en">
+<html lang="ko">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -163,14 +412,17 @@ export class SampleInfoPanel {
       margin: 0;
     }
     .sample-item {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      padding: 8px;
+      padding: 12px;
       border-bottom: 1px solid var(--vscode-widget-border);
     }
     .sample-item:hover {
       background-color: var(--vscode-list-hoverBackground);
+    }
+    .sample-header {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 4px;
     }
     .sample-badge {
       display: inline-block;
@@ -182,6 +434,41 @@ export class SampleInfoPanel {
     }
     .sample-id {
       font-family: var(--vscode-editor-font-family);
+      font-weight: bold;
+    }
+    .sample-alias {
+      color: var(--vscode-descriptionForeground);
+      margin-left: 8px;
+    }
+    .sample-description, .sample-sources {
+      font-size: 0.9em;
+      color: var(--vscode-descriptionForeground);
+      margin: 4px 0 4px 0;
+      padding-left: 4px;
+    }
+    .sample-actions {
+      display: flex;
+      gap: 8px;
+      margin-top: 8px;
+    }
+    .action-btn {
+      padding: 4px 12px;
+      border: 1px solid var(--vscode-button-border);
+      background-color: var(--vscode-button-secondaryBackground);
+      color: var(--vscode-button-secondaryForeground);
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 0.85em;
+    }
+    .action-btn:hover {
+      background-color: var(--vscode-button-secondaryHoverBackground);
+    }
+    .goto-btn {
+      background-color: var(--vscode-button-background);
+      color: var(--vscode-button-foreground);
+    }
+    .goto-btn:hover {
+      background-color: var(--vscode-button-hoverBackground);
     }
     .no-samples {
       text-align: center;
@@ -191,7 +478,19 @@ export class SampleInfoPanel {
   </style>
 </head>
 <body>
-  ${sampleListHtml}
+  ${content}
+  <script>
+    const vscode = acquireVsCodeApi();
+    
+    document.querySelectorAll('.action-btn').forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        const action = btn.dataset.action;
+        const id = btn.dataset.id;
+        const type = btn.dataset.type;
+        vscode.postMessage({ command: action, id, type });
+      });
+    });
+  </script>
 </body>
 </html>`;
   }

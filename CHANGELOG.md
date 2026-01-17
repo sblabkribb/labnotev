@@ -5,6 +5,45 @@
 형식은 [Keep a Changelog](https://keepachangelog.com/ko/1.1.0/)를 기반으로 하며,
 이 프로젝트는 [유의적 버전 관리](https://semver.org/lang/ko/)를 따릅니다.
 
+## [0.6.0] - 2026-01-17
+
+### 추가
+
+#### 샘플 정보 저장 기능
+- 문서 저장 시 샘플 ID 정보를 `resources/labsamples/{TYPE}.json`에 자동 저장
+- 샘플 ID 형식 지원: `ID|별칭:설명`, `ID|별칭`, `ID: 설명`, `ID`
+- 별칭(Alias), 설명(Description), 출처(Sources) 정보 관리
+- 새 샘플 정보가 기존 정보와 자동 병합
+- `src/lib/sampleStorage.ts` 모듈 추가
+- 11개의 단위 테스트 추가
+
+#### Sample Info 패널 확장
+- 별칭, 설명, 출처 표시
+- **위치로 이동** 버튼 - 샘플 ID 클릭 시 해당 위치로 커서 이동
+- **Rename** 버튼 - 새 ID 입력 후 문서 내 일괄 변경
+- **Replace** 버튼 - 기존 ID 목록에서 선택하여 교체
+- 확장된 HTML 생성 (`generateSampleInfoHtml`)
+- `findSampleLocation` 함수 추가
+- 6개의 단위 테스트 추가
+
+#### 실험 노트 폴더 구조 생성
+- `Lab Note: Create New Labnote Folder` 명령 추가 (`labnotev.createLabnote`)
+- 자동 폴더 구조 생성:
+  - `labnote/{번호}_{제목}/`
+  - `README.md` (YAML front matter 포함 템플릿)
+  - `images/`, `resources/` 폴더
+- 자동 번호 부여 (001, 002, ...)
+- `src/lib/labnoteStructure.ts` 모듈 추가
+- 13개의 단위 테스트 추가
+
+### 테스트
+
+- Extension 테스트: 152개 (11개 파일)
+- Webview 테스트: 85개 (6개 파일)
+- 총 237개 테스트 통과
+
+---
+
 ## [0.5.0] - 2026-01-17
 
 ### 변경
