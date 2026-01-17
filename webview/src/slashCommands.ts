@@ -1,61 +1,12 @@
 import { BlockNoteEditor, isStyledTextInlineContent } from '@blocknote/core';
+import { ReactSlashMenuItem } from '@blocknote/react';
+import { getSeoulDateString, getSeoulDateTimeString } from '@lib/dateUtils';
+import { SAMPLE_TYPES, generateSampleId } from '@lib/sampleUtils';
+import type { SampleType } from '@lib/sampleUtils';
 
-/**
- * Sample types available for slash commands
- */
-export const SAMPLE_TYPES = ['DNA', 'RNA', 'Plasmid', 'Reagent', 'Primer', 'Protein', 'Equip', 'Labware'] as const;
-export type SampleType = typeof SAMPLE_TYPES[number];
-
-/**
- * Returns YYYY-MM-DD in Asia/Seoul timezone
- */
-export function getSeoulDateString(): string {
-  return new Intl.DateTimeFormat('en-CA', {
-    timeZone: 'Asia/Seoul',
-    year: 'numeric',
-    month: '2-digit',
-    day: '2-digit',
-  }).format(new Date());
-}
-
-/**
- * Returns YYYY-MM-DD HH:mm in Asia/Seoul timezone (24h)
- */
-export function getSeoulDateTimeString(): string {
-  const now = new Date();
-  const datePart = new Intl.DateTimeFormat('en-CA', {
-    timeZone: 'Asia/Seoul',
-    year: 'numeric',
-    month: '2-digit',
-    day: '2-digit',
-  }).format(now);
-  const timePart = new Intl.DateTimeFormat('en-GB', {
-    timeZone: 'Asia/Seoul',
-    hour12: false,
-    hour: '2-digit',
-    minute: '2-digit',
-  }).format(now);
-  return `${datePart} ${timePart}`;
-}
-
-// Counter for generating unique IDs within the same millisecond
-let idCounter = 0;
-let lastTimestamp = 0;
-
-/**
- * Generate a unique sample ID using timestamp format
- * Ensures uniqueness even when called multiple times in the same millisecond
- */
-export function generateSampleId(type: SampleType): string {
-  const timestamp = Date.now();
-  if (timestamp === lastTimestamp) {
-    idCounter++;
-  } else {
-    idCounter = 0;
-    lastTimestamp = timestamp;
-  }
-  return `${type}-${timestamp}${idCounter > 0 ? `-${idCounter}` : ''}`;
-}
+// Re-export for backward compatibility
+export { SAMPLE_TYPES, getSeoulDateString, getSeoulDateTimeString, generateSampleId };
+export type { SampleType };
 
 /**
  * Helper function to insert or update block (same pattern as BlockNote internal)
@@ -92,25 +43,13 @@ function insertOrUpdateBlock(
 }
 
 /**
- * BlockNote-compatible slash menu item interface
- * Uses 'title' instead of 'name' and 'onItemClick' instead of 'execute'
- */
-export interface SlashMenuItem {
-  title: string;
-  onItemClick: () => void;
-  aliases?: readonly string[];
-  group?: string;
-  icon?: React.ReactElement;
-  subtext?: string;
-}
-
-/**
  * Create a slash menu item for inserting the current date
+ * Uses BlockNote's ReactSlashMenuItem interface: name, execute, hint
  */
-export function createDateSlashItem(editor: BlockNoteEditor<any, any, any>): SlashMenuItem {
+export function createDateSlashItem(editor: BlockNoteEditor<any, any, any>): ReactSlashMenuItem {
   return {
-    title: 'Insert Date',
-    onItemClick: () => {
+    name: 'Insert Date',
+    execute: (editor: BlockNoteEditor<any, any, any>) => {
       const dateStr = getSeoulDateString();
       insertOrUpdateBlock(editor, {
         type: 'paragraph',
@@ -118,19 +57,20 @@ export function createDateSlashItem(editor: BlockNoteEditor<any, any, any>): Sla
         content: [{ type: 'text', text: dateStr, styles: {} }],
       });
     },
-    aliases: ['date', 'today'] as const,
+    aliases: ['date', 'today'],
     group: 'Lab Note',
-    subtext: 'Insert current date (YYYY-MM-DD)',
+    hint: 'Insert current date (YYYY-MM-DD)',
   };
 }
 
 /**
  * Create a slash menu item for inserting the current date and time
+ * Uses BlockNote's ReactSlashMenuItem interface: name, execute, hint
  */
-export function createDateTimeSlashItem(editor: BlockNoteEditor<any, any, any>): SlashMenuItem {
+export function createDateTimeSlashItem(editor: BlockNoteEditor<any, any, any>): ReactSlashMenuItem {
   return {
-    title: 'Insert DateTime',
-    onItemClick: () => {
+    name: 'Insert DateTime',
+    execute: (editor: BlockNoteEditor<any, any, any>) => {
       const dateTimeStr = getSeoulDateTimeString();
       insertOrUpdateBlock(editor, {
         type: 'paragraph',
@@ -138,19 +78,20 @@ export function createDateTimeSlashItem(editor: BlockNoteEditor<any, any, any>):
         content: [{ type: 'text', text: dateTimeStr, styles: {} }],
       });
     },
-    aliases: ['datetime', 'now', 'timestamp'] as const,
+    aliases: ['datetime', 'now', 'timestamp'],
     group: 'Lab Note',
-    subtext: 'Insert current date and time (YYYY-MM-DD HH:mm)',
+    hint: 'Insert current date and time (YYYY-MM-DD HH:mm)',
   };
 }
 
 /**
  * Create slash menu items for sample ID generation
+ * Uses BlockNote's ReactSlashMenuItem interface: name, execute, hint
  */
-export function createSampleIdSlashItems(editor: BlockNoteEditor<any, any, any>): SlashMenuItem[] {
+export function createSampleIdSlashItems(editor: BlockNoteEditor<any, any, any>): ReactSlashMenuItem[] {
   return SAMPLE_TYPES.map(type => ({
-    title: `Insert ${type} Sample ID`,
-    onItemClick: () => {
+    name: `Insert ${type} Sample ID`,
+    execute: (editor: BlockNoteEditor<any, any, any>) => {
       const sampleId = generateSampleId(type);
       insertOrUpdateBlock(editor, {
         type: 'paragraph',
@@ -158,16 +99,16 @@ export function createSampleIdSlashItems(editor: BlockNoteEditor<any, any, any>)
         content: [{ type: 'text', text: sampleId, styles: {} }],
       });
     },
-    aliases: [type.toLowerCase(), `sample-${type.toLowerCase()}`] as const,
+    aliases: [type.toLowerCase(), `sample-${type.toLowerCase()}`],
     group: 'Sample',
-    subtext: `Generate a new ${type} sample ID`,
+    hint: `Generate a new ${type} sample ID`,
   }));
 }
 
 /**
  * Get all custom slash menu items for lab notes
  */
-export function getLabNoteSlashMenuItems(editor: BlockNoteEditor<any, any, any>): SlashMenuItem[] {
+export function getLabNoteSlashMenuItems(editor: BlockNoteEditor<any, any, any>): ReactSlashMenuItem[] {
   return [
     createDateSlashItem(editor),
     createDateTimeSlashItem(editor),

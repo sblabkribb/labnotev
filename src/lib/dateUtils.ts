@@ -1,59 +1,48 @@
-import * as yaml from 'js-yaml';
-
-export interface WorkflowFrontMatter {
-  title: string;
-  experimenter: string;
-  created_date: string;
-  last_updated_date: string;
-  end_date: string;
-}
-
-export interface ReadmeFrontMatter {
-  title: string;
-  author: string;
-  experiment_type: string;
-  sample_tracking?: string;
-  created_date: string;
-  last_updated_date: string;
-  description?: string;
-}
-
-export interface DateFieldMatch {
-  field: string;
-  line: number;
-  value: string;
-  fullLine: string;
-}
+/**
+ * Date utility functions for Lab Note Editor
+ * Pure functions that can be shared between Extension and Webview
+ */
 
 /**
  * Returns YYYY-MM-DD in Asia/Seoul timezone
  */
-export function getSeoulDateString(date: Date): string {
+export function getSeoulDateString(date?: Date): string {
   return new Intl.DateTimeFormat('en-CA', {
     timeZone: 'Asia/Seoul',
     year: 'numeric',
     month: '2-digit',
     day: '2-digit',
-  }).format(date);
+  }).format(date || new Date());
 }
 
 /**
  * Returns YYYY-MM-DD HH:mm in Asia/Seoul timezone (24h)
  */
-export function getSeoulDateTimeString(date: Date): string {
+export function getSeoulDateTimeString(date?: Date): string {
+  const d = date || new Date();
   const datePart = new Intl.DateTimeFormat('en-CA', {
     timeZone: 'Asia/Seoul',
     year: 'numeric',
     month: '2-digit',
     day: '2-digit',
-  }).format(date);
+  }).format(d);
   const timePart = new Intl.DateTimeFormat('en-GB', {
     timeZone: 'Asia/Seoul',
     hour12: false,
     hour: '2-digit',
     minute: '2-digit',
-  }).format(date);
+  }).format(d);
   return `${datePart} ${timePart}`;
+}
+
+/**
+ * Date field match result
+ */
+export interface DateFieldMatch {
+  field: string;
+  line: number;
+  value: string;
+  fullLine: string;
 }
 
 /**
@@ -86,10 +75,10 @@ export function updateAllDatesInLine(line: string, newDateTime: string): string 
   // - YYYY.MM.DD or YYYY.MM.DD. HH:mm (dot separator)
   const hyphenPattern = /\d{4}-\d{2}-\d{2}(?:\s+\d{2}:\d{2})?/g;
   const dotPattern = /\d{4}\.\d{2}\.\d{2}\.?(?:\s+\d{2}:\d{2})?/g;
-
+  
   // Find all matches from both patterns
   const matches: Array<{ start: number; end: number; quoted: boolean; quoteChar: string | null }> = [];
-
+  
   // Helper function to process matches
   const processMatches = (pattern: RegExp) => {
     pattern.lastIndex = 0;
@@ -99,10 +88,10 @@ export function updateAllDatesInLine(line: string, newDateTime: string): string 
       const end = start + match[0].length;
       const beforeChar = start > 0 ? line[start - 1] : '';
       const afterChar = end < line.length ? line[end] : '';
-
+      
       let quoted = false;
       let quoteChar: string | null = null;
-
+      
       // Check if date is inside single quotes
       if (beforeChar === "'" && afterChar === "'") {
         quoted = true;
@@ -113,18 +102,18 @@ export function updateAllDatesInLine(line: string, newDateTime: string): string 
         quoted = true;
         quoteChar = '"';
       }
-
+      
       matches.push({ start, end, quoted, quoteChar });
     }
   };
-
+  
   // Process both patterns
   processMatches(hyphenPattern);
   processMatches(dotPattern);
-
+  
   // Sort matches by start position to handle overlapping cases
   matches.sort((a, b) => a.start - b.start);
-
+  
   // Remove overlapping matches (keep the first one)
   const uniqueMatches: Array<{ start: number; end: number; quoted: boolean; quoteChar: string | null }> = [];
   for (let i = 0; i < matches.length; i++) {
@@ -133,32 +122,32 @@ export function updateAllDatesInLine(line: string, newDateTime: string): string 
       uniqueMatches.push(current);
     }
   }
-
+  
   // If no matches found, return original line
   if (uniqueMatches.length === 0) {
     return line;
   }
-
+  
   // Replace from end to start to preserve indices
   let result = line;
   for (let i = uniqueMatches.length - 1; i >= 0; i--) {
     const { start, end, quoted, quoteChar } = uniqueMatches[i];
-
+    
     if (quoted && quoteChar) {
       // Replace quoted date (including quotes)
       const beforeStart = start - 1;
       const afterEnd = end + 1;
-      result = result.substring(0, beforeStart) +
-        `'${newDateTime}'` +
-        result.substring(afterEnd);
+      result = result.substring(0, beforeStart) + 
+               `'${newDateTime}'` + 
+               result.substring(afterEnd);
     } else {
       // Replace unquoted date
-      result = result.substring(0, start) +
-        `'${newDateTime}'` +
-        result.substring(end);
+      result = result.substring(0, start) + 
+               `'${newDateTime}'` + 
+               result.substring(end);
     }
   }
-
+  
   return result;
 }
 
@@ -209,32 +198,4 @@ export function updateAllDateFields(content: string, fieldName: string, newDate:
   const lines = content.split('\n');
   const updatedLines = lines.map(line => updateDateFieldInLine(line, fieldName, newDate));
   return updatedLines.join('\n');
-}
-
-/**
- * Parse YAML front matter from workflow file
- */
-export function parseWorkflowFrontMatter(fileContent: string): WorkflowFrontMatter | null {
-  const match = fileContent.match(/^---([\s\S]+?)---/);
-  if (!match) return null;
-  try {
-    const parsed = yaml.load(match[1]) as WorkflowFrontMatter;
-    return (parsed && typeof parsed.title === 'string') ? parsed : null;
-  } catch (e) {
-    return null;
-  }
-}
-
-/**
- * Parse YAML front matter from README file
- */
-export function parseReadmeFrontMatter(fileContent: string): ReadmeFrontMatter | null {
-  const match = fileContent.match(/^---([\s\S]+?)---/);
-  if (!match) return null;
-  try {
-    const parsed = yaml.load(match[1]) as ReadmeFrontMatter;
-    return (parsed && typeof parsed.title === 'string' && typeof parsed.experiment_type === 'string') ? parsed : null;
-  } catch (e) {
-    return null;
-  }
 }

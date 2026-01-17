@@ -6,9 +6,9 @@ import {
   updateDateFieldInLine,
   updateAllDatesInLine,
   updateAllDateFields,
-} from './labnote-lite/logic';
-import { SAMPLE_TYPES, SampleType } from './labsample/constants/appConstants';
-import { sampleDecorations } from './labsample/constants/decorations';
+} from './lib/dateUtils';
+import { SAMPLE_TYPES, SampleType } from './lib/sampleUtils';
+import { sampleDecorations } from './lib/sampleDecorations';
 import { SampleInfoPanel } from './views/SampleInfoPanel';
 
 export function activate(context: vscode.ExtensionContext) {

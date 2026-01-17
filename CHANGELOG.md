@@ -5,6 +5,32 @@
 형식은 [Keep a Changelog](https://keepachangelog.com/ko/1.1.0/)를 기반으로 하며,
 이 프로젝트는 [유의적 버전 관리](https://semver.org/lang/ko/)를 따릅니다.
 
+## [0.5.0] - 2026-01-17
+
+### 변경
+
+- **슬래시 명령 시스템 리팩토링**: BlockNote의 `ReactSlashMenuItem` 인터페이스와 완전히 호환되도록 수정
+  - `title` → `name`, `onItemClick` → `execute`, `subtext` → `hint` 속성명 변경
+  - BlockNote 기본 명령과 커스텀 명령이 동일하게 작동
+
+### 리팩토링
+
+- **공유 라이브러리 구조 개선**: `src/lib/` 폴더로 공용 모듈 통합
+  - `dateUtils.ts`: 날짜/시간 처리 함수 (Extension + Webview 공유)
+  - `sampleUtils.ts`: 샘플 ID 생성 및 상수 (Extension + Webview 공유)
+  - `sampleDecorations.ts`: VS Code 전용 텍스트 데코레이션
+- **기존 폴더 삭제**: `src/labnote-lite/`, `src/labsample/` 폴더 제거
+- **Vite 설정 개선**: `@lib` alias 추가로 경로 간소화
+- **테스트 구조 정리**: `src/__tests__/lib/` 폴더에 새 라이브러리 테스트 추가
+
+### 테스트
+
+- Extension 테스트: 122개 (9개 파일)
+- Webview 테스트: 85개 (6개 파일)
+- 총 207개 테스트 통과
+
+---
+
 ## [0.4.1] - 2026-01-17
 
 ### 수정

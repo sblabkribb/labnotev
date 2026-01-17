@@ -133,14 +133,10 @@ labnotev/
 ├── src/                          # Extension 소스 코드
 │   ├── extension.ts              # 메인 진입점
 │   ├── labNoteEditorProvider.ts  # 커스텀 에디터 프로바이더
-│   ├── labnote-lite/             # 날짜/YAML 처리 모듈
-│   │   └── logic.ts
-│   ├── labsample/                # 샘플 ID 관리 모듈
-│   │   ├── constants/
-│   │   │   ├── appConstants.ts
-│   │   │   └── decorations.ts
-│   │   └── utils/
-│   │       └── idGenerator.ts
+│   ├── lib/                      # 공유 라이브러리 (Extension + Webview)
+│   │   ├── dateUtils.ts          # 날짜/시간 처리 함수
+│   │   ├── sampleUtils.ts        # 샘플 ID 생성 및 상수
+│   │   └── sampleDecorations.ts  # VS Code 텍스트 데코레이션
 │   └── views/                    # Webview 패널
 │       └── SampleInfoPanel.ts
 ├── webview/                      # Webview (React 앱)

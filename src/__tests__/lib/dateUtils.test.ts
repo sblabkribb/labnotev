@@ -6,13 +6,18 @@ import {
   updateAllDatesInLine,
   findDateFieldsInDocument,
   updateAllDateFields,
-} from '../lib/dateUtils';
+} from '../../lib/dateUtils';
 
-describe('dateUtils (legacy tests)', () => {
+describe('dateUtils', () => {
   describe('getSeoulDateString', () => {
     it('should return date in YYYY-MM-DD format', () => {
       const date = new Date('2025-01-17T10:00:00Z');
       const result = getSeoulDateString(date);
+      expect(/^\d{4}-\d{2}-\d{2}$/.test(result)).toBe(true);
+    });
+
+    it('should use current date when no argument provided', () => {
+      const result = getSeoulDateString();
       expect(/^\d{4}-\d{2}-\d{2}$/.test(result)).toBe(true);
     });
   });
@@ -31,6 +36,11 @@ describe('dateUtils (legacy tests)', () => {
       expect(parts.length).toBe(2);
       expect(/^\d{4}-\d{2}-\d{2}$/.test(parts[0])).toBe(true);
       expect(/^\d{2}:\d{2}$/.test(parts[1])).toBe(true);
+    });
+
+    it('should use current date when no argument provided', () => {
+      const result = getSeoulDateTimeString();
+      expect(/^\d{4}-\d{2}-\d{2} \d{2}:\d{2}$/.test(result)).toBe(true);
     });
   });
 

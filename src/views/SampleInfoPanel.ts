@@ -1,6 +1,5 @@
 import * as vscode from 'vscode';
-import { SAMPLE_TYPES, SampleType } from '../labsample/constants/appConstants';
-import { sampleTypeColors } from '../labsample/constants/decorations';
+import { SAMPLE_TYPES, SampleType, sampleTypeColors } from '../lib/sampleUtils';
 
 /**
  * Extract sample IDs from text

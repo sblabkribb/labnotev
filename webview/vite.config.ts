@@ -4,6 +4,11 @@ import { resolve } from 'path';
 
 export default defineConfig({
   plugins: [react()],
+  resolve: {
+    alias: {
+      '@lib': resolve(__dirname, '../src/lib'),
+    },
+  },
   build: {
     outDir: 'dist',
     lib: {

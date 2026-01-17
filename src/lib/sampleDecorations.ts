@@ -1,22 +1,13 @@
-import * as vscode from 'vscode';
-import { SAMPLE_TYPES, SampleType } from './appConstants';
-
 /**
- * Color mapping for each sample type
+ * VS Code text decorations for sample ID highlighting
+ * This module depends on vscode API and is Extension-only
  */
-export const sampleTypeColors: Record<SampleType, string> = {
-  DNA: '#FFB6C1',      // Light pink
-  RNA: '#ADD8E6',      // Light blue
-  Plasmid: '#98FB98',  // Pale green
-  Reagent: '#FFD700',  // Gold
-  Primer: '#FF69B4',   // Hot pink
-  Protein: '#DDA0DD',  // Plum
-  Equip: '#FFA07A',    // Light salmon
-  Labware: '#D8BFD8',  // Thistle
-};
+
+import * as vscode from 'vscode';
+import { SAMPLE_TYPES, sampleTypeColors, SampleType } from './sampleUtils';
 
 /**
- * Text decoration types for each sample type
+ * Text editor decorations for each sample type
  */
 export const sampleDecorations: Record<SampleType, vscode.TextEditorDecorationType> =
   Object.fromEntries(
@@ -25,7 +16,7 @@ export const sampleDecorations: Record<SampleType, vscode.TextEditorDecorationTy
       return [
         type,
         vscode.window.createTextEditorDecorationType({
-          backgroundColor: `${color}99`, // 60% opacity
+          backgroundColor: `${color}99`,
           borderRadius: '3px',
           border: `1px solid ${color}`,
           color: '#000',

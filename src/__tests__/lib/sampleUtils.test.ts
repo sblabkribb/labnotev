@@ -1,12 +1,43 @@
 import { describe, it, expect, beforeEach } from 'vitest';
-import { generateSampleId, resetIdCounter, SAMPLE_TYPES } from '../lib/sampleUtils';
+import {
+  SAMPLE_TYPES,
+  SampleType,
+  sampleTypeColors,
+  generateSampleId,
+  resetIdCounter,
+} from '../../lib/sampleUtils';
 
-describe('ID Generator', () => {
-  beforeEach(() => {
-    resetIdCounter();
+describe('sampleUtils', () => {
+  describe('SAMPLE_TYPES', () => {
+    it('should include all 8 sample types', () => {
+      expect(SAMPLE_TYPES.length).toBe(8);
+      expect(SAMPLE_TYPES).toContain('DNA');
+      expect(SAMPLE_TYPES).toContain('RNA');
+      expect(SAMPLE_TYPES).toContain('Plasmid');
+      expect(SAMPLE_TYPES).toContain('Reagent');
+      expect(SAMPLE_TYPES).toContain('Primer');
+      expect(SAMPLE_TYPES).toContain('Protein');
+      expect(SAMPLE_TYPES).toContain('Equip');
+      expect(SAMPLE_TYPES).toContain('Labware');
+    });
+  });
+
+  describe('sampleTypeColors', () => {
+    it('should have color for each type', () => {
+      for (const type of SAMPLE_TYPES) {
+        expect(sampleTypeColors[type]).toBeDefined();
+        expect(typeof sampleTypeColors[type]).toBe('string');
+        // Should be a valid hex color
+        expect(sampleTypeColors[type]).toMatch(/^#[0-9A-Fa-f]{6}$/);
+      }
+    });
   });
 
   describe('generateSampleId', () => {
+    beforeEach(() => {
+      resetIdCounter();
+    });
+
     it('should generate ID with timestamp format', () => {
       const newId = generateSampleId('DNA');
       
@@ -68,13 +99,6 @@ describe('ID Generator', () => {
       
       const pattern = /^Protein-\d+(-\d+)?$/;
       expect(pattern.test(newId)).toBe(true);
-    });
-
-    it('should generate IDs for all sample types', () => {
-      for (const type of SAMPLE_TYPES) {
-        const id = generateSampleId(type);
-        expect(id.startsWith(`${type}-`)).toBe(true);
-      }
     });
   });
 });

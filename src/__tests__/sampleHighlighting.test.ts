@@ -24,8 +24,7 @@ describe('Sample ID Highlighting', () => {
   describe('Sample Type Colors', () => {
     it('should have colors defined for all sample types', async () => {
       // Import after vscode mock is set up
-      const { sampleTypeColors } = await import('../labsample/constants/decorations');
-      const { SAMPLE_TYPES } = await import('../labsample/constants/appConstants');
+      const { sampleTypeColors, SAMPLE_TYPES } = await import('../lib/sampleUtils');
       
       for (const type of SAMPLE_TYPES) {
         expect(sampleTypeColors[type]).toBeDefined();
@@ -34,7 +33,7 @@ describe('Sample ID Highlighting', () => {
     });
 
     it('should have unique colors for each sample type', async () => {
-      const { sampleTypeColors } = await import('../labsample/constants/decorations');
+      const { sampleTypeColors } = await import('../lib/sampleUtils');
       
       const colors = Object.values(sampleTypeColors);
       const uniqueColors = new Set(colors);
