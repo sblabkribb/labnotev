@@ -153,7 +153,7 @@ export const Editor: React.FC<EditorProps> = ({
         <SuggestionMenuController
           triggerCharacter="/"
           getItems={async (query) => {
-            return slashMenuItems.filter((item) => {
+            const filtered = slashMenuItems.filter((item) => {
               // BlockNote uses 'title' property for menu items
               const itemTitle = (item as any).title || '';
               const queryLower = query.toLowerCase();
@@ -164,6 +164,12 @@ export const Editor: React.FC<EditorProps> = ({
                 )
               );
             });
+            return filtered;
+          }}
+          onItemClick={(item) => {
+            if (item.onItemClick) {
+              item.onItemClick(editor);
+            }
           }}
         />
       </BlockNoteView>

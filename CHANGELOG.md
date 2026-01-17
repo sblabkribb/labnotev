@@ -17,6 +17,10 @@
   - 원인: BlockNote 기본 아이템이 `name` 대신 `title` 속성 사용
   - 해결: 필터링 시 `name` 또는 `title` 속성 모두 처리
 
+- **슬래시 명령 블록 삽입 오류 수정**: 커스텀 슬래시 명령(`/dna`, `/date` 등) 선택 시 블록이 삽입되지 않던 문제 해결
+  - 원인: BlockNote의 `insertBlocks`가 `props`와 `styles` 필드가 없으면 `Object.entries(undefined)` 에러 발생
+  - 해결: 블록 객체에 `props: {}`와 `styles: {}` 추가
+
 ### 문서화
 
 - 드래그 앤 드롭 제한 사항 README에 추가 (VS Code webview 보안 정책 제한)
