@@ -35,6 +35,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Real-time highlighting updates as you type
   - Decorations with type-specific colors
 - Added 8 new unit tests for sample highlighting
+- Added custom Slash Commands in BlockNote editor:
+  - `/date` - Insert current date (YYYY-MM-DD)
+  - `/datetime` - Insert current date and time (YYYY-MM-DD HH:mm)
+  - `/dna`, `/rna`, `/protein`, etc. - Generate unique sample IDs
+- Added 9 new unit tests for slash commands
 
 ## [0.1.0] - 2026-01-16
 

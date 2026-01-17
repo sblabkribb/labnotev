@@ -75,7 +75,8 @@ describe('usePasteHandler', () => {
         onSaveImage: mockOnSaveImage,
       }));
       
-      expect(addEventListenerSpy).toHaveBeenCalledWith('paste', expect.any(Function));
+      // Check that paste event listener is added with capture phase (true)
+      expect(addEventListenerSpy).toHaveBeenCalledWith('paste', expect.any(Function), true);
       addEventListenerSpy.mockRestore();
     });
 
@@ -89,7 +90,8 @@ describe('usePasteHandler', () => {
       
       unmount();
       
-      expect(removeEventListenerSpy).toHaveBeenCalledWith('paste', expect.any(Function));
+      // Check that paste event listener is removed with capture phase (true)
+      expect(removeEventListenerSpy).toHaveBeenCalledWith('paste', expect.any(Function), true);
       removeEventListenerSpy.mockRestore();
     });
   });

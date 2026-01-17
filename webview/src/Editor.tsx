@@ -15,6 +15,7 @@ import { markdownToBlocks, blocksToMarkdown } from './markdownConverter';
 import { MathBlock, insertMathBlock } from './blocks/MathBlock';
 import { usePasteHandler } from './hooks/usePasteHandler';
 import { useVSCodeTheme } from './hooks/useVSCodeTheme';
+import { getLabNoteSlashMenuItems } from './slashCommands';
 
 interface EditorProps {
   initialContent: string;
@@ -105,6 +106,7 @@ export const Editor: React.FC<EditorProps> = ({
   const slashMenuItems = useMemo(() => [
     ...getDefaultReactSlashMenuItems(editor),
     insertMathBlock,
+    ...getLabNoteSlashMenuItems(editor),
   ], [editor]);
 
   // Handle paste events (Ctrl+V)
