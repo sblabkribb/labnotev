@@ -5,3 +5,4 @@ webview/coverage/
 coverage/
 *.vsix
 .vscode-test/
+.cursor/
