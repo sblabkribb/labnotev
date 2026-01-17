@@ -2,7 +2,7 @@
   "name": "labnotev",
   "displayName": "Lab Note Editor",
   "description": "Notion-style block editor for lab notes using BlockNote",
-  "version": "0.4.0",
+  "version": "0.4.1",
   "publisher": "labnotev",
   "engines": {
     "vscode": "^1.85.0"

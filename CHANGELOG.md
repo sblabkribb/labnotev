@@ -5,6 +5,24 @@
 형식은 [Keep a Changelog](https://keepachangelog.com/ko/1.1.0/)를 기반으로 하며,
 이 프로젝트는 [유의적 버전 관리](https://semver.org/lang/ko/)를 따릅니다.
 
+## [0.4.1] - 2026-01-17
+
+### 수정
+
+- **이미지 붙여넣기 중복 버그 수정**: `Ctrl+V`로 이미지 붙여넣기 시 이미지가 2개 삽입되던 문제 해결
+  - 원인: `clipboardData.files`와 `clipboardData.items`가 같은 이미지에 대해 다른 File 객체를 반환
+  - 해결: `files`에 이미지가 있으면 그것만 사용하고 `items`는 건너뜀
+
+- **슬래시 명령 메뉴 필터링 오류 수정**: `/` 입력 시 "no item found" 메시지만 표시되던 문제 해결
+  - 원인: BlockNote 기본 아이템이 `name` 대신 `title` 속성 사용
+  - 해결: 필터링 시 `name` 또는 `title` 속성 모두 처리
+
+### 문서화
+
+- 드래그 앤 드롭 제한 사항 README에 추가 (VS Code webview 보안 정책 제한)
+
+---
+
 ## [0.4.0] - 2026-01-17
 
 ### 추가
