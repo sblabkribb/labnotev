@@ -1,74 +1,83 @@
-# Changelog
+# 변경 이력
 
-All notable changes to this project will be documented in this file.
+이 파일은 프로젝트의 주요 변경 사항을 기록합니다.
 
-The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
-and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
+형식은 [Keep a Changelog](https://keepachangelog.com/ko/1.1.0/)를 기반으로 하며,
+이 프로젝트는 [유의적 버전 관리](https://semver.org/lang/ko/)를 따릅니다.
 
-## [Unreleased]
+## [0.4.0] - 2026-01-17
 
-### Added
+### 추가
 
-- Integrated labnote-lite logic module for date handling and YAML front matter parsing
-  - `getSeoulDateString()`, `getSeoulDateTimeString()` for timezone-aware date formatting
-  - `updateDateFieldInLine()`, `updateAllDatesInLine()`, `updateAllDateFields()` for date field updates
-  - `findDateFieldsInDocument()` for date field discovery
-  - `parseWorkflowFrontMatter()`, `parseReadmeFrontMatter()` for YAML parsing
-- Added js-yaml dependency for YAML processing
-- Added 34 new unit tests for labnote-lite logic module
-- Added VS Code Commands for date operations:
-  - `labnotev.insertDate` - Insert current date (YYYY-MM-DD)
-  - `labnotev.insertDateTime` - Insert current date and time (YYYY-MM-DD HH:mm)
-  - `labnotev.updateDateField` - Update date field on current line
-  - `labnotev.updateAllDateFields` - Update all last_updated_date fields
-- Added keyboard shortcuts:
-  - `Ctrl+Shift+D` / `Cmd+Shift+D` for insert datetime
-  - `Ctrl+Shift+U` / `Cmd+Shift+U` for update date field
-- Added 11 new unit tests for VS Code commands
-- Integrated labsample module for sample ID management:
-  - Added `generateUniqueSampleId()` for timestamp-based unique ID generation
-  - Added `SAMPLE_TYPES` constant with support for DNA, RNA, Plasmid, Reagent, Primer, Protein, Equip, Labware
-  - Added application constants for commands, paths, and messages
-- Added 8 new unit tests for ID generator
-- Added Sample ID highlighting in markdown files:
-  - Color-coded highlighting for DNA, RNA, Plasmid, Reagent, Primer, Protein, Equip, Labware
-  - Real-time highlighting updates as you type
-  - Decorations with type-specific colors
-- Added 8 new unit tests for sample highlighting
-- Added custom Slash Commands in BlockNote editor:
-  - `/date` - Insert current date (YYYY-MM-DD)
-  - `/datetime` - Insert current date and time (YYYY-MM-DD HH:mm)
-  - `/dna`, `/rna`, `/protein`, etc. - Generate unique sample IDs
-- Added 9 new unit tests for slash commands
-- Added Sample Info Panel:
-  - View all sample IDs in current document
-  - Color-coded badges by sample type
-  - Command: `labnotev.showSampleInfo`
-- Added 10 new unit tests for sample info panel
+#### labnote-lite 모듈 통합
+- 날짜 처리 및 YAML Front Matter 파싱 기능 통합
+  - `getSeoulDateString()`, `getSeoulDateTimeString()` - 한국 시간대 기준 날짜 포맷팅
+  - `updateDateFieldInLine()`, `updateAllDatesInLine()`, `updateAllDateFields()` - 날짜 필드 업데이트
+  - `findDateFieldsInDocument()` - 문서 내 날짜 필드 검색
+  - `parseWorkflowFrontMatter()`, `parseReadmeFrontMatter()` - YAML 파싱
+- js-yaml 의존성 추가
+- 34개의 단위 테스트 추가
+
+#### VS Code 명령어
+- `labnotev.insertDate` - 현재 날짜 삽입 (YYYY-MM-DD)
+- `labnotev.insertDateTime` - 현재 날짜 및 시간 삽입 (YYYY-MM-DD HH:mm)
+- `labnotev.updateDateField` - 현재 줄의 날짜 필드 업데이트
+- `labnotev.updateAllDateFields` - 모든 last_updated_date 필드 업데이트
+- 키보드 단축키:
+  - `Ctrl+Shift+D` / `Cmd+Shift+D` - 날짜/시간 삽입
+  - `Ctrl+Shift+U` / `Cmd+Shift+U` - 날짜 필드 업데이트
+- 11개의 단위 테스트 추가
+
+#### labsample 모듈 통합
+- 샘플 ID 관리 기능 통합
+  - `generateUniqueSampleId()` - 타임스탬프 기반 고유 ID 생성
+  - `SAMPLE_TYPES` 상수 - DNA, RNA, Plasmid, Reagent, Primer, Protein, Equip, Labware 지원
+  - 명령어, 경로, 메시지용 애플리케이션 상수
+- 8개의 단위 테스트 추가
+
+#### 샘플 ID 하이라이팅
+- 마크다운 파일 내 샘플 ID 색상 강조 표시
+  - DNA, RNA, Plasmid, Reagent, Primer, Protein, Equip, Labware 타입별 고유 색상
+  - 타이핑 시 실시간 하이라이팅 업데이트
+- 8개의 단위 테스트 추가
+
+#### BlockNote 에디터 Slash Commands
+- `/date` - 현재 날짜 삽입 (YYYY-MM-DD)
+- `/datetime` - 현재 날짜 및 시간 삽입 (YYYY-MM-DD HH:mm)
+- `/dna`, `/rna`, `/protein` 등 - 고유 샘플 ID 생성
+- 9개의 단위 테스트 추가
+
+#### Sample Info 패널
+- 현재 문서의 모든 샘플 ID 조회
+- 샘플 타입별 색상 배지
+- `labnotev.showSampleInfo` 명령어
+- 10개의 단위 테스트 추가
+
+---
 
 ## [0.1.0] - 2026-01-16
 
-### Added
+### 추가
 
-- Initial release of Lab Note Editor VSCode Extension
-- Notion-style block editor using BlockNote
-- Custom editor provider for `.labnote.md` files
-- Markdown file support with bidirectional conversion
-- Block types:
-  - Headings (H1, H2, H3)
-  - Paragraphs with inline formatting (bold, italic, code)
-  - Bullet and numbered lists
-  - Code blocks with syntax highlighting
-  - Images with local storage
-  - Tables (GFM format)
-  - Math blocks with KaTeX rendering
-- Slash command menu for quick block insertion
-- Ctrl+V paste handling:
-  - Plain text
-  - Rich text (HTML)
-  - Clipboard images (screenshots)
-  - Image files from file explorer
-- Auto-save images to `assets/` folder
-- VSCode theme integration (light/dark mode)
-- Drag and drop block reordering
-- Test suite with 85 tests across 7 test files
+- Lab Note Editor VS Code Extension 최초 릴리스
+- BlockNote 기반 Notion 스타일 블록 에디터
+- `.labnote.md` 파일용 커스텀 에디터 프로바이더
+- 마크다운 파일 양방향 변환 지원
+- 지원하는 블록 타입:
+  - 제목 (H1, H2, H3)
+  - 문단 및 인라인 서식 (굵게, 기울임, 코드)
+  - 글머리 기호 및 번호 목록
+  - 구문 강조가 있는 코드 블록
+  - 로컬 저장소 이미지
+  - 표 (GFM 형식)
+  - KaTeX 렌더링 수학 블록
+- 빠른 블록 삽입을 위한 슬래시 명령 메뉴
+- Ctrl+V 붙여넣기 처리:
+  - 일반 텍스트
+  - 서식 있는 텍스트 (HTML)
+  - 클립보드 이미지 (스크린샷)
+  - 파일 탐색기의 이미지 파일
+- `assets/` 폴더에 이미지 자동 저장
+- VS Code 테마 통합 (라이트/다크 모드)
+- 드래그 앤 드롭 블록 재정렬
+- 7개 테스트 파일에 85개 테스트 포함

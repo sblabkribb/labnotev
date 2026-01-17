@@ -1,190 +1,240 @@
 # Lab Note Editor
 
-A Notion-style block editor for VS Code, designed specifically for lab notes. Built with BlockNote and React, providing a modern, intuitive editing experience for scientific documentation.
+VS Code용 Notion 스타일 블록 에디터로, 실험실 노트 작성을 위해 특별히 설계되었습니다. BlockNote와 React로 구축되어 과학 문서화를 위한 현대적이고 직관적인 편집 경험을 제공합니다.
 
-## Features
+## 주요 기능
 
-### 📝 Rich Block Editor
-- **Notion-style editing**: Block-based editor with drag-and-drop reordering
-- **Markdown support**: Bidirectional conversion between Markdown and blocks
-- **Slash commands**: Quick block insertion with `/` menu
+### 📝 리치 블록 에디터
+- **Notion 스타일 편집**: 드래그 앤 드롭 재정렬이 가능한 블록 기반 에디터
+- **마크다운 지원**: 마크다운과 블록 간 양방향 변환
+- **슬래시 명령**: `/` 메뉴로 빠른 블록 삽입
 
-### 🧩 Supported Block Types
-- **Headings** (H1, H2, H3)
-- **Paragraphs** with inline formatting (bold, italic, code)
-- **Lists** (bullet and numbered)
-- **Code blocks** with syntax highlighting
-- **Images** with local storage
-- **Tables** (GFM format)
-- **Math blocks** with KaTeX rendering
+### 🧩 지원하는 블록 타입
+- **제목** (H1, H2, H3)
+- **문단** 및 인라인 서식 (굵게, 기울임, 코드)
+- **목록** (글머리 기호, 번호)
+- **코드 블록** 및 구문 강조
+- **이미지** 및 로컬 저장소 연동
+- **표** (GFM 형식)
+- **수학 블록** 및 KaTeX 렌더링
 
-### 🖼️ Image Handling
-- **Paste images** from clipboard (Ctrl+V)
-  - Screenshots
-  - Image files from file explorer
-  - Rich text with embedded images
-- **Auto-save** to `assets/` folder
-- **Drag and drop** image upload
+### 🖼️ 이미지 처리
+- **클립보드 이미지 붙여넣기** (Ctrl+V)
+  - 스크린샷
+  - 파일 탐색기의 이미지 파일
+  - 임베디드 이미지가 포함된 서식 있는 텍스트
+- **자동 저장**: `assets/` 폴더에 저장
+- **드래그 앤 드롭** 이미지 업로드
 
-### 🎨 VS Code Integration
-- **Theme support**: Automatically adapts to VS Code light/dark theme
-- **Custom editor**: Opens `.labnote.md` files automatically
-- **Auto-save**: Debounced saving (500ms) for smooth editing
+### 🔬 샘플 ID 관리
+- **샘플 ID 생성**: `/dna`, `/rna`, `/protein` 등의 슬래시 명령으로 고유 ID 생성
+- **샘플 ID 하이라이팅**: 타입별 색상으로 샘플 ID 강조 표시
+  - DNA, RNA, Plasmid, Reagent, Primer, Protein, Equip, Labware 지원
+- **Sample Info 패널**: 문서 내 모든 샘플 ID 조회
 
-## Installation
+### 📅 날짜 관리
+- **날짜 삽입**: 현재 날짜/시간을 한국 시간대(KST) 기준으로 삽입
+- **날짜 필드 업데이트**: YAML Front Matter의 날짜 필드 자동 업데이트
+- **키보드 단축키**:
+  - `Ctrl+Shift+D` / `Cmd+Shift+D`: 날짜/시간 삽입
+  - `Ctrl+Shift+U` / `Cmd+Shift+U`: 날짜 필드 업데이트
 
-### From Source
+### 🎨 VS Code 통합
+- **테마 지원**: VS Code 라이트/다크 테마에 자동 적응
+- **커스텀 에디터**: `.labnote.md` 파일 자동 열기
+- **자동 저장**: 부드러운 편집을 위한 500ms 디바운스 저장
 
-1. Clone the repository:
+## 설치
+
+### 소스에서 설치
+
+1. 저장소 클론:
 ```bash
 git clone <repository-url>
 cd labnotev
 ```
 
-2. Install dependencies:
+2. 의존성 설치:
 ```bash
 npm run install:all
 ```
 
-3. Build the extension:
+3. 확장 빌드:
 ```bash
 npm run build
 ```
 
-4. Open in VS Code and press `F5` to start debugging
+4. VS Code에서 열고 `F5`를 눌러 디버깅 시작
 
-## Usage
+## 사용법
 
-### Creating a New Note
+### 새 노트 생성
 
-1. Open Command Palette (`Ctrl+Shift+P` / `Cmd+Shift+P`)
-2. Type "Lab Note: New Note"
-3. Enter a file name (without extension)
-4. The file will be created as `filename.labnote.md` and opened in the editor
+1. 명령 팔레트 열기 (`Ctrl+Shift+P` / `Cmd+Shift+P`)
+2. "Lab Note: New Note" 입력
+3. 파일 이름 입력 (확장자 제외)
+4. 파일이 `filename.labnote.md`로 생성되고 에디터에서 열림
 
-### Opening Existing Files
+### 기존 파일 열기
 
-Simply open any `.labnote.md` file in VS Code. The custom editor will automatically activate.
+VS Code에서 아무 `.labnote.md` 파일을 열면 커스텀 에디터가 자동으로 활성화됩니다.
 
-### Editing
+### 편집
 
-- **Type `/`** to open the slash command menu
-- **Drag blocks** to reorder them
-- **Paste images** with `Ctrl+V` (or `Cmd+V` on Mac)
-- **Format text** with keyboard shortcuts:
-  - `Ctrl+B` / `Cmd+B`: Bold
-  - `Ctrl+I` / `Cmd+I`: Italic
-  - `Ctrl+K` / `Cmd+K`: Link
+- **`/` 입력**: 슬래시 명령 메뉴 열기
+- **블록 드래그**: 블록 재정렬
+- **이미지 붙여넣기**: `Ctrl+V` (Mac: `Cmd+V`)
+- **텍스트 서식 지정**:
+  - `Ctrl+B` / `Cmd+B`: 굵게
+  - `Ctrl+I` / `Cmd+I`: 기울임
+  - `Ctrl+K` / `Cmd+K`: 링크
 
-### Math Blocks
+### 수학 블록
 
-Insert math equations using the `/math` command or by typing `$$` and pressing Enter. Math blocks support LaTeX syntax and are rendered with KaTeX.
+`/math` 명령을 사용하거나 `$$`를 입력하고 Enter를 눌러 수학 방정식을 삽입합니다. 수학 블록은 LaTeX 문법을 지원하며 KaTeX로 렌더링됩니다.
 
-Example:
+예시:
 ```latex
 \int_{-\infty}^{\infty} e^{-x^2} dx = \sqrt{\pi}
 ```
 
-## Development
+### 슬래시 명령 목록
 
-### Project Structure
+| 명령어 | 설명 |
+|--------|------|
+| `/date` | 현재 날짜 삽입 (YYYY-MM-DD) |
+| `/datetime` | 현재 날짜/시간 삽입 (YYYY-MM-DD HH:mm) |
+| `/dna` | DNA 샘플 ID 생성 |
+| `/rna` | RNA 샘플 ID 생성 |
+| `/protein` | Protein 샘플 ID 생성 |
+| `/plasmid` | Plasmid 샘플 ID 생성 |
+| `/reagent` | Reagent 샘플 ID 생성 |
+| `/primer` | Primer 샘플 ID 생성 |
+| `/equip` | Equip 샘플 ID 생성 |
+| `/labware` | Labware 샘플 ID 생성 |
+
+### VS Code 명령어
+
+| 명령어 | 설명 |
+|--------|------|
+| `Lab Note: New Note` | 새 실험 노트 생성 |
+| `Lab Note: Insert Current Date` | 현재 날짜 삽입 |
+| `Lab Note: Insert Current Date and Time` | 현재 날짜/시간 삽입 |
+| `Lab Note: Update Date Field on Current Line` | 현재 줄의 날짜 필드 업데이트 |
+| `Lab Note: Update All last_updated_date Fields` | 모든 날짜 필드 업데이트 |
+| `Lab Note: Show Sample Info Panel` | 샘플 정보 패널 표시 |
+
+## 개발
+
+### 프로젝트 구조
 
 ```
 labnotev/
-├── src/                    # Extension source code
-│   ├── extension.ts       # Main extension entry point
-│   └── labNoteEditorProvider.ts  # Custom editor provider
-├── webview/               # Webview (React app)
+├── src/                          # Extension 소스 코드
+│   ├── extension.ts              # 메인 진입점
+│   ├── labNoteEditorProvider.ts  # 커스텀 에디터 프로바이더
+│   ├── labnote-lite/             # 날짜/YAML 처리 모듈
+│   │   └── logic.ts
+│   ├── labsample/                # 샘플 ID 관리 모듈
+│   │   ├── constants/
+│   │   │   ├── appConstants.ts
+│   │   │   └── decorations.ts
+│   │   └── utils/
+│   │       └── idGenerator.ts
+│   └── views/                    # Webview 패널
+│       └── SampleInfoPanel.ts
+├── webview/                      # Webview (React 앱)
 │   └── src/
-│       ├── Editor.tsx    # Main editor component
-│       ├── blocks/        # Custom block types
-│       └── hooks/         # React hooks
-└── dist/                  # Compiled output
+│       ├── Editor.tsx            # 메인 에디터 컴포넌트
+│       ├── slashCommands.ts      # 커스텀 슬래시 명령
+│       ├── blocks/               # 커스텀 블록 타입
+│       └── hooks/                # React 훅
+└── dist/                         # 컴파일된 출력
 ```
 
-### Available Scripts
+### 사용 가능한 스크립트
 
 ```bash
-# Build extension and webview
+# Extension 및 Webview 빌드
 npm run build
 
-# Build extension only
+# Extension만 빌드
 npm run build:extension
 
-# Build webview only
+# Webview만 빌드
 npm run build:webview
 
-# Watch mode (auto-rebuild on changes)
+# Watch 모드 (변경 시 자동 재빌드)
 npm run watch
 
-# Development mode (watch both extension and webview)
+# 개발 모드 (Extension과 Webview 모두 Watch)
 npm run dev
 
-# Run tests
+# 테스트 실행
 npm test
 
-# Run tests in watch mode
+# Watch 모드로 테스트 실행
 npm run test:watch
 
-# Run all tests (extension + webview)
+# 모든 테스트 실행 (Extension + Webview)
 npm run test:all
 ```
 
-### Debugging
+### 디버깅
 
-1. Open the project in VS Code
-2. Press `F5` to start debugging
-3. A new Extension Development Host window will open
-4. Open a `.labnote.md` file in the new window to test
+1. VS Code에서 프로젝트 열기
+2. `F5`를 눌러 디버깅 시작
+3. 새 Extension Development Host 창이 열림
+4. 새 창에서 `.labnote.md` 파일을 열어 테스트
 
-For more details, see the [Debugging Guide](#debugging).
+## 테스트
 
-## Testing
+프로젝트에는 포괄적인 테스트 커버리지가 포함되어 있습니다:
 
-The project includes comprehensive test coverage:
+- **Extension 테스트**: 89개 (7개 파일)
+- **Webview 테스트**: 76개 (6개 파일)
+- **테스트 프레임워크**: Vitest
 
-- **Extension tests**: Unit tests for extension logic
-- **Webview tests**: Component and hook tests
-- **Test framework**: Vitest
-
-Run tests:
+테스트 실행:
 ```bash
-npm test
+npm test                 # Extension 테스트
+cd webview && npm test   # Webview 테스트
+npm run test:all         # 모든 테스트
 ```
 
-## File Format
+## 파일 형식
 
-Lab notes are stored as Markdown files (`.labnote.md`). The editor provides a visual interface while maintaining compatibility with standard Markdown syntax.
+실험 노트는 마크다운 파일(`.labnote.md`)로 저장됩니다. 에디터는 표준 마크다운 문법과의 호환성을 유지하면서 시각적 인터페이스를 제공합니다.
 
-### Image Storage
+### 이미지 저장
 
-Images are automatically saved to an `assets/` folder in the same directory as the note file. The Markdown file references images using relative paths:
+이미지는 노트 파일과 같은 디렉토리의 `assets/` 폴더에 자동으로 저장됩니다. 마크다운 파일은 상대 경로를 사용하여 이미지를 참조합니다:
 
 ```markdown
-![Image caption](./assets/1234567890_abc123.png)
+![이미지 캡션](./assets/1234567890_abc123.png)
 ```
 
-## Requirements
+## 요구 사항
 
 - **VS Code**: ^1.85.0
 - **Node.js**: >= 18.0.0
 - **npm**: >= 8.0.0
 
-## Known Issues
+## 알려진 문제
 
-- Image paste may occasionally duplicate in some edge cases (fixed in latest version)
-- Large images may take time to process
+- 일부 엣지 케이스에서 이미지 붙여넣기가 중복될 수 있음 (최신 버전에서 수정됨)
+- 큰 이미지는 처리에 시간이 걸릴 수 있음
 
-## Contributing
+## 기여
 
-Contributions are welcome! Please feel free to submit a Pull Request.
+기여를 환영합니다! Pull Request를 자유롭게 제출해 주세요.
 
-## License
+## 라이선스
 
-[Add your license here]
+[라이선스 추가 예정]
 
-## Acknowledgments
+## 감사의 말
 
-- Built with [BlockNote](https://www.blocknotejs.org/)
-- UI components from [Mantine](https://mantine.dev/)
-- Math rendering with [KaTeX](https://katex.org/)
+- [BlockNote](https://www.blocknotejs.org/)로 제작
+- [Mantine](https://mantine.dev/)의 UI 컴포넌트
+- [KaTeX](https://katex.org/)의 수학 렌더링
