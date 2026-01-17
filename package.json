@@ -29,6 +29,36 @@
       {
         "command": "labnotev.newNote",
         "title": "Lab Note: New Note"
+      },
+      {
+        "command": "labnotev.insertDate",
+        "title": "Lab Note: Insert Current Date"
+      },
+      {
+        "command": "labnotev.insertDateTime",
+        "title": "Lab Note: Insert Current Date and Time"
+      },
+      {
+        "command": "labnotev.updateDateField",
+        "title": "Lab Note: Update Date Field on Current Line"
+      },
+      {
+        "command": "labnotev.updateAllDateFields",
+        "title": "Lab Note: Update All last_updated_date Fields"
+      }
+    ],
+    "keybindings": [
+      {
+        "command": "labnotev.insertDateTime",
+        "key": "ctrl+shift+d",
+        "mac": "cmd+shift+d",
+        "when": "editorTextFocus && editorLangId == markdown"
+      },
+      {
+        "command": "labnotev.updateDateField",
+        "key": "ctrl+shift+u",
+        "mac": "cmd+shift+u",
+        "when": "editorTextFocus && editorLangId == markdown"
       }
     ]
   },

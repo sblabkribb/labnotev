@@ -5,7 +5,13 @@ export const mockVscode = {
   window: {
     registerCustomEditorProvider: vi.fn(() => ({ dispose: vi.fn() })),
     showErrorMessage: vi.fn(),
+    showWarningMessage: vi.fn(),
+    showInformationMessage: vi.fn(),
     showInputBox: vi.fn(),
+    showQuickPick: vi.fn(),
+    showOpenDialog: vi.fn(),
+    activeTextEditor: undefined as unknown,
+    onDidChangeActiveTextEditor: vi.fn(() => ({ dispose: vi.fn() })),
   },
   commands: {
     registerCommand: vi.fn(() => ({ dispose: vi.fn() })),

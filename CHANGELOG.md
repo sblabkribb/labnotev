@@ -16,6 +16,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - `parseWorkflowFrontMatter()`, `parseReadmeFrontMatter()` for YAML parsing
 - Added js-yaml dependency for YAML processing
 - Added 34 new unit tests for labnote-lite logic module
+- Added VS Code Commands for date operations:
+  - `labnotev.insertDate` - Insert current date (YYYY-MM-DD)
+  - `labnotev.insertDateTime` - Insert current date and time (YYYY-MM-DD HH:mm)
+  - `labnotev.updateDateField` - Update date field on current line
+  - `labnotev.updateAllDateFields` - Update all last_updated_date fields
+- Added keyboard shortcuts:
+  - `Ctrl+Shift+D` / `Cmd+Shift+D` for insert datetime
+  - `Ctrl+Shift+U` / `Cmd+Shift+U` for update date field
+- Added 11 new unit tests for VS Code commands
 
 ## [0.1.0] - 2026-01-16
 
