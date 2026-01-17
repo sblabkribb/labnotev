@@ -261,7 +261,7 @@ const x = 1;
     });
 
     describe('YAML front matter', () => {
-      it('should parse YAML front matter as code block', () => {
+      it('should parse YAML front matter as yaml code block', () => {
         const markdown = `---
 Title: My Document
 Sample Tracking: Yes
@@ -273,7 +273,7 @@ Sample Tracking: Yes
         
         expect(blocks.length).toBeGreaterThanOrEqual(2);
         expect(blocks[0].type).toBe('codeBlock');
-        expect((blocks[0].props as { language: string }).language).toBe('yaml-frontmatter');
+        expect((blocks[0].props as { language: string }).language).toBe('yaml');
         expect(blocks[0].content).toContain('Title: My Document');
         expect(blocks[0].content).toContain('Sample Tracking: Yes');
       });
@@ -289,7 +289,7 @@ Some content`;
         const blocks = markdownToBlocks(markdown);
         
         expect(blocks[0].type).toBe('codeBlock');
-        expect((blocks[0].props as { language: string }).language).toBe('yaml-frontmatter');
+        expect((blocks[0].props as { language: string }).language).toBe('yaml');
         expect(blocks[0].content).toContain('Sample Tracking: Yes');
       });
 
@@ -308,7 +308,7 @@ This is a horizontal rule`;
         
         // First block should be YAML
         expect(blocks[0].type).toBe('codeBlock');
-        expect((blocks[0].props as { language: string }).language).toBe('yaml-frontmatter');
+        expect((blocks[0].props as { language: string }).language).toBe('yaml');
         
         // Following content should be heading and paragraph
         expect(blocks.some(b => b.type === 'heading')).toBe(true);
@@ -323,7 +323,7 @@ This is a horizontal rule`;
         const blocks = markdownToBlocks(markdown);
         
         expect(blocks[0].type).toBe('codeBlock');
-        expect((blocks[0].props as { language: string }).language).toBe('yaml-frontmatter');
+        expect((blocks[0].props as { language: string }).language).toBe('yaml');
         expect(blocks[0].content).toBe('');
       });
 
@@ -351,8 +351,25 @@ Content`;
         const blocks = markdownToBlocks(markdown);
         
         expect(blocks[0].type).toBe('codeBlock');
+        expect((blocks[0].props as { language: string }).language).toBe('yaml');
         expect(blocks[0].content).toContain('Description: |');
         expect(blocks[0].content).toContain('multi-line');
+      });
+
+      it('should restore YAML front matter with --- markers', () => {
+        const markdown = `---
+Title: Test
+Sample Tracking: Yes
+---
+
+# Heading`;
+        
+        const blocks = markdownToBlocks(markdown);
+        
+        // Simulate blocksToMarkdown by calling blockToMarkdown
+        // First yaml block should be restored as front matter
+        expect(blocks[0].type).toBe('codeBlock');
+        expect((blocks[0].props as { language: string }).language).toBe('yaml');
       });
     });
   });

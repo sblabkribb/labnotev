@@ -5,13 +5,31 @@
 형식은 [Keep a Changelog](https://keepachangelog.com/ko/1.1.0/)를 기반으로 하며,
 이 프로젝트는 [유의적 버전 관리](https://semver.org/lang/ko/)를 따릅니다.
 
-## [0.7.1] - 2026-01-17
+## [0.7.2] - 2026-01-17
 
 ### 수정
 
+#### YAML Front Matter 렌더링 오류 수정
+- BlockNote 에디터에서 YAML front matter가 있을 때 에디터가 렌더링되지 않던 문제 수정
+- 원인: `yaml-frontmatter`라는 존재하지 않는 언어 사용으로 인한 에디터 초기화 실패
+- 해결: 표준 `yaml` 언어 사용, 첫 번째 yaml 코드 블록을 front matter로 인식
+- `blocksToMarkdown()`에 `isFirst` 파라미터 추가하여 위치 기반 판별
+
+### 테스트
+
+- Extension 테스트: 171개 (11개 파일)
+- Webview 테스트: 104개 (6개 파일)
+- 총 275개 테스트 통과
+
+---
+
+## [0.7.1] - 2026-01-17
+
+### 추가
+
 #### YAML Front Matter 보존 기능
-- BlockNote 에디터에서 YAML front matter가 손실되던 문제 수정
-- `markdownToBlocks()`에서 YAML front matter를 `yaml-frontmatter` 코드 블록으로 파싱
+- BlockNote 에디터에서 YAML front matter 파싱 및 복원 지원
+- `markdownToBlocks()`에서 YAML front matter를 코드 블록으로 파싱
 - `blocksToMarkdown()`에서 YAML front matter를 `---` 마커로 복원
 - `Sample Tracking`, `created_date` 등 YAML 메타데이터 보존
 - 6개의 단위 테스트 추가

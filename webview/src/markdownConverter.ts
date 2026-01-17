@@ -21,7 +21,7 @@ export function markdownToBlocks(markdown: string): PartialBlock[] {
       const yamlContent = lines.slice(1, yamlEndIndex).join('\n');
       blocks.push({
         type: 'codeBlock',
-        props: { language: 'yaml-frontmatter' },
+        props: { language: 'yaml' },
         content: yamlContent,
       });
       i = yamlEndIndex + 1;
@@ -273,8 +273,10 @@ export async function blocksToMarkdown(editor: BlockNoteEditor): Promise<string>
   const blocks = editor.document;
   const lines: string[] = [];
 
-  for (const block of blocks) {
-    const markdown = blockToMarkdown(block as Block);
+  for (let i = 0; i < blocks.length; i++) {
+    const block = blocks[i];
+    const isFirst = i === 0;
+    const markdown = blockToMarkdown(block as Block, isFirst);
     if (markdown !== null) {
       lines.push(markdown);
     }
@@ -283,7 +285,7 @@ export async function blocksToMarkdown(editor: BlockNoteEditor): Promise<string>
   return lines.join('\n\n');
 }
 
-function blockToMarkdown(block: Block): string | null {
+function blockToMarkdown(block: Block, isFirst: boolean = false): string | null {
   switch (block.type) {
     case 'paragraph':
       return inlineContentToMarkdown(block.content);
@@ -303,8 +305,8 @@ function blockToMarkdown(block: Block): string | null {
       const language = (block.props as { language?: string }).language || '';
       const code = typeof block.content === 'string' ? block.content : '';
       
-      // YAML front matter special handling
-      if (language === 'yaml-frontmatter') {
+      // First yaml block is treated as YAML front matter
+      if (isFirst && language === 'yaml') {
         return `---\n${code}\n---`;
       }
       
