@@ -18,21 +18,15 @@ export function usePasteHandler({ editor, onSaveImage }: PasteHandlerOptions) {
     const clipboardData = event.clipboardData;
     if (!clipboardData) return;
 
+    // Collect all unique image files from both files and items
+    const imageFiles = new Set<File>();
+    
     // Check for files (images from file explorer or screenshots)
     const files = clipboardData.files;
     if (files.length > 0) {
-      const imageFiles = Array.from(files).filter((file) =>
-        file.type.startsWith('image/')
-      );
-      
-      if (imageFiles.length > 0) {
-        event.preventDefault();
-        
-        for (const file of imageFiles) {
-          await handleImageFile(file, editor, onSaveImage);
-        }
-        return;
-      }
+      Array.from(files)
+        .filter((file) => file.type.startsWith('image/'))
+        .forEach((file) => imageFiles.add(file));
     }
 
     // Check for clipboard items (for images that aren't in files)
@@ -45,12 +39,23 @@ export function usePasteHandler({ editor, onSaveImage }: PasteHandlerOptions) {
         if (item.type.startsWith('image/')) {
           const file = item.getAsFile();
           if (file) {
-            event.preventDefault();
-            await handleImageFile(file, editor, onSaveImage);
-            return;
+            imageFiles.add(file);
           }
         }
       }
+    }
+
+    // If we found any images, handle them and prevent default behavior
+    if (imageFiles.size > 0) {
+      event.preventDefault();
+      event.stopPropagation();
+      event.stopImmediatePropagation();
+      
+      // Process all unique image files
+      for (const file of imageFiles) {
+        await handleImageFile(file, editor, onSaveImage);
+      }
+      return;
     }
 
     // For HTML content, let BlockNote handle it natively
@@ -66,9 +71,10 @@ export function usePasteHandler({ editor, onSaveImage }: PasteHandlerOptions) {
   }, [editor, onSaveImage]);
 
   useEffect(() => {
-    document.addEventListener('paste', handlePaste);
+    // Use capture phase to intercept before BlockNote's handler
+    document.addEventListener('paste', handlePaste, true);
     return () => {
-      document.removeEventListener('paste', handlePaste);
+      document.removeEventListener('paste', handlePaste, true);
     };
   }, [handlePaste]);
 }
