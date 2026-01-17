@@ -25,6 +25,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - `Ctrl+Shift+D` / `Cmd+Shift+D` for insert datetime
   - `Ctrl+Shift+U` / `Cmd+Shift+U` for update date field
 - Added 11 new unit tests for VS Code commands
+- Integrated labsample module for sample ID management:
+  - Added `generateUniqueSampleId()` for timestamp-based unique ID generation
+  - Added `SAMPLE_TYPES` constant with support for DNA, RNA, Plasmid, Reagent, Primer, Protein, Equip, Labware
+  - Added application constants for commands, paths, and messages
+- Added 8 new unit tests for ID generator
 
 ## [0.1.0] - 2026-01-16
 
