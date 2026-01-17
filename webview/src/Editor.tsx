@@ -43,7 +43,8 @@ export const Editor: React.FC<EditorProps> = ({
       return undefined;
     }
     try {
-      return markdownToBlocks(initialContent);
+      const blocks = markdownToBlocks(initialContent);
+      return blocks;
     } catch (e) {
       console.error('Error parsing markdown:', e);
       return undefined;

@@ -19,10 +19,11 @@ export function markdownToBlocks(markdown: string): PartialBlock[] {
     }
     if (yamlEndIndex > 0) {
       const yamlContent = lines.slice(1, yamlEndIndex).join('\n');
+      // Store YAML as paragraph with special marker (codeBlock causes NaN error in BlockNote)
+      // Format: ___YAML_FRONTMATTER___\n{content}\n___END_YAML___
       blocks.push({
-        type: 'codeBlock',
-        props: { language: 'yaml' },
-        content: yamlContent,
+        type: 'paragraph',
+        content: [{ type: 'text', text: `___YAML_FRONTMATTER___\n${yamlContent}\n___END_YAML___`, styles: {} }],
       });
       i = yamlEndIndex + 1;
     }
@@ -59,10 +60,10 @@ export function markdownToBlocks(markdown: string): PartialBlock[] {
         codeLines.push(lines[i]);
         i++;
       }
+      // Store code block as paragraph with special marker (codeBlock causes NaN error)
       blocks.push({
-        type: 'codeBlock',
-        props: { language },
-        content: codeLines.join('\n'),
+        type: 'paragraph',
+        content: [{ type: 'text', text: `___CODE_BLOCK_${language}___\n${codeLines.join('\n')}\n___END_CODE___`, styles: {} }],
       });
       i++; // Skip closing ```
       continue;
@@ -151,6 +152,7 @@ export function markdownToBlocks(markdown: string): PartialBlock[] {
       if (tableRows.length > 0) {
         blocks.push({
           type: 'table',
+          props: {},
           content: {
             type: 'tableContent',
             rows: tableRows.map((row) => ({
@@ -288,7 +290,20 @@ export async function blocksToMarkdown(editor: BlockNoteEditor): Promise<string>
 function blockToMarkdown(block: Block, isFirst: boolean = false): string | null {
   switch (block.type) {
     case 'paragraph':
-      return inlineContentToMarkdown(block.content);
+      const text = inlineContentToMarkdown(block.content);
+      // Check for YAML front matter marker
+      if (text.startsWith('___YAML_FRONTMATTER___\n') && text.endsWith('\n___END_YAML___')) {
+        const yamlContent = text.slice('___YAML_FRONTMATTER___\n'.length, -'\n___END_YAML___'.length);
+        return `---\n${yamlContent}\n---`;
+      }
+      // Check for code block marker
+      const codeBlockMatch = text.match(/^___CODE_BLOCK_(.+?)___\n([\s\S]*)\n___END_CODE___$/);
+      if (codeBlockMatch) {
+        const language = codeBlockMatch[1];
+        const code = codeBlockMatch[2];
+        return `\`\`\`${language}\n${code}\n\`\`\``;
+      }
+      return text;
 
     case 'heading':
       const level = (block.props as { level: number }).level || 1;

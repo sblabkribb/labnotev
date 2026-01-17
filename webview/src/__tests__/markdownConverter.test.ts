@@ -163,33 +163,38 @@ describe('markdownConverter', () => {
     });
 
     describe('Code blocks', () => {
-      it('should convert code block with language', () => {
+      it('should store code block as paragraph with marker (BlockNote workaround)', () => {
         const markdown = '```javascript\nconst x = 1;\n```';
         const blocks = markdownToBlocks(markdown);
         
         expect(blocks).toHaveLength(1);
-        expect(blocks[0].type).toBe('codeBlock');
-        expect((blocks[0].props as { language: string }).language).toBe('javascript');
-        expect(blocks[0].content).toBe('const x = 1;');
+        // Code blocks are stored as paragraphs with special marker due to BlockNote NaN error
+        expect(blocks[0].type).toBe('paragraph');
+        const content = blocks[0].content as Array<{ text: string }>;
+        expect(content[0].text).toContain('___CODE_BLOCK_javascript___');
+        expect(content[0].text).toContain('const x = 1;');
+        expect(content[0].text).toContain('___END_CODE___');
       });
 
-      it('should convert code block without language', () => {
+      it('should store code block without language as plaintext', () => {
         const markdown = '```\nsome code\n```';
         const blocks = markdownToBlocks(markdown);
         
         expect(blocks).toHaveLength(1);
-        expect(blocks[0].type).toBe('codeBlock');
-        expect((blocks[0].props as { language: string }).language).toBe('plaintext');
+        expect(blocks[0].type).toBe('paragraph');
+        const content = blocks[0].content as Array<{ text: string }>;
+        expect(content[0].text).toContain('___CODE_BLOCK_plaintext___');
       });
 
-      it('should convert multi-line code block', () => {
+      it('should store multi-line code block', () => {
         const markdown = '```python\ndef hello():\n    print("Hello")\n```';
         const blocks = markdownToBlocks(markdown);
         
         expect(blocks).toHaveLength(1);
-        expect(blocks[0].type).toBe('codeBlock');
-        expect(blocks[0].content).toContain('def hello():');
-        expect(blocks[0].content).toContain('print("Hello")');
+        expect(blocks[0].type).toBe('paragraph');
+        const content = blocks[0].content as Array<{ text: string }>;
+        expect(content[0].text).toContain('def hello():');
+        expect(content[0].text).toContain('print("Hello")');
       });
     });
 
@@ -256,12 +261,18 @@ const x = 1;
         expect(blocks[0].type).toBe('heading');
         expect(blocks[1].type).toBe('paragraph');
         expect(blocks.some(b => b.type === 'bulletListItem')).toBe(true);
-        expect(blocks.some(b => b.type === 'codeBlock')).toBe(true);
+        // Code block is stored as paragraph with marker
+        const codeBlockParagraph = blocks.find(b => {
+          if (b.type !== 'paragraph') return false;
+          const content = b.content as Array<{ text: string }>;
+          return content[0]?.text?.includes('___CODE_BLOCK_');
+        });
+        expect(codeBlockParagraph).toBeDefined();
       });
     });
 
     describe('YAML front matter', () => {
-      it('should parse YAML front matter as yaml code block', () => {
+      it('should store YAML front matter as paragraph with marker (BlockNote workaround)', () => {
         const markdown = `---
 Title: My Document
 Sample Tracking: Yes
@@ -272,13 +283,16 @@ Sample Tracking: Yes
         const blocks = markdownToBlocks(markdown);
         
         expect(blocks.length).toBeGreaterThanOrEqual(2);
-        expect(blocks[0].type).toBe('codeBlock');
-        expect((blocks[0].props as { language: string }).language).toBe('yaml');
-        expect(blocks[0].content).toContain('Title: My Document');
-        expect(blocks[0].content).toContain('Sample Tracking: Yes');
+        // YAML is stored as paragraph with special marker due to BlockNote NaN error
+        expect(blocks[0].type).toBe('paragraph');
+        const content = blocks[0].content as Array<{ text: string }>;
+        expect(content[0].text).toContain('___YAML_FRONTMATTER___');
+        expect(content[0].text).toContain('Title: My Document');
+        expect(content[0].text).toContain('Sample Tracking: Yes');
+        expect(content[0].text).toContain('___END_YAML___');
       });
 
-      it('should parse YAML front matter with Sample Tracking field', () => {
+      it('should store YAML front matter with Sample Tracking field', () => {
         const markdown = `---
 Sample Tracking: Yes
 Author: Test User
@@ -288,9 +302,10 @@ Some content`;
         
         const blocks = markdownToBlocks(markdown);
         
-        expect(blocks[0].type).toBe('codeBlock');
-        expect((blocks[0].props as { language: string }).language).toBe('yaml');
-        expect(blocks[0].content).toContain('Sample Tracking: Yes');
+        expect(blocks[0].type).toBe('paragraph');
+        const content = blocks[0].content as Array<{ text: string }>;
+        expect(content[0].text).toContain('___YAML_FRONTMATTER___');
+        expect(content[0].text).toContain('Sample Tracking: Yes');
       });
 
       it('should handle YAML front matter at the beginning only', () => {
@@ -306,9 +321,10 @@ This is a horizontal rule`;
         
         const blocks = markdownToBlocks(markdown);
         
-        // First block should be YAML
-        expect(blocks[0].type).toBe('codeBlock');
-        expect((blocks[0].props as { language: string }).language).toBe('yaml');
+        // First block should be YAML marker
+        expect(blocks[0].type).toBe('paragraph');
+        const content = blocks[0].content as Array<{ text: string }>;
+        expect(content[0].text).toContain('___YAML_FRONTMATTER___');
         
         // Following content should be heading and paragraph
         expect(blocks.some(b => b.type === 'heading')).toBe(true);
@@ -322,9 +338,10 @@ This is a horizontal rule`;
         
         const blocks = markdownToBlocks(markdown);
         
-        expect(blocks[0].type).toBe('codeBlock');
-        expect((blocks[0].props as { language: string }).language).toBe('yaml');
-        expect(blocks[0].content).toBe('');
+        expect(blocks[0].type).toBe('paragraph');
+        const content = blocks[0].content as Array<{ text: string }>;
+        expect(content[0].text).toContain('___YAML_FRONTMATTER___');
+        expect(content[0].text).toContain('___END_YAML___');
       });
 
       it('should handle markdown without YAML front matter', () => {
@@ -350,13 +367,14 @@ Content`;
         
         const blocks = markdownToBlocks(markdown);
         
-        expect(blocks[0].type).toBe('codeBlock');
-        expect((blocks[0].props as { language: string }).language).toBe('yaml');
-        expect(blocks[0].content).toContain('Description: |');
-        expect(blocks[0].content).toContain('multi-line');
+        expect(blocks[0].type).toBe('paragraph');
+        const content = blocks[0].content as Array<{ text: string }>;
+        expect(content[0].text).toContain('___YAML_FRONTMATTER___');
+        expect(content[0].text).toContain('Description: |');
+        expect(content[0].text).toContain('multi-line');
       });
 
-      it('should restore YAML front matter with --- markers', () => {
+      it('should preserve YAML content for restoration', () => {
         const markdown = `---
 Title: Test
 Sample Tracking: Yes
@@ -366,10 +384,19 @@ Sample Tracking: Yes
         
         const blocks = markdownToBlocks(markdown);
         
-        // Simulate blocksToMarkdown by calling blockToMarkdown
-        // First yaml block should be restored as front matter
-        expect(blocks[0].type).toBe('codeBlock');
-        expect((blocks[0].props as { language: string }).language).toBe('yaml');
+        // YAML content should be fully preserved in the marker
+        expect(blocks[0].type).toBe('paragraph');
+        const content = blocks[0].content as Array<{ text: string }>;
+        const yamlText = content[0].text;
+        
+        // Verify marker structure
+        expect(yamlText.startsWith('___YAML_FRONTMATTER___\n')).toBe(true);
+        expect(yamlText.endsWith('\n___END_YAML___')).toBe(true);
+        
+        // Extract and verify YAML content
+        const yamlContent = yamlText.slice('___YAML_FRONTMATTER___\n'.length, -'\n___END_YAML___'.length);
+        expect(yamlContent).toContain('Title: Test');
+        expect(yamlContent).toContain('Sample Tracking: Yes');
       });
     });
   });

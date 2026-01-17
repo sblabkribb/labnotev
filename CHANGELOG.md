@@ -5,6 +5,27 @@
 형식은 [Keep a Changelog](https://keepachangelog.com/ko/1.1.0/)를 기반으로 하며,
 이 프로젝트는 [유의적 버전 관리](https://semver.org/lang/ko/)를 따릅니다.
 
+## [0.7.3] - 2026-01-18
+
+### 수정
+
+#### BlockNote codeBlock NaN 에러 해결
+- YAML front matter 또는 코드 블록이 있는 파일을 열 때 에디터가 빈 화면으로 표시되던 문제 수정
+- 원인: BlockNote의 `codeBlock` 타입이 `content` 필드에서 `NaN` 에러 발생
+- 해결: YAML과 코드 블록을 **특수 마커가 포함된 paragraph**로 저장
+  - YAML: `___YAML_FRONTMATTER___\n{content}\n___END_YAML___`
+  - 코드: `___CODE_BLOCK_{language}___\n{content}\n___END_CODE___`
+- `blocksToMarkdown()`에서 마커를 인식하여 원래 형식으로 복원
+- ErrorBoundary를 활용한 체계적인 런타임 디버깅으로 근본 원인 파악
+
+### 테스트
+
+- Extension 테스트: 171개 (11개 파일)
+- Webview 테스트: 104개 (6개 파일)
+- 총 275개 테스트 통과
+
+---
+
 ## [0.7.2] - 2026-01-17
 
 ### 수정
