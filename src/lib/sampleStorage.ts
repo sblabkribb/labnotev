@@ -248,3 +248,126 @@ export function saveSamplesFromDocument(
     saveSamplesByType(labsamplesFolder, type, merged[type]);
   }
 }
+
+/**
+ * Parse YAML front matter and check if Sample Tracking is enabled
+ * Supports key formats: "Sample Tracking", "sampleTracking", "sample-tracking"
+ * Supports values: Yes/No, true/false, on/off, 1/0 (case-insensitive)
+ */
+export function parseSampleTracking(text: string): boolean {
+  // Extract YAML front matter (between --- markers)
+  const yamlMatch = text.match(/^---\s*\n([\s\S]*?)\n---/);
+  if (!yamlMatch) {
+    return false;
+  }
+
+  const yamlContent = yamlMatch[1];
+
+  // Match different key formats: "Sample Tracking", "sampleTracking", "sample-tracking"
+  // Pattern is case-insensitive for the value
+  const patterns = [
+    /^Sample\s+Tracking\s*:\s*(.+)$/im,
+    /^sampleTracking\s*:\s*(.+)$/im,
+    /^sample-tracking\s*:\s*(.+)$/im,
+  ];
+
+  for (const pattern of patterns) {
+    const match = yamlContent.match(pattern);
+    if (match) {
+      const value = match[1].trim().toLowerCase();
+      // Check for truthy values
+      return ['yes', 'true', 'on', '1'].includes(value);
+    }
+  }
+
+  return false;
+}
+
+/**
+ * Get the Global labsamples folder path (workspace root)
+ */
+export function getGlobalLabsamplesFolder(workspaceRoot: string): string {
+  return path.join(workspaceRoot, 'resources', 'labsamples');
+}
+
+/**
+ * Sample location type
+ */
+export type SampleLocationResult = 'local' | 'global' | 'both' | 'none';
+
+/**
+ * Check where a sample is located (local, global, both, or none)
+ */
+export function getSampleLocation(
+  sampleId: string,
+  type: string,
+  localDb: SampleDatabase,
+  globalDb: SampleDatabase
+): SampleLocationResult {
+  const inLocal = localDb[type]?.[sampleId] !== undefined;
+  const inGlobal = globalDb[type]?.[sampleId] !== undefined;
+
+  if (inLocal && inGlobal) {
+    return 'both';
+  } else if (inLocal) {
+    return 'local';
+  } else if (inGlobal) {
+    return 'global';
+  } else {
+    return 'none';
+  }
+}
+
+/**
+ * Move a sample from local to global database
+ * Returns new copies of both databases
+ */
+export function moveSampleToGlobal(
+  sampleId: string,
+  type: string,
+  localDb: SampleDatabase,
+  globalDb: SampleDatabase
+): { newLocalDb: SampleDatabase; newGlobalDb: SampleDatabase } {
+  const newLocalDb: SampleDatabase = JSON.parse(JSON.stringify(localDb));
+  const newGlobalDb: SampleDatabase = JSON.parse(JSON.stringify(globalDb));
+
+  // Ensure type exists in both databases
+  if (!newGlobalDb[type]) {
+    newGlobalDb[type] = {};
+  }
+
+  // Move sample data
+  if (newLocalDb[type]?.[sampleId]) {
+    newGlobalDb[type][sampleId] = newLocalDb[type][sampleId];
+    delete newLocalDb[type][sampleId];
+  }
+
+  return { newLocalDb, newGlobalDb };
+}
+
+/**
+ * Move a sample from global to local database
+ * Returns new copies of both databases
+ */
+export function moveSampleToLocal(
+  sampleId: string,
+  type: string,
+  localDb: SampleDatabase,
+  globalDb: SampleDatabase
+): { newLocalDb: SampleDatabase; newGlobalDb: SampleDatabase } {
+  const newLocalDb: SampleDatabase = JSON.parse(JSON.stringify(localDb));
+  const newGlobalDb: SampleDatabase = JSON.parse(JSON.stringify(globalDb));
+
+  // Ensure type exists in both databases
+  if (!newLocalDb[type]) {
+    newLocalDb[type] = {};
+  }
+
+  // Move sample data
+  if (newGlobalDb[type]?.[sampleId]) {
+    newLocalDb[type][sampleId] = newGlobalDb[type][sampleId];
+    delete newGlobalDb[type][sampleId];
+  }
+
+  return { newLocalDb, newGlobalDb };
+}

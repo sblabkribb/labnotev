@@ -111,10 +111,17 @@ VS Code에서 아무 `.labnote.md` 파일을 열면 커스텀 에디터가 자�
 
 ### 슬래시 명령 목록
 
+#### 기본 명령
+
 | 명령어 | 설명 |
 |--------|------|
 | `/date` | 현재 날짜 삽입 (YYYY-MM-DD) |
 | `/datetime` | 현재 날짜/시간 삽입 (YYYY-MM-DD HH:mm) |
+
+#### 샘플 ID 생성
+
+| 명령어 | 설명 |
+|--------|------|
 | `/dna` | DNA 샘플 ID 생성 |
 | `/rna` | RNA 샘플 ID 생성 |
 | `/protein` | Protein 샘플 ID 생성 |
@@ -123,6 +130,28 @@ VS Code에서 아무 `.labnote.md` 파일을 열면 커스텀 에디터가 자�
 | `/primer` | Primer 샘플 ID 생성 |
 | `/equip` | Equip 샘플 ID 생성 |
 | `/labware` | Labware 샘플 ID 생성 |
+
+#### 워크플로 템플릿 (29개)
+
+Design, Build, Test, Learn 카테고리의 DBTL 사이클 기반 워크플로 템플릿
+
+| 예시 명령 | 설명 |
+|-----------|------|
+| `/wd010` | General Design of Experiment |
+| `/wb010` | DNA Oligomer Assembly |
+| `/wt010` | Nucleotide Sequencing |
+| `/wl010` | Sequence Variant Analysis |
+
+#### 유닛 오퍼레이션 (35개)
+
+Hardware, Software 카테고리의 실험 자동화 오퍼레이션 템플릿
+
+| 예시 명령 | 설명 |
+|-----------|------|
+| `/ophw-001` | Acoustic Liquid Handling |
+| `/ophw-005` | Thermocycler |
+| `/opsw-001` | Sequence Alignment |
+| `/opsw-006` | Protein Structure Prediction |
 
 ### VS Code 명령어
 
@@ -153,10 +182,15 @@ labnotev/
 │   │   └── labnoteStructure.ts   # 실험 노트 폴더 구조 생성
 │   └── views/                    # Webview 패널
 │       └── SampleInfoPanel.ts
+├── snippets/                     # VS Code Snippet 정의
+│   └── markdown.json             # 날짜 관련 스니펫
 ├── webview/                      # Webview (React 앱)
 │   └── src/
 │       ├── Editor.tsx            # 메인 에디터 컴포넌트
 │       ├── slashCommands.ts      # 커스텀 슬래시 명령
+│       ├── data/                 # 데이터 파일
+│       │   ├── workflows.ts      # 워크플로 템플릿 (29개)
+│       │   └── unitOperations.ts # 유닛 오퍼레이션 (35개)
 │       ├── blocks/               # 커스텀 블록 타입
 │       └── hooks/                # React 훅
 └── dist/                         # 컴파일된 출력
@@ -201,8 +235,8 @@ npm run test:all
 
 프로젝트에는 포괄적인 테스트 커버리지가 포함되어 있습니다:
 
-- **Extension 테스트**: 152개 (11개 파일)
-- **Webview 테스트**: 85개 (6개 파일)
+- **Extension 테스트**: 171개 (11개 파일)
+- **Webview 테스트**: 97개 (6개 파일)
 - **테스트 프레임워크**: Vitest
 
 테스트 실행:

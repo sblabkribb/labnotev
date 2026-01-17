@@ -1,6 +1,6 @@
 import * as vscode from 'vscode';
 import { SAMPLE_TYPES, SampleType, sampleTypeColors } from '../lib/sampleUtils';
-import { extractSampleInfoFromText as extractFromStorage, SampleInfo } from '../lib/sampleStorage';
+import { extractSampleInfoFromText as extractFromStorage, SampleInfo, parseSampleTracking } from '../lib/sampleStorage';
 
 /**
  * Sample display information with all metadata
@@ -359,6 +359,21 @@ export class SampleInfoPanel {
     if (editor && editor.document.languageId === 'markdown') {
       this._currentDocUri = editor.document.uri;
       const text = editor.document.getText();
+      
+      // Check if Sample Tracking is enabled
+      if (!parseSampleTracking(text)) {
+        this._panel.webview.html = this._wrapHtml(`
+          <div class="no-samples">
+            <p>Sample Tracking이 비활성화되어 있습니다.</p>
+            <p style="font-size: 0.9em; margin-top: 16px;">
+              YAML front matter에 다음을 추가하세요:<br>
+              <code style="background: var(--vscode-textCodeBlock-background); padding: 2px 6px; border-radius: 4px;">Sample Tracking: Yes</code>
+            </p>
+          </div>
+        `);
+        return;
+      }
+      
       const samples = extractSampleInfoFromText(text);
       
       // Convert SampleInfo to SampleDisplayInfo

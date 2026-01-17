@@ -1,0 +1,27 @@
+{
+  "Insert Date": {
+    "prefix": ["date", "today"],
+    "body": ["$CURRENT_YEAR-$CURRENT_MONTH-$CURRENT_DATE"],
+    "description": "Insert current date (YYYY-MM-DD)"
+  },
+  "Insert DateTime": {
+    "prefix": ["datetime"],
+    "body": ["$CURRENT_YEAR-$CURRENT_MONTH-$CURRENT_DATE $CURRENT_HOUR:$CURRENT_MINUTE"],
+    "description": "Insert current date and time (YYYY-MM-DD HH:mm)"
+  },
+  "Last Updated Date": {
+    "prefix": ["lastupdated"],
+    "body": ["last_updated_date: '$CURRENT_YEAR-$CURRENT_MONTH-$CURRENT_DATE'"],
+    "description": "Insert last_updated_date field with current date"
+  },
+  "Created Date": {
+    "prefix": ["createddate"],
+    "body": ["created_date: '$CURRENT_YEAR-$CURRENT_MONTH-$CURRENT_DATE'"],
+    "description": "Insert created_date field with current date"
+  },
+  "End Date": {
+    "prefix": ["enddate"],
+    "body": ["end_date: '$1'"],
+    "description": "Insert end_date field (empty placeholder)"
+  }
+}

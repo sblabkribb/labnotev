@@ -12,7 +12,7 @@ import {
 import { SAMPLE_TYPES, SampleType } from './lib/sampleUtils';
 import { sampleDecorations } from './lib/sampleDecorations';
 import { SampleInfoPanel } from './views/SampleInfoPanel';
-import { saveSamplesFromDocument } from './lib/sampleStorage';
+import { saveSamplesFromDocument, parseSampleTracking } from './lib/sampleStorage';
 import { createLabnoteStructure } from './lib/labnoteStructure';
 
 export function activate(context: vscode.ExtensionContext) {
@@ -182,6 +182,9 @@ export function activate(context: vscode.ExtensionContext) {
       return;
     }
 
+    const documentText = document.getText();
+    const sampleTrackingEnabled = parseSampleTracking(documentText);
+
     const decorationsByType: Record<SampleType, vscode.DecorationOptions[]> = {} as Record<SampleType, vscode.DecorationOptions[]>;
     
     // Initialize decoration arrays for each type
@@ -189,25 +192,28 @@ export function activate(context: vscode.ExtensionContext) {
       decorationsByType[type] = [];
     }
 
-    // Scan document for sample IDs
-    for (let lineNum = 0; lineNum < document.lineCount; lineNum++) {
-      const line = document.lineAt(lineNum);
-      
-      for (const type of SAMPLE_TYPES) {
-        // Pattern: TYPE-{digits} (e.g., DNA-1737123456789)
-        const pattern = new RegExp(`\\b${type}-\\d+\\b`, 'g');
-        let match;
+    // Only scan for sample IDs if Sample Tracking is enabled
+    if (sampleTrackingEnabled) {
+      // Scan document for sample IDs
+      for (let lineNum = 0; lineNum < document.lineCount; lineNum++) {
+        const line = document.lineAt(lineNum);
         
-        while ((match = pattern.exec(line.text)) !== null) {
-          const startPos = new vscode.Position(lineNum, match.index);
-          const endPos = new vscode.Position(lineNum, match.index + match[0].length);
-          const range = new vscode.Range(startPos, endPos);
-          decorationsByType[type].push({ range });
+        for (const type of SAMPLE_TYPES) {
+          // Pattern: TYPE-{digits} (e.g., DNA-1737123456789)
+          const pattern = new RegExp(`\\b${type}-\\d+\\b`, 'g');
+          let match;
+          
+          while ((match = pattern.exec(line.text)) !== null) {
+            const startPos = new vscode.Position(lineNum, match.index);
+            const endPos = new vscode.Position(lineNum, match.index + match[0].length);
+            const range = new vscode.Range(startPos, endPos);
+            decorationsByType[type].push({ range });
+          }
         }
       }
     }
 
-    // Apply decorations for each type
+    // Apply decorations for each type (empty arrays will clear decorations)
     for (const type of SAMPLE_TYPES) {
       editor.setDecorations(sampleDecorations[type], decorationsByType[type]);
     }
@@ -236,8 +242,15 @@ export function activate(context: vscode.ExtensionContext) {
         return;
       }
 
+      const documentText = document.getText();
+      
+      // Only save sample info if Sample Tracking is enabled
+      if (!parseSampleTracking(documentText)) {
+        return;
+      }
+
       try {
-        saveSamplesFromDocument(document.uri.fsPath, document.getText());
+        saveSamplesFromDocument(document.uri.fsPath, documentText);
       } catch (error) {
         console.error('[LabNote] Failed to save sample info:', error);
       }

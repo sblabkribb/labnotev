@@ -5,6 +5,55 @@
 형식은 [Keep a Changelog](https://keepachangelog.com/ko/1.1.0/)를 기반으로 하며,
 이 프로젝트는 [유의적 버전 관리](https://semver.org/lang/ko/)를 따릅니다.
 
+## [0.7.0] - 2026-01-17
+
+### 추가
+
+#### 날짜 Snippet 지원
+- VS Code Snippet contribution 추가
+- 마크다운 파일에서 자동완성 지원:
+  - `date`, `today` → 현재 날짜 (YYYY-MM-DD)
+  - `datetime` → 현재 날짜/시간 (YYYY-MM-DD HH:mm)
+  - `lastupdated` → `last_updated_date: 'YYYY-MM-DD'`
+  - `createddate` → `created_date: 'YYYY-MM-DD'`
+  - `enddate` → `end_date: ''`
+
+#### YAML Sample Tracking 설정
+- YAML front matter에서 `Sample Tracking: Yes/No` 파싱
+- 설정에 따라 샘플 하이라이팅 및 Sample Info 패널 활성화/비활성화
+- `parseSampleTracking()` 함수 추가
+- 지원 형식: `Sample Tracking`, `sampleTracking`, `sample-tracking`
+- 지원 값: Yes/No, true/false, on/off, 1/0 (대소문자 무관)
+- 11개의 단위 테스트 추가
+
+#### Global/Local 샘플 관리
+- 워크스페이스 루트 `resources/labsamples/` 경로 지원
+- `getGlobalLabsamplesFolder()` 함수 추가
+- `getSampleLocation()` 함수 추가 (local/global/both/none 판별)
+- `moveSampleToGlobal()`, `moveSampleToLocal()` 함수 추가
+- 8개의 단위 테스트 추가
+
+#### 워크플로 템플릿 슬래시 명령
+- `/workflow` 슬래시 명령 추가 (29개 워크플로)
+- DBTL 사이클 기반: Design, Build, Test, Learn 카테고리
+- `webview/src/data/workflows.ts` 데이터 파일 추가
+- 6개의 단위 테스트 추가
+
+#### 유닛 오퍼레이션 슬래시 명령
+- `/operation` 슬래시 명령 추가 (35개 오퍼레이션)
+- Hardware, Software 카테고리 지원
+- 실험 자동화 장비 및 분석 소프트웨어 템플릿
+- `webview/src/data/unitOperations.ts` 데이터 파일 추가
+- 6개의 단위 테스트 추가
+
+### 테스트
+
+- Extension 테스트: 171개 (11개 파일)
+- Webview 테스트: 97개 (6개 파일)
+- 총 268개 테스트 통과
+
+---
+
 ## [0.6.0] - 2026-01-17
 
 ### 추가

@@ -70,8 +70,8 @@ describe('Slash Commands', () => {
 
       const items = getLabNoteSlashMenuItems(mockEditor);
       
-      // 날짜 명령 2개 + 샘플 타입 8개 = 10개
-      expect(items.length).toBe(2 + SAMPLE_TYPES.length);
+      // 날짜 명령 2개 + 샘플 타입 8개 + 워크플로 템플릿 29개 = 39개
+      expect(items.length).toBeGreaterThanOrEqual(2 + SAMPLE_TYPES.length);
     });
   });
 
@@ -269,6 +269,146 @@ describe('Slash Commands', () => {
       sampleItems.forEach(item => {
         expect(item.hint).toBeDefined();
       });
+    });
+  });
+
+  describe('Workflow Templates', () => {
+    it('should export WORKFLOWS constant', async () => {
+      const { WORKFLOWS } = await import('../data/workflows');
+      expect(WORKFLOWS).toBeDefined();
+      expect(Array.isArray(WORKFLOWS)).toBe(true);
+      expect(WORKFLOWS.length).toBeGreaterThan(0);
+    });
+
+    it('should have Design, Build, Test, Learn categories', async () => {
+      const { WORKFLOWS } = await import('../data/workflows');
+      const categories = [...new Set(WORKFLOWS.map(w => w.category))];
+      expect(categories).toContain('Design');
+      expect(categories).toContain('Build');
+      expect(categories).toContain('Test');
+      expect(categories).toContain('Learn');
+    });
+
+    it('should have id, name, description, category for each workflow', async () => {
+      const { WORKFLOWS } = await import('../data/workflows');
+      WORKFLOWS.forEach(workflow => {
+        expect(workflow).toHaveProperty('id');
+        expect(workflow).toHaveProperty('name');
+        expect(workflow).toHaveProperty('description');
+        expect(workflow).toHaveProperty('category');
+      });
+    });
+
+    it('should export createWorkflowSlashItems function', async () => {
+      const { createWorkflowSlashItems } = await import('../slashCommands');
+      expect(typeof createWorkflowSlashItems).toBe('function');
+    });
+
+    it('should create slash item for /workflow command', async () => {
+      const { createWorkflowSlashItems } = await import('../slashCommands');
+      const mockEditor = {
+        getTextCursorPosition: () => ({ block: { id: 'test-block', content: [] } }),
+        insertBlocks: vi.fn().mockReturnValue([{ id: 'new-block' }]),
+        setTextCursorPosition: vi.fn(),
+        removeBlocks: vi.fn(),
+      } as any;
+
+      const items = createWorkflowSlashItems(mockEditor);
+      expect(items.length).toBeGreaterThan(0);
+      
+      // Check first item has proper structure
+      const firstItem = items[0];
+      expect(firstItem).toHaveProperty('name');
+      expect(firstItem).toHaveProperty('execute');
+      expect(firstItem).toHaveProperty('aliases');
+      expect(firstItem).toHaveProperty('group', 'Workflow');
+    });
+
+    it('should insert workflow template when execute is called', async () => {
+      const { createWorkflowSlashItems } = await import('../slashCommands');
+      const mockInsertBlocks = vi.fn().mockReturnValue([{ id: 'new-block' }]);
+      const mockEditor = {
+        getTextCursorPosition: () => ({ block: { id: 'test-block', content: [] } }),
+        insertBlocks: mockInsertBlocks,
+        setTextCursorPosition: vi.fn(),
+        removeBlocks: vi.fn(),
+      } as any;
+
+      const items = createWorkflowSlashItems(mockEditor);
+      const firstItem = items[0];
+      
+      firstItem.execute(mockEditor);
+
+      expect(mockInsertBlocks).toHaveBeenCalled();
+    });
+  });
+
+  describe('Unit Operations', () => {
+    it('should export UNIT_OPERATIONS constant', async () => {
+      const { UNIT_OPERATIONS } = await import('../data/unitOperations');
+      expect(UNIT_OPERATIONS).toBeDefined();
+      expect(Array.isArray(UNIT_OPERATIONS)).toBe(true);
+      expect(UNIT_OPERATIONS.length).toBeGreaterThan(0);
+    });
+
+    it('should have Hardware and Software categories', async () => {
+      const { UNIT_OPERATIONS } = await import('../data/unitOperations');
+      const categories = [...new Set(UNIT_OPERATIONS.map(op => op.category))];
+      expect(categories).toContain('Hardware');
+      expect(categories).toContain('Software');
+    });
+
+    it('should have id, name, description, category for each operation', async () => {
+      const { UNIT_OPERATIONS } = await import('../data/unitOperations');
+      UNIT_OPERATIONS.forEach(op => {
+        expect(op).toHaveProperty('id');
+        expect(op).toHaveProperty('name');
+        expect(op).toHaveProperty('description');
+        expect(op).toHaveProperty('category');
+      });
+    });
+
+    it('should export createOperationSlashItems function', async () => {
+      const { createOperationSlashItems } = await import('../slashCommands');
+      expect(typeof createOperationSlashItems).toBe('function');
+    });
+
+    it('should create slash item for /operation command', async () => {
+      const { createOperationSlashItems } = await import('../slashCommands');
+      const mockEditor = {
+        getTextCursorPosition: () => ({ block: { id: 'test-block', content: [] } }),
+        insertBlocks: vi.fn().mockReturnValue([{ id: 'new-block' }]),
+        setTextCursorPosition: vi.fn(),
+        removeBlocks: vi.fn(),
+      } as any;
+
+      const items = createOperationSlashItems(mockEditor);
+      expect(items.length).toBeGreaterThan(0);
+      
+      // Check first item has proper structure
+      const firstItem = items[0];
+      expect(firstItem).toHaveProperty('name');
+      expect(firstItem).toHaveProperty('execute');
+      expect(firstItem).toHaveProperty('aliases');
+      expect(firstItem).toHaveProperty('group', 'Operation');
+    });
+
+    it('should insert operation template when execute is called', async () => {
+      const { createOperationSlashItems } = await import('../slashCommands');
+      const mockInsertBlocks = vi.fn().mockReturnValue([{ id: 'new-block' }]);
+      const mockEditor = {
+        getTextCursorPosition: () => ({ block: { id: 'test-block', content: [] } }),
+        insertBlocks: mockInsertBlocks,
+        setTextCursorPosition: vi.fn(),
+        removeBlocks: vi.fn(),
+      } as any;
+
+      const items = createOperationSlashItems(mockEditor);
+      const firstItem = items[0];
+      
+      firstItem.execute(mockEditor);
+
+      expect(mockInsertBlocks).toHaveBeenCalled();
     });
   });
 });

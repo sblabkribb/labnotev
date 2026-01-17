@@ -20,6 +20,9 @@ describe('Labnote Commands', () => {
       },
       extensionPath: '/test/extension',
     };
+    
+    // Reset activeTextEditor with default mock that has getText
+    mockVscode.window.activeTextEditor = undefined;
   });
 
   describe('labnotev.insertDate command', () => {
@@ -58,6 +61,7 @@ describe('Labnote Commands', () => {
         document: {
           languageId: 'markdown',
           lineCount: 0,
+          getText: vi.fn().mockReturnValue(''),
         },
         selection: {
           active: { line: 0, character: 0 },
@@ -116,6 +120,7 @@ describe('Labnote Commands', () => {
         document: {
           languageId: 'markdown',
           lineCount: 0,
+          getText: vi.fn().mockReturnValue(''),
         },
         selection: {
           active: { line: 0, character: 0 },
@@ -179,6 +184,7 @@ describe('Labnote Commands', () => {
           languageId: 'markdown',
           lineAt: vi.fn().mockReturnValue(mockLine),
           lineCount: 0,
+          getText: vi.fn().mockReturnValue(''),
         },
         selection: {
           active: { line: 2, character: 0 },
@@ -211,6 +217,7 @@ describe('Labnote Commands', () => {
           languageId: 'markdown',
           lineAt: vi.fn().mockReturnValue(mockLine),
           lineCount: 0,
+          getText: vi.fn().mockReturnValue(''),
         },
         selection: {
           active: { line: 2, character: 0 },

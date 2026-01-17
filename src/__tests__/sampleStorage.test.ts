@@ -167,4 +167,251 @@ describe('Sample Storage', () => {
       expect(merged['DNA']['DNA-2']).toBeDefined();
     });
   });
+
+  describe('parseSampleTracking', () => {
+    it('should return true for "Sample Tracking: Yes"', async () => {
+      const { parseSampleTracking } = await import('../lib/sampleStorage');
+      
+      const text = `---
+Title: Test
+Sample Tracking: Yes
+---
+# Content`;
+      
+      expect(parseSampleTracking(text)).toBe(true);
+    });
+
+    it('should return true for "Sample Tracking: true"', async () => {
+      const { parseSampleTracking } = await import('../lib/sampleStorage');
+      
+      const text = `---
+Sample Tracking: true
+---`;
+      
+      expect(parseSampleTracking(text)).toBe(true);
+    });
+
+    it('should return true for "Sample Tracking: on"', async () => {
+      const { parseSampleTracking } = await import('../lib/sampleStorage');
+      
+      const text = `---
+Sample Tracking: on
+---`;
+      
+      expect(parseSampleTracking(text)).toBe(true);
+    });
+
+    it('should return true for "Sample Tracking: 1"', async () => {
+      const { parseSampleTracking } = await import('../lib/sampleStorage');
+      
+      const text = `---
+Sample Tracking: 1
+---`;
+      
+      expect(parseSampleTracking(text)).toBe(true);
+    });
+
+    it('should return false for "Sample Tracking: No"', async () => {
+      const { parseSampleTracking } = await import('../lib/sampleStorage');
+      
+      const text = `---
+Sample Tracking: No
+---`;
+      
+      expect(parseSampleTracking(text)).toBe(false);
+    });
+
+    it('should return false for "Sample Tracking: false"', async () => {
+      const { parseSampleTracking } = await import('../lib/sampleStorage');
+      
+      const text = `---
+Sample Tracking: false
+---`;
+      
+      expect(parseSampleTracking(text)).toBe(false);
+    });
+
+    it('should return false for "Sample Tracking: off"', async () => {
+      const { parseSampleTracking } = await import('../lib/sampleStorage');
+      
+      const text = `---
+Sample Tracking: off
+---`;
+      
+      expect(parseSampleTracking(text)).toBe(false);
+    });
+
+    it('should return false when no YAML front matter exists', async () => {
+      const { parseSampleTracking } = await import('../lib/sampleStorage');
+      
+      const text = `# No YAML
+Some content`;
+      
+      expect(parseSampleTracking(text)).toBe(false);
+    });
+
+    it('should return false when Sample Tracking field is missing', async () => {
+      const { parseSampleTracking } = await import('../lib/sampleStorage');
+      
+      const text = `---
+Title: Test
+Author: Someone
+---`;
+      
+      expect(parseSampleTracking(text)).toBe(false);
+    });
+
+    it('should handle different key formats (sampleTracking, sample-tracking)', async () => {
+      const { parseSampleTracking } = await import('../lib/sampleStorage');
+      
+      const text1 = `---
+sampleTracking: Yes
+---`;
+      const text2 = `---
+sample-tracking: Yes
+---`;
+      
+      expect(parseSampleTracking(text1)).toBe(true);
+      expect(parseSampleTracking(text2)).toBe(true);
+    });
+
+    it('should be case-insensitive for values', async () => {
+      const { parseSampleTracking } = await import('../lib/sampleStorage');
+      
+      const text = `---
+Sample Tracking: YES
+---`;
+      
+      expect(parseSampleTracking(text)).toBe(true);
+    });
+  });
+
+  describe('getGlobalLabsamplesFolder', () => {
+    it('should return workspace root resources/labsamples path', async () => {
+      const { getGlobalLabsamplesFolder } = await import('../lib/sampleStorage');
+      
+      const result = getGlobalLabsamplesFolder('/workspace/project');
+      
+      expect(result).toMatch(/resources[\\\/]labsamples$/);
+      expect(result).toContain('workspace');
+    });
+  });
+
+  describe('getSampleLocation', () => {
+    it('should return "local" for sample only in local', async () => {
+      const { getSampleLocation } = await import('../lib/sampleStorage');
+      
+      const localDb = {
+        DNA: {
+          'DNA-123': { type: 'DNA', alias: null, descriptions: [], sources: [] }
+        }
+      };
+      const globalDb = { DNA: {} };
+      
+      const location = getSampleLocation('DNA-123', 'DNA', localDb, globalDb);
+      expect(location).toBe('local');
+    });
+
+    it('should return "global" for sample only in global', async () => {
+      const { getSampleLocation } = await import('../lib/sampleStorage');
+      
+      const localDb = { DNA: {} };
+      const globalDb = {
+        DNA: {
+          'DNA-123': { type: 'DNA', alias: null, descriptions: [], sources: [] }
+        }
+      };
+      
+      const location = getSampleLocation('DNA-123', 'DNA', localDb, globalDb);
+      expect(location).toBe('global');
+    });
+
+    it('should return "both" for sample in both locations', async () => {
+      const { getSampleLocation } = await import('../lib/sampleStorage');
+      
+      const localDb = {
+        DNA: {
+          'DNA-123': { type: 'DNA', alias: null, descriptions: [], sources: [] }
+        }
+      };
+      const globalDb = {
+        DNA: {
+          'DNA-123': { type: 'DNA', alias: null, descriptions: [], sources: [] }
+        }
+      };
+      
+      const location = getSampleLocation('DNA-123', 'DNA', localDb, globalDb);
+      expect(location).toBe('both');
+    });
+
+    it('should return "none" for sample not found', async () => {
+      const { getSampleLocation } = await import('../lib/sampleStorage');
+      
+      const localDb = { DNA: {} };
+      const globalDb = { DNA: {} };
+      
+      const location = getSampleLocation('DNA-123', 'DNA', localDb, globalDb);
+      expect(location).toBe('none');
+    });
+  });
+
+  describe('moveSampleToGlobal', () => {
+    it('should move sample from local to global database', async () => {
+      const { moveSampleToGlobal } = await import('../lib/sampleStorage');
+      
+      const localDb = {
+        DNA: {
+          'DNA-123': { type: 'DNA', alias: 'Test', descriptions: ['Desc'], sources: ['test.md'] }
+        }
+      };
+      const globalDb = { DNA: {} };
+      
+      const result = moveSampleToGlobal('DNA-123', 'DNA', localDb, globalDb);
+      
+      expect(result.newLocalDb['DNA']['DNA-123']).toBeUndefined();
+      expect(result.newGlobalDb['DNA']['DNA-123']).toBeDefined();
+      expect(result.newGlobalDb['DNA']['DNA-123'].alias).toBe('Test');
+    });
+
+    it('should preserve all sample data when moving', async () => {
+      const { moveSampleToGlobal } = await import('../lib/sampleStorage');
+      
+      const localDb = {
+        RNA: {
+          'RNA-456': { 
+            type: 'RNA', 
+            alias: 'RNA Sample', 
+            descriptions: ['desc1', 'desc2'], 
+            sources: ['a.md', 'b.md'] 
+          }
+        }
+      };
+      const globalDb = { RNA: {} };
+      
+      const result = moveSampleToGlobal('RNA-456', 'RNA', localDb, globalDb);
+      
+      expect(result.newGlobalDb['RNA']['RNA-456'].alias).toBe('RNA Sample');
+      expect(result.newGlobalDb['RNA']['RNA-456'].descriptions).toEqual(['desc1', 'desc2']);
+      expect(result.newGlobalDb['RNA']['RNA-456'].sources).toEqual(['a.md', 'b.md']);
+    });
+  });
+
+  describe('moveSampleToLocal', () => {
+    it('should move sample from global to local database', async () => {
+      const { moveSampleToLocal } = await import('../lib/sampleStorage');
+      
+      const localDb = { DNA: {} };
+      const globalDb = {
+        DNA: {
+          'DNA-123': { type: 'DNA', alias: 'Test', descriptions: ['Desc'], sources: ['test.md'] }
+        }
+      };
+      
+      const result = moveSampleToLocal('DNA-123', 'DNA', localDb, globalDb);
+      
+      expect(result.newGlobalDb['DNA']['DNA-123']).toBeUndefined();
+      expect(result.newLocalDb['DNA']['DNA-123']).toBeDefined();
+      expect(result.newLocalDb['DNA']['DNA-123'].alias).toBe('Test');
+    });
+  });
 });

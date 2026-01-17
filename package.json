@@ -2,7 +2,7 @@
   "name": "labnotev",
   "displayName": "Lab Note Editor",
   "description": "Notion-style block editor for lab notes using BlockNote",
-  "version": "0.6.0",
+  "version": "0.7.0",
   "publisher": "labnotev",
   "engines": {
     "vscode": "^1.85.0"
@@ -67,6 +67,12 @@
         "key": "ctrl+shift+u",
         "mac": "cmd+shift+u",
         "when": "editorTextFocus && editorLangId == markdown"
+      }
+    ],
+    "snippets": [
+      {
+        "language": "markdown",
+        "path": "./snippets/markdown.json"
       }
     ]
   },
