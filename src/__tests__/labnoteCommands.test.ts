@@ -57,11 +57,13 @@ describe('Labnote Commands', () => {
       const mockEditor = {
         document: {
           languageId: 'markdown',
+          lineCount: 0,
         },
         selection: {
           active: { line: 0, character: 0 },
         },
         edit: mockEdit,
+        setDecorations: vi.fn(),
       };
       mockVscode.window.activeTextEditor = mockEditor;
 
@@ -113,11 +115,13 @@ describe('Labnote Commands', () => {
       const mockEditor = {
         document: {
           languageId: 'markdown',
+          lineCount: 0,
         },
         selection: {
           active: { line: 0, character: 0 },
         },
         edit: mockEdit,
+        setDecorations: vi.fn(),
       };
       mockVscode.window.activeTextEditor = mockEditor;
 
@@ -174,11 +178,13 @@ describe('Labnote Commands', () => {
         document: {
           languageId: 'markdown',
           lineAt: vi.fn().mockReturnValue(mockLine),
+          lineCount: 0,
         },
         selection: {
           active: { line: 2, character: 0 },
         },
         edit: mockEdit,
+        setDecorations: vi.fn(),
       };
       mockVscode.window.activeTextEditor = mockEditor;
 
@@ -204,11 +210,13 @@ describe('Labnote Commands', () => {
         document: {
           languageId: 'markdown',
           lineAt: vi.fn().mockReturnValue(mockLine),
+          lineCount: 0,
         },
         selection: {
           active: { line: 2, character: 0 },
         },
         edit: mockEdit,
+        setDecorations: vi.fn(),
       };
       mockVscode.window.activeTextEditor = mockEditor;
 

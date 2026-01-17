@@ -30,6 +30,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Added `SAMPLE_TYPES` constant with support for DNA, RNA, Plasmid, Reagent, Primer, Protein, Equip, Labware
   - Added application constants for commands, paths, and messages
 - Added 8 new unit tests for ID generator
+- Added Sample ID highlighting in markdown files:
+  - Color-coded highlighting for DNA, RNA, Plasmid, Reagent, Primer, Protein, Equip, Labware
+  - Real-time highlighting updates as you type
+  - Decorations with type-specific colors
+- Added 8 new unit tests for sample highlighting
 
 ## [0.1.0] - 2026-01-16
 

@@ -12,6 +12,15 @@ export const mockVscode = {
     showOpenDialog: vi.fn(),
     activeTextEditor: undefined as unknown,
     onDidChangeActiveTextEditor: vi.fn(() => ({ dispose: vi.fn() })),
+    createTextEditorDecorationType: vi.fn(() => ({
+      dispose: vi.fn(),
+    })),
+  },
+  DecorationRangeBehavior: {
+    ClosedClosed: 1,
+    OpenOpen: 0,
+    ClosedOpen: 2,
+    OpenClosed: 3,
   },
   commands: {
     registerCommand: vi.fn(() => ({ dispose: vi.fn() })),

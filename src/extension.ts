@@ -7,6 +7,8 @@ import {
   updateAllDatesInLine,
   updateAllDateFields,
 } from './labnote-lite/logic';
+import { SAMPLE_TYPES, SampleType } from './labsample/constants/appConstants';
+import { sampleDecorations } from './labsample/constants/decorations';
 
 export function activate(context: vscode.ExtensionContext) {
   console.log('Lab Note Editor is now active');
@@ -165,6 +167,66 @@ export function activate(context: vscode.ExtensionContext) {
       vscode.window.showInformationMessage('All last_updated_date fields updated');
     })
   );
+
+  // Sample ID highlighting
+  function applySampleIdHighlights(editor: vscode.TextEditor) {
+    const document = editor.document;
+
+    // Only apply to markdown files
+    if (document.languageId !== 'markdown') {
+      return;
+    }
+
+    const decorationsByType: Record<SampleType, vscode.DecorationOptions[]> = {} as Record<SampleType, vscode.DecorationOptions[]>;
+    
+    // Initialize decoration arrays for each type
+    for (const type of SAMPLE_TYPES) {
+      decorationsByType[type] = [];
+    }
+
+    // Scan document for sample IDs
+    for (let lineNum = 0; lineNum < document.lineCount; lineNum++) {
+      const line = document.lineAt(lineNum);
+      
+      for (const type of SAMPLE_TYPES) {
+        // Pattern: TYPE-{digits} (e.g., DNA-1737123456789)
+        const pattern = new RegExp(`\\b${type}-\\d+\\b`, 'g');
+        let match;
+        
+        while ((match = pattern.exec(line.text)) !== null) {
+          const startPos = new vscode.Position(lineNum, match.index);
+          const endPos = new vscode.Position(lineNum, match.index + match[0].length);
+          const range = new vscode.Range(startPos, endPos);
+          decorationsByType[type].push({ range });
+        }
+      }
+    }
+
+    // Apply decorations for each type
+    for (const type of SAMPLE_TYPES) {
+      editor.setDecorations(sampleDecorations[type], decorationsByType[type]);
+    }
+  }
+
+  // Register highlight handlers
+  context.subscriptions.push(
+    vscode.window.onDidChangeActiveTextEditor(editor => {
+      if (editor && editor.document.languageId === 'markdown') {
+        applySampleIdHighlights(editor);
+      }
+    }),
+    vscode.workspace.onDidChangeTextDocument(event => {
+      const editor = vscode.window.activeTextEditor;
+      if (editor && event.document === editor.document && editor.document.languageId === 'markdown') {
+        applySampleIdHighlights(editor);
+      }
+    })
+  );
+
+  // Apply highlights to current active editor
+  if (vscode.window.activeTextEditor && vscode.window.activeTextEditor.document.languageId === 'markdown') {
+    applySampleIdHighlights(vscode.window.activeTextEditor);
+  }
 }
 
 export function deactivate() {}
