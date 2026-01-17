@@ -154,11 +154,11 @@ export const Editor: React.FC<EditorProps> = ({
           triggerCharacter="/"
           getItems={async (query) => {
             return slashMenuItems.filter((item) => {
-              // Handle both 'name' and 'title' properties (BlockNote uses 'title' internally)
-              const itemName = item.name || (item as any).title || '';
+              // BlockNote uses 'title' property for menu items
+              const itemTitle = (item as any).title || '';
               const queryLower = query.toLowerCase();
               return (
-                itemName.toLowerCase().includes(queryLower) ||
+                itemTitle.toLowerCase().includes(queryLower) ||
                 item.aliases?.some((alias: string) =>
                   alias.toLowerCase().includes(queryLower)
                 )

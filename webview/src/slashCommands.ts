@@ -38,21 +38,36 @@ export function getSeoulDateTimeString(): string {
   return `${datePart} ${timePart}`;
 }
 
+// Counter for generating unique IDs within the same millisecond
+let idCounter = 0;
+let lastTimestamp = 0;
+
 /**
  * Generate a unique sample ID using timestamp format
+ * Ensures uniqueness even when called multiple times in the same millisecond
  */
 export function generateSampleId(type: SampleType): string {
   const timestamp = Date.now();
-  return `${type}-${timestamp}`;
+  if (timestamp === lastTimestamp) {
+    idCounter++;
+  } else {
+    idCounter = 0;
+    lastTimestamp = timestamp;
+  }
+  return `${type}-${timestamp}${idCounter > 0 ? `-${idCounter}` : ''}`;
 }
 
+/**
+ * BlockNote-compatible slash menu item interface
+ * Uses 'title' instead of 'name' and 'onItemClick' instead of 'execute'
+ */
 export interface SlashMenuItem {
-  name: string;
-  execute: (editor: BlockNoteEditor<any, any, any>) => void;
-  aliases?: string[];
+  title: string;
+  onItemClick: () => void;
+  aliases?: readonly string[];
   group?: string;
   icon?: React.ReactElement;
-  hint?: string;
+  subtext?: string;
 }
 
 /**
@@ -60,19 +75,19 @@ export interface SlashMenuItem {
  */
 export function createDateSlashItem(editor: BlockNoteEditor<any, any, any>): SlashMenuItem {
   return {
-    name: 'Insert Date',
-    execute: (ed) => {
+    title: 'Insert Date',
+    onItemClick: () => {
       const dateStr = getSeoulDateString();
-      const currentBlock = ed.getTextCursorPosition().block;
-      ed.insertBlocks(
+      const currentBlock = editor.getTextCursorPosition().block;
+      editor.insertBlocks(
         [{ type: 'paragraph', content: [{ type: 'text', text: dateStr }] }],
         currentBlock,
         'after'
       );
     },
-    aliases: ['date', 'today'],
+    aliases: ['date', 'today'] as const,
     group: 'Lab Note',
-    hint: 'Insert current date (YYYY-MM-DD)',
+    subtext: 'Insert current date (YYYY-MM-DD)',
   };
 }
 
@@ -81,19 +96,19 @@ export function createDateSlashItem(editor: BlockNoteEditor<any, any, any>): Sla
  */
 export function createDateTimeSlashItem(editor: BlockNoteEditor<any, any, any>): SlashMenuItem {
   return {
-    name: 'Insert DateTime',
-    execute: (ed) => {
+    title: 'Insert DateTime',
+    onItemClick: () => {
       const dateTimeStr = getSeoulDateTimeString();
-      const currentBlock = ed.getTextCursorPosition().block;
-      ed.insertBlocks(
+      const currentBlock = editor.getTextCursorPosition().block;
+      editor.insertBlocks(
         [{ type: 'paragraph', content: [{ type: 'text', text: dateTimeStr }] }],
         currentBlock,
         'after'
       );
     },
-    aliases: ['datetime', 'now', 'timestamp'],
+    aliases: ['datetime', 'now', 'timestamp'] as const,
     group: 'Lab Note',
-    hint: 'Insert current date and time (YYYY-MM-DD HH:mm)',
+    subtext: 'Insert current date and time (YYYY-MM-DD HH:mm)',
   };
 }
 
@@ -102,19 +117,19 @@ export function createDateTimeSlashItem(editor: BlockNoteEditor<any, any, any>):
  */
 export function createSampleIdSlashItems(editor: BlockNoteEditor<any, any, any>): SlashMenuItem[] {
   return SAMPLE_TYPES.map(type => ({
-    name: `Insert ${type} Sample ID`,
-    execute: (ed) => {
+    title: `Insert ${type} Sample ID`,
+    onItemClick: () => {
       const sampleId = generateSampleId(type);
-      const currentBlock = ed.getTextCursorPosition().block;
-      ed.insertBlocks(
+      const currentBlock = editor.getTextCursorPosition().block;
+      editor.insertBlocks(
         [{ type: 'paragraph', content: [{ type: 'text', text: sampleId }] }],
         currentBlock,
         'after'
       );
     },
-    aliases: [type.toLowerCase(), `sample-${type.toLowerCase()}`],
+    aliases: [type.toLowerCase(), `sample-${type.toLowerCase()}`] as const,
     group: 'Sample',
-    hint: `Generate a new ${type} sample ID`,
+    subtext: `Generate a new ${type} sample ID`,
   }));
 }
 
