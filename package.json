@@ -45,6 +45,10 @@
       {
         "command": "labnotev.updateAllDateFields",
         "title": "Lab Note: Update All last_updated_date Fields"
+      },
+      {
+        "command": "labnotev.showSampleInfo",
+        "title": "Lab Note: Show Sample Info Panel"
       }
     ],
     "keybindings": [

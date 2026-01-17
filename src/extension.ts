@@ -9,6 +9,7 @@ import {
 } from './labnote-lite/logic';
 import { SAMPLE_TYPES, SampleType } from './labsample/constants/appConstants';
 import { sampleDecorations } from './labsample/constants/decorations';
+import { SampleInfoPanel } from './views/SampleInfoPanel';
 
 export function activate(context: vscode.ExtensionContext) {
   console.log('Lab Note Editor is now active');
@@ -227,6 +228,13 @@ export function activate(context: vscode.ExtensionContext) {
   if (vscode.window.activeTextEditor && vscode.window.activeTextEditor.document.languageId === 'markdown') {
     applySampleIdHighlights(vscode.window.activeTextEditor);
   }
+
+  // Register show sample info command
+  context.subscriptions.push(
+    vscode.commands.registerCommand('labnotev.showSampleInfo', () => {
+      SampleInfoPanel.createOrShow(context.extensionUri);
+    })
+  );
 }
 
 export function deactivate() {}
