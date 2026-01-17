@@ -18,40 +18,41 @@ export function usePasteHandler({ editor, onSaveImage }: PasteHandlerOptions) {
     const clipboardData = event.clipboardData;
     if (!clipboardData) return;
 
-    // Collect all unique image files from both files and items
-    const imageFiles = new Set<File>();
+    // Collect image files - avoid duplicates by checking files first, then items only if needed
+    const imageFiles: File[] = [];
     
     // Check for files (images from file explorer or screenshots)
     const files = clipboardData.files;
-    if (files.length > 0) {
-      Array.from(files)
-        .filter((file) => file.type.startsWith('image/'))
-        .forEach((file) => imageFiles.add(file));
-    }
-
-    // Check for clipboard items (for images that aren't in files)
-    const items = clipboardData.items;
-    if (items) {
-      for (let i = 0; i < items.length; i++) {
-        const item = items[i];
-        
-        // Handle image data (screenshots, etc.)
-        if (item.type.startsWith('image/')) {
-          const file = item.getAsFile();
-          if (file) {
-            imageFiles.add(file);
+    
+    // First, check clipboardData.files
+    const imageFilesFromFiles = Array.from(files).filter((file) => file.type.startsWith('image/'));
+    
+    if (imageFilesFromFiles.length > 0) {
+      // If we found images in files, use only those (avoid duplicates from items)
+      imageFiles.push(...imageFilesFromFiles);
+    } else {
+      // Only check items if no images found in files
+      const items = clipboardData.items;
+      if (items) {
+        for (let i = 0; i < items.length; i++) {
+          const item = items[i];
+          if (item.type.startsWith('image/')) {
+            const file = item.getAsFile();
+            if (file) {
+              imageFiles.push(file);
+            }
           }
         }
       }
     }
 
     // If we found any images, handle them and prevent default behavior
-    if (imageFiles.size > 0) {
+    if (imageFiles.length > 0) {
       event.preventDefault();
       event.stopPropagation();
       event.stopImmediatePropagation();
       
-      // Process all unique image files
+      // Process all image files
       for (const file of imageFiles) {
         await handleImageFile(file, editor, onSaveImage);
       }
