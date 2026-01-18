@@ -410,5 +410,105 @@ describe('Slash Commands', () => {
 
       expect(mockInsertBlocks).toHaveBeenCalled();
     });
+
+    it('should include all required sections in operation template', async () => {
+      const { createOperationSlashItems } = await import('../slashCommands');
+      const mockInsertBlocks = vi.fn().mockReturnValue([{ id: 'new-block' }]);
+      const mockEditor = {
+        getTextCursorPosition: () => ({ block: { id: 'test-block', content: [] } }),
+        insertBlocks: mockInsertBlocks,
+        setTextCursorPosition: vi.fn(),
+        removeBlocks: vi.fn(),
+      } as any;
+
+      const items = createOperationSlashItems(mockEditor);
+      const firstItem = items[0];
+      
+      firstItem.execute(mockEditor);
+
+      const [blocks] = mockInsertBlocks.mock.calls[0];
+      
+      // Should have at least 17 blocks:
+      // 1 heading + 1 description + 1 separator + 8 section headings + 8+ section contents
+      expect(blocks.length).toBeGreaterThanOrEqual(17);
+      
+      // Extract all text content from blocks
+      const allText = blocks.map((b: any) => {
+        if (b.content && Array.isArray(b.content)) {
+          return b.content.map((c: any) => c.text || '').join('');
+        }
+        return '';
+      }).join('\n');
+      
+      // Check for required section headings
+      expect(allText).toContain('Meta');
+      expect(allText).toContain('Input');
+      expect(allText).toContain('Reagent');
+      expect(allText).toContain('Consumables');
+      expect(allText).toContain('Equipment');
+      expect(allText).toContain('Method');
+      expect(allText).toContain('Output');
+      expect(allText).toContain('Results');
+    });
+
+    it('should include Meta section with Experimenter, Start_date, End_date', async () => {
+      const { createOperationSlashItems } = await import('../slashCommands');
+      const mockInsertBlocks = vi.fn().mockReturnValue([{ id: 'new-block' }]);
+      const mockEditor = {
+        getTextCursorPosition: () => ({ block: { id: 'test-block', content: [] } }),
+        insertBlocks: mockInsertBlocks,
+        setTextCursorPosition: vi.fn(),
+        removeBlocks: vi.fn(),
+      } as any;
+
+      const items = createOperationSlashItems(mockEditor);
+      const firstItem = items[0];
+      
+      firstItem.execute(mockEditor);
+
+      const [blocks] = mockInsertBlocks.mock.calls[0];
+      
+      // Extract all text content from blocks
+      const allText = blocks.map((b: any) => {
+        if (b.content && Array.isArray(b.content)) {
+          return b.content.map((c: any) => c.text || '').join('');
+        }
+        return '';
+      }).join('\n');
+      
+      // Check for Meta section fields
+      expect(allText).toContain('Experimenter');
+      expect(allText).toContain('Start_date');
+      expect(allText).toContain('End_date');
+    });
+
+    it('should include Start_date with current datetime format', async () => {
+      const { createOperationSlashItems } = await import('../slashCommands');
+      const mockInsertBlocks = vi.fn().mockReturnValue([{ id: 'new-block' }]);
+      const mockEditor = {
+        getTextCursorPosition: () => ({ block: { id: 'test-block', content: [] } }),
+        insertBlocks: mockInsertBlocks,
+        setTextCursorPosition: vi.fn(),
+        removeBlocks: vi.fn(),
+      } as any;
+
+      const items = createOperationSlashItems(mockEditor);
+      const firstItem = items[0];
+      
+      firstItem.execute(mockEditor);
+
+      const [blocks] = mockInsertBlocks.mock.calls[0];
+      
+      // Extract all text content from blocks
+      const allText = blocks.map((b: any) => {
+        if (b.content && Array.isArray(b.content)) {
+          return b.content.map((c: any) => c.text || '').join('');
+        }
+        return '';
+      }).join('\n');
+      
+      // Check for datetime format in Start_date (YYYY-MM-DD HH:mm)
+      expect(allText).toMatch(/Start_date.*\d{4}-\d{2}-\d{2} \d{2}:\d{2}/);
+    });
   });
 });

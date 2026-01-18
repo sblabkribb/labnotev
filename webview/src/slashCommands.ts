@@ -167,6 +167,139 @@ export function createWorkflowSlashItems(editor: BlockNoteEditor<any, any, any>)
 }
 
 /**
+ * Generate full operation template blocks with all required sections
+ * Includes: Meta, Input, Reagent, Consumables, Equipment, Method, Output, Results & Discussions
+ */
+export function generateOperationTemplateBlocks(operation: { id: string; name: string; description: string }): any[] {
+  const dateTimeStr = getSeoulDateTimeString();
+  
+  return [
+    // Header: [OPHW-001 Acoustic Liquid Handling]
+    {
+      type: 'heading',
+      props: { level: 3 },
+      content: [{ type: 'text', text: `[${operation.id} ${operation.name}]`, styles: {} }],
+    },
+    // Description (italic)
+    {
+      type: 'paragraph',
+      props: {},
+      content: [{ type: 'text', text: operation.description, styles: { italic: true } }],
+    },
+    // Separator
+    {
+      type: 'paragraph',
+      props: {},
+      content: [{ type: 'text', text: '---', styles: {} }],
+    },
+    // Meta section
+    {
+      type: 'paragraph',
+      props: {},
+      content: [{ type: 'text', text: 'Meta', styles: { bold: true } }],
+    },
+    {
+      type: 'bulletListItem',
+      props: {},
+      content: [{ type: 'text', text: 'Experimenter: ', styles: {} }],
+    },
+    {
+      type: 'bulletListItem',
+      props: {},
+      content: [{ type: 'text', text: `Start_date: '${dateTimeStr}'`, styles: {} }],
+    },
+    {
+      type: 'bulletListItem',
+      props: {},
+      content: [{ type: 'text', text: "End_date: ''", styles: {} }],
+    },
+    // Input section
+    {
+      type: 'paragraph',
+      props: {},
+      content: [{ type: 'text', text: 'Input', styles: { bold: true } }],
+    },
+    {
+      type: 'bulletListItem',
+      props: {},
+      content: [{ type: 'text', text: '(samples from the previous step)', styles: {} }],
+    },
+    // Reagent section
+    {
+      type: 'paragraph',
+      props: {},
+      content: [{ type: 'text', text: 'Reagent', styles: { bold: true } }],
+    },
+    {
+      type: 'bulletListItem',
+      props: {},
+      content: [{ type: 'text', text: '(e.g. enzyme, buffer, etc.)', styles: {} }],
+    },
+    // Consumables section
+    {
+      type: 'paragraph',
+      props: {},
+      content: [{ type: 'text', text: 'Consumables', styles: { bold: true } }],
+    },
+    {
+      type: 'bulletListItem',
+      props: {},
+      content: [{ type: 'text', text: '(e.g. filter, well-plate, etc.)', styles: {} }],
+    },
+    // Equipment section
+    {
+      type: 'paragraph',
+      props: {},
+      content: [{ type: 'text', text: 'Equipment', styles: { bold: true } }],
+    },
+    {
+      type: 'bulletListItem',
+      props: {},
+      content: [{ type: 'text', text: '(e.g. centrifuge, spectrophotometer, etc.)', styles: {} }],
+    },
+    // Method section
+    {
+      type: 'paragraph',
+      props: {},
+      content: [{ type: 'text', text: 'Method', styles: { bold: true } }],
+    },
+    {
+      type: 'bulletListItem',
+      props: {},
+      content: [{ type: 'text', text: '(method used in this step)', styles: {} }],
+    },
+    // Output section
+    {
+      type: 'paragraph',
+      props: {},
+      content: [{ type: 'text', text: 'Output', styles: { bold: true } }],
+    },
+    {
+      type: 'bulletListItem',
+      props: {},
+      content: [{ type: 'text', text: '(samples to the next step)', styles: {} }],
+    },
+    // Results & Discussions section
+    {
+      type: 'paragraph',
+      props: {},
+      content: [{ type: 'text', text: 'Results & Discussions', styles: { bold: true } }],
+    },
+    {
+      type: 'bulletListItem',
+      props: {},
+      content: [{ type: 'text', text: '(Any results and discussions. Link file path if needed)', styles: {} }],
+    },
+    // Empty line at end
+    {
+      type: 'paragraph',
+      props: {},
+      content: [{ type: 'text', text: '', styles: {} }],
+    },
+  ];
+}
+
+/**
  * Create slash menu items for unit operations
  * Uses BlockNote's ReactSlashMenuItem interface: name, execute, hint
  */
@@ -174,24 +307,8 @@ export function createOperationSlashItems(editor: BlockNoteEditor<any, any, any>
   return UNIT_OPERATIONS.map(operation => ({
     name: `${operation.id}: ${operation.name}`,
     execute: (editor: BlockNoteEditor<any, any, any>) => {
-      // Insert operation template as a heading with description
-      const blocks = [
-        {
-          type: 'heading',
-          props: { level: 3 },
-          content: [{ type: 'text', text: `${operation.id}: ${operation.name}`, styles: {} }],
-        },
-        {
-          type: 'paragraph',
-          props: {},
-          content: [{ type: 'text', text: operation.description, styles: { italic: true } }],
-        },
-        {
-          type: 'paragraph',
-          props: {},
-          content: [{ type: 'text', text: '', styles: {} }],
-        },
-      ];
+      // Generate full operation template with all sections
+      const blocks = generateOperationTemplateBlocks(operation);
 
       const currentBlock = editor.getTextCursorPosition().block;
       const isSlashOnly = Array.isArray(currentBlock.content) &&

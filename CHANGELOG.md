@@ -5,6 +5,27 @@
 형식은 [Keep a Changelog](https://keepachangelog.com/ko/1.1.0/)를 기반으로 하며,
 이 프로젝트는 [유의적 버전 관리](https://semver.org/lang/ko/)를 따릅니다.
 
+## [0.8.2] - 2026-01-18
+
+### 추가
+
+#### 유닛 오퍼레이션 슬래시 명령 템플릿 보강
+- `/ophw-xxx`, `/opsw-xxx` 슬래시 명령이 완전한 템플릿 삽입
+- labnote-lite와 동일한 8개 섹션 포함:
+  - Meta (Experimenter, Start_date, End_date)
+  - Input, Reagent, Consumables, Equipment
+  - Method, Output, Results & Discussions
+- `generateOperationTemplateBlocks()` 함수 추가
+- Start_date에 현재 날짜/시간 자동 삽입
+
+### 테스트
+
+- Extension 테스트: 201개 (13개 파일)
+- Webview 테스트: 107개 (6개 파일)
+- 총 308개 테스트 통과
+
+---
+
 ## [0.8.1] - 2026-01-18
 
 ### 변경

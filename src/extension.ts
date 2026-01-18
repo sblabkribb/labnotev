@@ -442,16 +442,23 @@ export function activate(context: vscode.ExtensionContext) {
   // Register add unit operation command
   context.subscriptions.push(
     vscode.commands.registerCommand('labnotev.addUnitOperation', async () => {
+      console.log('[LabNoteV] addUnitOperation command started');
+      
       const editor = vscode.window.activeTextEditor;
       if (!editor) {
+        console.log('[LabNoteV] No active editor');
         vscode.window.showWarningMessage('워크플로 파일을 열어주세요');
         return;
       }
 
       const workflowPath = editor.document.uri.fsPath;
+      console.log('[LabNoteV] Workflow path:', workflowPath);
       
       // Validate path
-      if (!isValidWorkflowPath(workflowPath)) {
+      const validPath = isValidWorkflowPath(workflowPath);
+      console.log('[LabNoteV] isValidWorkflowPath:', validPath);
+      
+      if (!validPath) {
         vscode.window.showWarningMessage('labnote 폴더 내의 워크플로 파일에서 실행해주세요');
         return;
       }
@@ -469,7 +476,10 @@ export function activate(context: vscode.ExtensionContext) {
       }
 
       const category = categoryChoice.label as 'Hardware' | 'Software';
+      console.log('[LabNoteV] Selected category:', category);
+      
       const operations = getOperationsByCategory(category);
+      console.log('[LabNoteV] Operations count:', operations.length);
 
       // Select unit operation
       const operationItems = operations.map(op => ({
@@ -543,13 +553,24 @@ export function activate(context: vscode.ExtensionContext) {
 
 `;
 
-      // Insert at cursor position
-      await editor.edit(editBuilder => {
-        editBuilder.insert(editor.selection.active, template);
-      });
-      await editor.document.save();
+      console.log('[LabNoteV] Template length:', template.length);
+      console.log('[LabNoteV] Inserting at position:', editor.selection.active.line, editor.selection.active.character);
 
-      vscode.window.showInformationMessage(`유닛 오퍼레이션이 삽입되었습니다: ${op.id} ${op.name}`);
+      // Insert at cursor position
+      try {
+        const success = await editor.edit(editBuilder => {
+          editBuilder.insert(editor.selection.active, template);
+        });
+        console.log('[LabNoteV] Edit success:', success);
+        
+        await editor.document.save();
+        console.log('[LabNoteV] Document saved');
+
+        vscode.window.showInformationMessage(`유닛 오퍼레이션이 삽입되었습니다: ${op.id} ${op.name}`);
+      } catch (error) {
+        console.error('[LabNoteV] Error inserting template:', error);
+        vscode.window.showErrorMessage(`유닛 오퍼레이션 삽입 실패: ${error}`);
+      }
     })
   );
 }
