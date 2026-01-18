@@ -5,6 +5,26 @@
 형식은 [Keep a Changelog](https://keepachangelog.com/ko/1.1.0/)를 기반으로 하며,
 이 프로젝트는 [유의적 버전 관리](https://semver.org/lang/ko/)를 따릅니다.
 
+## [0.10.1] - 2026-01-18
+
+### 개선
+
+#### 슬래시 명령 검색 기능 강화
+- 슬래시 명령 검색 시 **설명(subtext)**도 검색 대상에 포함
+- 기존: `title`, `aliases`만 검색
+- 변경: `title`, `subtext`, `aliases` 모두 검색
+- 예시:
+  - `/Design` → "Design of Experiment"가 설명에 포함된 워크플로 표시
+  - `/Assembly` → "DNA Oligomer Assembly" 설명의 항목 표시
+
+### 테스트
+
+- Extension 테스트: 205개 (13개 파일)
+- Webview 테스트: 131개 (7개 파일)
+- 총 336개 테스트 통과
+
+---
+
 ## [0.10.0] - 2026-01-18
 
 ### 추가

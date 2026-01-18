@@ -243,8 +243,10 @@ export const Editor: React.FC<EditorProps> = ({
             
             return allItems.filter((item) => {
               const itemTitle = item.title || '';
+              const itemSubtext = item.subtext || '';
               return (
                 itemTitle.toLowerCase().includes(queryLower) ||
+                itemSubtext.toLowerCase().includes(queryLower) ||
                 item.aliases?.some((alias: string) =>
                   alias.toLowerCase().includes(queryLower)
                 )
