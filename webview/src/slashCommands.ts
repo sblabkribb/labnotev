@@ -46,11 +46,11 @@ function insertOrUpdateBlock(
 
 /**
  * Create a slash menu item for inserting the current date
- * Uses BlockNote's ReactSlashMenuItem interface: name, execute, hint
+ * Uses BlockNote's ReactSlashMenuItem interface: title, execute, subtext
  */
 export function createDateSlashItem(editor: BlockNoteEditor<any, any, any>): ReactSlashMenuItem {
   return {
-    name: 'Insert Date',
+    title: 'Insert Date',
     execute: (editor: BlockNoteEditor<any, any, any>) => {
       const dateStr = getSeoulDateString();
       insertOrUpdateBlock(editor, {
@@ -61,17 +61,17 @@ export function createDateSlashItem(editor: BlockNoteEditor<any, any, any>): Rea
     },
     aliases: ['date', 'today'],
     group: 'Lab Note',
-    hint: 'Insert current date (YYYY-MM-DD)',
+    subtext: 'Insert current date (YYYY-MM-DD)',
   };
 }
 
 /**
  * Create a slash menu item for inserting the current date and time
- * Uses BlockNote's ReactSlashMenuItem interface: name, execute, hint
+ * Uses BlockNote's ReactSlashMenuItem interface: title, execute, subtext
  */
 export function createDateTimeSlashItem(editor: BlockNoteEditor<any, any, any>): ReactSlashMenuItem {
   return {
-    name: 'Insert DateTime',
+    title: 'Insert DateTime',
     execute: (editor: BlockNoteEditor<any, any, any>) => {
       const dateTimeStr = getSeoulDateTimeString();
       insertOrUpdateBlock(editor, {
@@ -82,17 +82,17 @@ export function createDateTimeSlashItem(editor: BlockNoteEditor<any, any, any>):
     },
     aliases: ['datetime', 'now', 'timestamp'],
     group: 'Lab Note',
-    hint: 'Insert current date and time (YYYY-MM-DD HH:mm)',
+    subtext: 'Insert current date and time (YYYY-MM-DD HH:mm)',
   };
 }
 
 /**
  * Create slash menu items for sample ID generation
- * Uses BlockNote's ReactSlashMenuItem interface: name, execute, hint
+ * Uses BlockNote's ReactSlashMenuItem interface: title, execute, subtext
  */
 export function createSampleIdSlashItems(editor: BlockNoteEditor<any, any, any>): ReactSlashMenuItem[] {
   return SAMPLE_TYPES.map(type => ({
-    name: `Insert ${type} Sample ID`,
+    title: `Insert ${type} Sample ID`,
     execute: (editor: BlockNoteEditor<any, any, any>) => {
       const sampleId = generateSampleId(type);
       insertOrUpdateBlock(editor, {
@@ -103,17 +103,17 @@ export function createSampleIdSlashItems(editor: BlockNoteEditor<any, any, any>)
     },
     aliases: [type.toLowerCase(), `sample-${type.toLowerCase()}`],
     group: 'Sample',
-    hint: `Generate a new ${type} sample ID`,
+    subtext: `Generate a new ${type} sample ID`,
   }));
 }
 
 /**
  * Create slash menu items for workflow templates
- * Uses BlockNote's ReactSlashMenuItem interface: name, execute, hint
+ * Uses BlockNote's ReactSlashMenuItem interface: title, execute, subtext
  */
 export function createWorkflowSlashItems(editor: BlockNoteEditor<any, any, any>): ReactSlashMenuItem[] {
   return WORKFLOWS.map(workflow => ({
-    name: `${workflow.id}: ${workflow.name}`,
+    title: `${workflow.id}: ${workflow.name}`,
     execute: (editor: BlockNoteEditor<any, any, any>) => {
       // Insert workflow template as a heading with description
       const blocks = [
@@ -162,7 +162,7 @@ export function createWorkflowSlashItems(editor: BlockNoteEditor<any, any, any>)
       `workflow-${workflow.id.toLowerCase()}`,
     ],
     group: 'Workflow',
-    hint: `${workflow.category}: ${workflow.description}`,
+    subtext: `${workflow.category}: ${workflow.description}`,
   }));
 }
 
@@ -301,11 +301,11 @@ export function generateOperationTemplateBlocks(operation: { id: string; name: s
 
 /**
  * Create slash menu items for unit operations
- * Uses BlockNote's ReactSlashMenuItem interface: name, execute, hint
+ * Uses BlockNote's ReactSlashMenuItem interface: title, execute, subtext
  */
 export function createOperationSlashItems(editor: BlockNoteEditor<any, any, any>): ReactSlashMenuItem[] {
   return UNIT_OPERATIONS.map(operation => ({
-    name: `${operation.id}: ${operation.name}`,
+    title: `${operation.id}: ${operation.name}`,
     execute: (editor: BlockNoteEditor<any, any, any>) => {
       // Generate full operation template with all sections
       const blocks = generateOperationTemplateBlocks(operation);
@@ -338,7 +338,7 @@ export function createOperationSlashItems(editor: BlockNoteEditor<any, any, any>
       `operation-${operation.id.toLowerCase()}`,
     ],
     group: 'Operation',
-    hint: `${operation.category}: ${operation.description}`,
+    subtext: `${operation.category}: ${operation.description}`,
   }));
 }
 

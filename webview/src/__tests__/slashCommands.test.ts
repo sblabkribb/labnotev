@@ -41,7 +41,7 @@ describe('Slash Commands', () => {
     });
   });
 
-  // BlockNote expects 'name' and 'execute' properties (ReactSlashMenuItem interface)
+  // BlockNote expects 'title' and 'execute' properties (ReactSlashMenuItem interface)
   describe('슬래시 명령 BlockNote 호환성', () => {
     it('ReactSlashMenuItem 인터페이스와 호환되어야 함', () => {
       const mockEditor = {
@@ -53,8 +53,8 @@ describe('Slash Commands', () => {
 
       const items = getLabNoteSlashMenuItems(mockEditor);
       items.forEach(item => {
-        // BlockNote 필수 속성 확인 - name과 execute 사용
-        expect(item).toHaveProperty('name');
+        // BlockNote 필수 속성 확인 - title과 execute 사용
+        expect(item).toHaveProperty('title');
         expect(item).toHaveProperty('execute');
         expect(typeof item.execute).toBe('function');
       });
@@ -76,7 +76,7 @@ describe('Slash Commands', () => {
   });
 
   describe('createDateSlashItem - BlockNote ReactSlashMenuItem 형식', () => {
-    it('should have name property (BlockNote requirement)', () => {
+    it('should have title property (BlockNote requirement)', () => {
       const mockEditor = {
         getTextCursorPosition: () => ({ block: { id: 'test-block', content: [] } }),
         insertBlocks: vi.fn().mockReturnValue([{ id: 'new-block' }]),
@@ -85,7 +85,7 @@ describe('Slash Commands', () => {
       } as any;
       const item = createDateSlashItem(mockEditor);
       
-      expect(item.name).toBe('Insert Date');
+      expect(item.title).toBe('Insert Date');
       expect(item.aliases).toContain('date');
     });
 
@@ -122,7 +122,7 @@ describe('Slash Commands', () => {
   });
 
   describe('createDateTimeSlashItem - BlockNote ReactSlashMenuItem 형식', () => {
-    it('should have name property (BlockNote requirement)', () => {
+    it('should have title property (BlockNote requirement)', () => {
       const mockEditor = {
         getTextCursorPosition: () => ({ block: { id: 'test-block', content: [] } }),
         insertBlocks: vi.fn().mockReturnValue([{ id: 'new-block' }]),
@@ -131,7 +131,7 @@ describe('Slash Commands', () => {
       } as any;
       const item = createDateTimeSlashItem(mockEditor);
       
-      expect(item.name).toBe('Insert DateTime');
+      expect(item.title).toBe('Insert DateTime');
       expect(item.aliases).toContain('datetime');
       expect(item.aliases).toContain('now');
     });
@@ -180,12 +180,12 @@ describe('Slash Commands', () => {
       
       // Verify all types have items
       for (const type of SAMPLE_TYPES) {
-        const item = items.find(i => i.name.includes(type));
+        const item = items.find(i => i.title.includes(type));
         expect(item).toBeDefined();
       }
     });
 
-    it('should have name property for each item (BlockNote requirement)', () => {
+    it('should have title property for each item (BlockNote requirement)', () => {
       const mockEditor = {
         getTextCursorPosition: () => ({ block: { id: 'test-block', content: [] } }),
         insertBlocks: vi.fn().mockReturnValue([{ id: 'new-block' }]),
@@ -194,9 +194,9 @@ describe('Slash Commands', () => {
       } as any;
       const items = createSampleIdSlashItems(mockEditor);
       
-      const dnaItem = items.find(i => i.name.includes('DNA'));
+      const dnaItem = items.find(i => i.title.includes('DNA'));
       expect(dnaItem).toBeDefined();
-      expect(dnaItem!.name).toBe('Insert DNA Sample ID');
+      expect(dnaItem!.title).toBe('Insert DNA Sample ID');
     });
 
     it('should have execute function for each item', () => {
@@ -222,10 +222,10 @@ describe('Slash Commands', () => {
       } as any;
       const items = createSampleIdSlashItems(mockEditor);
       
-      const dnaItem = items.find(i => i.name.includes('DNA'));
+      const dnaItem = items.find(i => i.title.includes('DNA'));
       expect(dnaItem!.aliases).toContain('dna');
       
-      const rnaItem = items.find(i => i.name.includes('RNA'));
+      const rnaItem = items.find(i => i.title.includes('RNA'));
       expect(rnaItem!.aliases).toContain('rna');
     });
 
@@ -239,7 +239,7 @@ describe('Slash Commands', () => {
       } as any;
 
       const items = createSampleIdSlashItems(mockEditor);
-      const dnaItem = items.find(i => i.name.includes('DNA'));
+      const dnaItem = items.find(i => i.title.includes('DNA'));
       
       dnaItem!.execute(mockEditor);
 
@@ -249,8 +249,8 @@ describe('Slash Commands', () => {
     });
   });
 
-  describe('hint property for better UX (BlockNote standard)', () => {
-    it('should have hint explaining the command', () => {
+  describe('subtext property for better UX (BlockNote standard)', () => {
+    it('should have subtext explaining the command', () => {
       const mockEditor = {
         getTextCursorPosition: () => ({ block: { id: 'test-block', content: [] } }),
         insertBlocks: vi.fn().mockReturnValue([{ id: 'new-block' }]),
@@ -259,15 +259,15 @@ describe('Slash Commands', () => {
       } as any;
       
       const dateItem = createDateSlashItem(mockEditor);
-      expect(dateItem.hint).toBeDefined();
-      expect(dateItem.hint).toContain('YYYY-MM-DD');
+      expect(dateItem.subtext).toBeDefined();
+      expect(dateItem.subtext).toContain('YYYY-MM-DD');
 
       const datetimeItem = createDateTimeSlashItem(mockEditor);
-      expect(datetimeItem.hint).toBeDefined();
+      expect(datetimeItem.subtext).toBeDefined();
 
       const sampleItems = createSampleIdSlashItems(mockEditor);
       sampleItems.forEach(item => {
-        expect(item.hint).toBeDefined();
+        expect(item.subtext).toBeDefined();
       });
     });
   });
@@ -318,7 +318,7 @@ describe('Slash Commands', () => {
       
       // Check first item has proper structure
       const firstItem = items[0];
-      expect(firstItem).toHaveProperty('name');
+      expect(firstItem).toHaveProperty('title');
       expect(firstItem).toHaveProperty('execute');
       expect(firstItem).toHaveProperty('aliases');
       expect(firstItem).toHaveProperty('group', 'Workflow');
@@ -387,7 +387,7 @@ describe('Slash Commands', () => {
       
       // Check first item has proper structure
       const firstItem = items[0];
-      expect(firstItem).toHaveProperty('name');
+      expect(firstItem).toHaveProperty('title');
       expect(firstItem).toHaveProperty('execute');
       expect(firstItem).toHaveProperty('aliases');
       expect(firstItem).toHaveProperty('group', 'Operation');

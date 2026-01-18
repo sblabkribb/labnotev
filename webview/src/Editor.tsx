@@ -156,10 +156,10 @@ export const Editor: React.FC<EditorProps> = ({
           getItems={async (query) => {
             const queryLower = query.toLowerCase();
             return slashMenuItems.filter((item) => {
-              // BlockNote uses 'name' property for ReactSlashMenuItem
-              const itemName = item.name || '';
+              // BlockNote uses 'title' property for display
+              const itemTitle = item.title || '';
               return (
-                itemName.toLowerCase().includes(queryLower) ||
+                itemTitle.toLowerCase().includes(queryLower) ||
                 item.aliases?.some((alias: string) =>
                   alias.toLowerCase().includes(queryLower)
                 )
