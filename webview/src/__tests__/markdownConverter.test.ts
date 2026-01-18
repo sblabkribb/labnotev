@@ -399,5 +399,120 @@ Sample Tracking: Yes
         expect(yamlContent).toContain('Sample Tracking: Yes');
       });
     });
+
+    describe('Horizontal Rule', () => {
+      it('should convert --- to horizontal rule marker', () => {
+        const markdown = `First paragraph
+
+---
+
+Second paragraph`;
+        const blocks = markdownToBlocks(markdown);
+        
+        expect(blocks).toHaveLength(3);
+        expect(blocks[0].type).toBe('paragraph');
+        expect(blocks[1].type).toBe('paragraph');
+        const hrContent = blocks[1].content as Array<{ text: string }>;
+        expect(hrContent[0].text).toBe('___HORIZONTAL_RULE___');
+        expect(blocks[2].type).toBe('paragraph');
+      });
+
+      it('should convert *** to horizontal rule marker', () => {
+        const markdown = '***';
+        const blocks = markdownToBlocks(markdown);
+        
+        expect(blocks).toHaveLength(1);
+        expect(blocks[0].type).toBe('paragraph');
+        const hrContent = blocks[0].content as Array<{ text: string }>;
+        expect(hrContent[0].text).toBe('___HORIZONTAL_RULE___');
+      });
+
+      it('should convert ___ to horizontal rule marker', () => {
+        const markdown = '___';
+        const blocks = markdownToBlocks(markdown);
+        
+        expect(blocks).toHaveLength(1);
+        expect(blocks[0].type).toBe('paragraph');
+        const hrContent = blocks[0].content as Array<{ text: string }>;
+        expect(hrContent[0].text).toBe('___HORIZONTAL_RULE___');
+      });
+    });
+
+    describe('Quote (Blockquote)', () => {
+      it('should convert single line quote', () => {
+        const markdown = '> This is a quote';
+        const blocks = markdownToBlocks(markdown);
+        
+        expect(blocks).toHaveLength(1);
+        expect(blocks[0].type).toBe('paragraph');
+        const quoteContent = blocks[0].content as Array<{ text: string }>;
+        expect(quoteContent[0].text).toContain('___QUOTE___');
+        expect(quoteContent[0].text).toContain('This is a quote');
+      });
+
+      it('should convert multi-line quote', () => {
+        const markdown = `> Line 1
+> Line 2
+> Line 3`;
+        const blocks = markdownToBlocks(markdown);
+        
+        expect(blocks).toHaveLength(1);
+        expect(blocks[0].type).toBe('paragraph');
+        const quoteContent = blocks[0].content as Array<{ text: string }>;
+        expect(quoteContent[0].text).toContain('Line 1');
+        expect(quoteContent[0].text).toContain('Line 2');
+        expect(quoteContent[0].text).toContain('Line 3');
+      });
+    });
+
+    describe('Checklist', () => {
+      it('should convert unchecked checkbox', () => {
+        const markdown = '- [ ] Todo item';
+        const blocks = markdownToBlocks(markdown);
+        
+        expect(blocks).toHaveLength(1);
+        expect(blocks[0].type).toBe('checkListItem');
+        expect((blocks[0].props as { checked: boolean }).checked).toBe(false);
+        expect(blocks[0].content).toEqual([
+          { type: 'text', text: 'Todo item', styles: {} }
+        ]);
+      });
+
+      it('should convert checked checkbox', () => {
+        const markdown = '- [x] Completed item';
+        const blocks = markdownToBlocks(markdown);
+        
+        expect(blocks).toHaveLength(1);
+        expect(blocks[0].type).toBe('checkListItem');
+        expect((blocks[0].props as { checked: boolean }).checked).toBe(true);
+        expect(blocks[0].content).toEqual([
+          { type: 'text', text: 'Completed item', styles: {} }
+        ]);
+      });
+
+      it('should convert uppercase X checkbox', () => {
+        const markdown = '- [X] Completed item';
+        const blocks = markdownToBlocks(markdown);
+        
+        expect(blocks).toHaveLength(1);
+        expect(blocks[0].type).toBe('checkListItem');
+        expect((blocks[0].props as { checked: boolean }).checked).toBe(true);
+      });
+
+      it('should convert multiple checklist items', () => {
+        const markdown = `- [ ] Item 1
+- [x] Item 2
+- [ ] Item 3`;
+        const blocks = markdownToBlocks(markdown);
+        
+        expect(blocks).toHaveLength(3);
+        expect(blocks[0].type).toBe('checkListItem');
+        expect(blocks[1].type).toBe('checkListItem');
+        expect(blocks[2].type).toBe('checkListItem');
+        expect((blocks[0].props as { checked: boolean }).checked).toBe(false);
+        expect((blocks[1].props as { checked: boolean }).checked).toBe(true);
+        expect((blocks[2].props as { checked: boolean }).checked).toBe(false);
+      });
+    });
   });
 });

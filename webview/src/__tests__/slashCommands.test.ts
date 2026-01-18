@@ -9,6 +9,7 @@ import {
   generateSampleId,
   SAMPLE_TYPES,
 } from '../slashCommands';
+import { calculateMatchScore } from '../Editor';
 
 describe('Slash Commands', () => {
   describe('getSeoulDateString', () => {
@@ -646,6 +647,121 @@ describe('Slash Commands', () => {
       // Should have only 1 item (새 ID 생성)
       expect(items.length).toBe(1);
       expect(items[0].title).toContain('새 RNA ID 생성');
+    });
+  });
+
+  describe('calculateMatchScore - 다중 검색어 점수 계산', () => {
+    it('should return 0 when no terms match', () => {
+      const item = {
+        title: 'Insert Date',
+        subtext: 'Insert current date',
+        aliases: ['date', 'today'],
+      };
+      const score = calculateMatchScore(item, ['xyz', 'abc']);
+      expect(score).toBe(0);
+    });
+
+    it('should return 1 when one term matches title', () => {
+      const item = {
+        title: 'Insert Date',
+        subtext: 'Insert current date',
+        aliases: ['date', 'today'],
+      };
+      const score = calculateMatchScore(item, ['date']);
+      expect(score).toBe(1);
+    });
+
+    it('should return 1 when one term matches subtext', () => {
+      const item = {
+        title: 'DNA Sample',
+        subtext: 'enzyme buffer solution',
+        aliases: ['dna'],
+      };
+      const score = calculateMatchScore(item, ['enzyme']);
+      expect(score).toBe(1);
+    });
+
+    it('should return 1 when one term matches aliases', () => {
+      const item = {
+        title: 'Insert Date',
+        subtext: 'Insert current date',
+        aliases: ['date', 'today'],
+      };
+      const score = calculateMatchScore(item, ['today']);
+      expect(score).toBe(1);
+    });
+
+    it('should return 2 when two terms match', () => {
+      const item = {
+        title: 'DNA-123 (sample1)',
+        subtext: 'DNA sample description',
+        aliases: ['dna-123', 'sample1'],
+      };
+      const score = calculateMatchScore(item, ['dna', '123']);
+      expect(score).toBe(2);
+    });
+
+    it('should return 3 when three terms match', () => {
+      const item = {
+        title: 'DNA-123 (myalias)',
+        subtext: 'enzyme buffer test',
+        aliases: ['dna-123', 'myalias'],
+      };
+      const score = calculateMatchScore(item, ['dna', 'enzyme', 'myalias']);
+      expect(score).toBe(3);
+    });
+
+    it('should be case insensitive', () => {
+      const item = {
+        title: 'DNA Sample',
+        subtext: 'Enzyme Buffer',
+        aliases: ['DNA', 'ENZYME'],
+      };
+      const score = calculateMatchScore(item, ['dna', 'ENZYME', 'buffer']);
+      expect(score).toBe(3);
+    });
+
+    it('should handle items with missing optional fields', () => {
+      const item = {
+        title: 'Simple Item',
+      };
+      const score = calculateMatchScore(item, ['simple']);
+      expect(score).toBe(1);
+    });
+
+    it('should handle empty query terms', () => {
+      const item = {
+        title: 'DNA Sample',
+        subtext: 'description',
+        aliases: ['dna'],
+      };
+      const score = calculateMatchScore(item, []);
+      expect(score).toBe(0);
+    });
+
+    it('should correctly sort items by score', () => {
+      const items = [
+        { title: 'DNA-123', subtext: 'different', aliases: ['dna'] },      // score 1 (dna only)
+        { title: 'DNA-456 (test)', subtext: 'buffer enzyme', aliases: ['dna', 'test'] }, // score 2 (dna + enzyme)
+        { title: 'RNA-789', subtext: 'different', aliases: ['rna'] },      // score 0 (no match)
+      ];
+      const queryTerms = ['dna', 'enzyme'];
+      
+      const scoredItems = items
+        .map(item => ({ item, score: calculateMatchScore(item, queryTerms) }))
+        .filter(({ score }) => score > 0)
+        .sort((a, b) => b.score - a.score);
+      
+      // DNA-456 has highest score (dna + enzyme = 2)
+      expect(scoredItems[0].item.title).toBe('DNA-456 (test)');
+      expect(scoredItems[0].score).toBe(2);
+      
+      // DNA-123 has score 1 (dna only)
+      expect(scoredItems[1].item.title).toBe('DNA-123');
+      expect(scoredItems[1].score).toBe(1);
+      
+      // RNA-789 should be filtered out (score 0)
+      expect(scoredItems.length).toBe(2);
     });
   });
 });

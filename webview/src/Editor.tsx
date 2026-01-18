@@ -30,6 +30,29 @@ interface EditorProps {
   resolveAssetUrl?: (relativePath: string) => Promise<string>;
 }
 
+/**
+ * Calculate match score for an item based on query terms
+ * Higher score = more query terms matched
+ */
+export function calculateMatchScore(
+  item: { title?: string; subtext?: string; aliases?: string[] },
+  queryTerms: string[]
+): number {
+  let score = 0;
+  const searchableText = [
+    (item.title || '').toLowerCase(),
+    (item.subtext || '').toLowerCase(),
+    ...(item.aliases || []).map(a => a.toLowerCase())
+  ].join(' ');
+
+  for (const term of queryTerms) {
+    if (searchableText.includes(term.toLowerCase())) {
+      score++;
+    }
+  }
+  return score;
+}
+
 export const Editor: React.FC<EditorProps> = ({
   initialContent,
   documentUri: _documentUri,
@@ -218,12 +241,19 @@ export const Editor: React.FC<EditorProps> = ({
         <SuggestionMenuController
           triggerCharacter="/"
           getItems={async (query) => {
-            const queryLower = query.toLowerCase();
+            // Split query by whitespace into multiple terms
+            const queryTerms = query.trim().split(/\s+/).filter(Boolean);
             
-            // Check if query matches a sample type
+            // If no query, return base items only
+            if (queryTerms.length === 0) {
+              return baseSlashMenuItems;
+            }
+            
+            // Check if first term matches a sample type
+            const firstTerm = queryTerms[0].toLowerCase();
             const matchedType = SAMPLE_TYPES.find(type => 
-              type.toLowerCase().includes(queryLower) ||
-              queryLower.includes(type.toLowerCase())
+              type.toLowerCase().includes(firstTerm) ||
+              firstTerm.includes(type.toLowerCase())
             );
             
             // Load sample items dynamically if a sample type is matched
@@ -241,17 +271,13 @@ export const Editor: React.FC<EditorProps> = ({
             // Combine base items with dynamic sample items
             const allItems = [...baseSlashMenuItems, ...dynamicSampleItems];
             
-            return allItems.filter((item) => {
-              const itemTitle = item.title || '';
-              const itemSubtext = item.subtext || '';
-              return (
-                itemTitle.toLowerCase().includes(queryLower) ||
-                itemSubtext.toLowerCase().includes(queryLower) ||
-                item.aliases?.some((alias: string) =>
-                  alias.toLowerCase().includes(queryLower)
-                )
-              );
-            });
+            // Calculate match score and filter/sort by relevance
+            const scoredItems = allItems
+              .map(item => ({ item, score: calculateMatchScore(item, queryTerms) }))
+              .filter(({ score }) => score > 0)
+              .sort((a, b) => b.score - a.score);
+            
+            return scoredItems.map(({ item }) => item);
           }}
           onItemClick={(item) => {
             // BlockNote 0.46 uses 'onItemClick' function for DefaultReactSuggestionItem

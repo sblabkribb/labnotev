@@ -92,33 +92,55 @@ export function markdownToBlocks(markdown: string): PartialBlock[] {
       continue;
     }
 
-    // Bullet list
-    if (line.match(/^[\-\*]\s+/)) {
-      const listItems: PartialBlock[] = [];
-      while (i < lines.length && lines[i].match(/^[\-\*]\s+/)) {
-        const content = lines[i].replace(/^[\-\*]\s+/, '');
-        listItems.push({
-          type: 'bulletListItem',
-          content: parseInlineContent(content),
-        });
+    // Quote (blockquote)
+    if (line.match(/^>\s*/)) {
+      const quoteLines: string[] = [];
+      while (i < lines.length && lines[i].match(/^>\s*/)) {
+        quoteLines.push(lines[i].replace(/^>\s*/, ''));
         i++;
       }
-      blocks.push(...listItems);
+      blocks.push({
+        type: 'paragraph',
+        content: [{ type: 'text', text: `___QUOTE___\n${quoteLines.join('\n')}\n___END_QUOTE___`, styles: {} }],
+      });
       continue;
     }
 
-    // Numbered list
-    if (line.match(/^\d+\.\s+/)) {
-      const listItems: PartialBlock[] = [];
-      while (i < lines.length && lines[i].match(/^\d+\.\s+/)) {
-        const content = lines[i].replace(/^\d+\.\s+/, '');
-        listItems.push({
-          type: 'numberedListItem',
-          content: parseInlineContent(content),
-        });
-        i++;
-      }
-      blocks.push(...listItems);
+    // Checklist item (- [ ] or - [x])
+    const checklistMatch = line.match(/^(\s*)[-*]\s+\[([ xX])\]\s+(.*)$/);
+    if (checklistMatch) {
+      const content = checklistMatch[3];
+      const checked = checklistMatch[2].toLowerCase() === 'x';
+      blocks.push({
+        type: 'checkListItem',
+        props: { checked },
+        content: parseInlineContent(content),
+      } as PartialBlock);
+      i++;
+      continue;
+    }
+
+    // Bullet list (with indentation support)
+    const bulletMatch = line.match(/^(\s*)[-*]\s+(.*)$/);
+    if (bulletMatch) {
+      const content = bulletMatch[2];
+      blocks.push({
+        type: 'bulletListItem',
+        content: parseInlineContent(content),
+      });
+      i++;
+      continue;
+    }
+
+    // Numbered list (with indentation support)
+    const numberedMatch = line.match(/^(\s*)\d+\.\s+(.*)$/);
+    if (numberedMatch) {
+      const content = numberedMatch[2];
+      blocks.push({
+        type: 'numberedListItem',
+        content: parseInlineContent(content),
+      });
+      i++;
       continue;
     }
 
@@ -164,9 +186,12 @@ export function markdownToBlocks(markdown: string): PartialBlock[] {
       continue;
     }
 
-    // Horizontal rule
+    // Horizontal rule (store as special marker in paragraph)
     if (line.match(/^[-*_]{3,}$/)) {
-      // BlockNote doesn't have HR, skip or convert to empty paragraph
+      blocks.push({
+        type: 'paragraph',
+        content: [{ type: 'text', text: '___HORIZONTAL_RULE___', styles: {} }],
+      });
       i++;
       continue;
     }
@@ -278,16 +303,39 @@ export async function blocksToMarkdown(editor: BlockNoteEditor): Promise<string>
   for (let i = 0; i < blocks.length; i++) {
     const block = blocks[i];
     const isFirst = i === 0;
-    const markdown = blockToMarkdown(block as Block, isFirst);
-    if (markdown !== null) {
-      lines.push(markdown);
-    }
+    const markdownLines = blockToMarkdownWithChildren(block as Block, isFirst, 0);
+    lines.push(...markdownLines);
   }
 
   return lines.join('\n\n');
 }
 
-function blockToMarkdown(block: Block, isFirst: boolean = false): string | null {
+/**
+ * Convert a block and its children to markdown lines
+ * Returns array of markdown lines (to handle children properly)
+ */
+function blockToMarkdownWithChildren(block: Block, isFirst: boolean = false, indentLevel: number = 0): string[] {
+  const indent = '  '.repeat(indentLevel);
+  const result: string[] = [];
+  
+  const mainMarkdown = blockToMarkdown(block, isFirst, indent);
+  if (mainMarkdown !== null) {
+    result.push(mainMarkdown);
+  }
+  
+  // Process children recursively
+  const children = (block as any).children;
+  if (Array.isArray(children) && children.length > 0) {
+    for (const child of children) {
+      const childLines = blockToMarkdownWithChildren(child as Block, false, indentLevel + 1);
+      result.push(...childLines);
+    }
+  }
+  
+  return result;
+}
+
+function blockToMarkdown(block: Block, isFirst: boolean = false, indent: string = ''): string | null {
   switch (block.type) {
     case 'paragraph':
       const text = inlineContentToMarkdown(block.content);
@@ -303,6 +351,15 @@ function blockToMarkdown(block: Block, isFirst: boolean = false): string | null 
         const code = codeBlockMatch[2];
         return `\`\`\`${language}\n${code}\n\`\`\``;
       }
+      // Check for horizontal rule marker
+      if (text === '___HORIZONTAL_RULE___') {
+        return '---';
+      }
+      // Check for quote marker
+      if (text.startsWith('___QUOTE___\n') && text.endsWith('\n___END_QUOTE___')) {
+        const quoteContent = text.slice('___QUOTE___\n'.length, -'\n___END_QUOTE___'.length);
+        return quoteContent.split('\n').map(line => `> ${line}`).join('\n');
+      }
       return text;
 
     case 'heading':
@@ -311,10 +368,18 @@ function blockToMarkdown(block: Block, isFirst: boolean = false): string | null 
       return `${prefix} ${inlineContentToMarkdown(block.content)}`;
 
     case 'bulletListItem':
-      return `- ${inlineContentToMarkdown(block.content)}`;
+      return `${indent}- ${inlineContentToMarkdown(block.content)}`;
 
     case 'numberedListItem':
-      return `1. ${inlineContentToMarkdown(block.content)}`;
+      return `${indent}1. ${inlineContentToMarkdown(block.content)}`;
+
+    case 'checkListItem':
+      const checked = (block.props as { checked?: boolean }).checked;
+      const checkbox = checked ? '[x]' : '[ ]';
+      return `${indent}- ${checkbox} ${inlineContentToMarkdown(block.content)}`;
+
+    case 'quote':
+      return `> ${inlineContentToMarkdown(block.content)}`;
 
     case 'codeBlock':
       const language = (block.props as { language?: string }).language || '';
@@ -337,7 +402,9 @@ function blockToMarkdown(block: Block, isFirst: boolean = false): string | null 
       return tableToMarkdown(block);
 
     default:
-      return null;
+      // For unknown block types, try to extract text content
+      const unknownContent = inlineContentToMarkdown(block.content);
+      return unknownContent || null;
   }
 }
 
