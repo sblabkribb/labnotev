@@ -431,10 +431,7 @@ export function activate(context: vscode.ExtensionContext) {
         await vscode.workspace.applyEdit(edit);
         await editor.document.save();
 
-        // Open workflow file
-        const workflowDoc = await vscode.workspace.openTextDocument(workflowPath);
-        await vscode.window.showTextDocument(workflowDoc, { preview: false });
-
+        // Stay on README.md (don't open workflow file)
         vscode.window.showInformationMessage(`워크플로가 생성되었습니다: ${workflowFileName}`);
       } catch (error) {
         vscode.window.showErrorMessage(`워크플로 생성 실패: ${error}`);
