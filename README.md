@@ -84,12 +84,15 @@ npm run build
 
 ## 사용법
 
-### 새 노트 생성
+### 새 실험 노트 생성
 
 1. 명령 팔레트 열기 (`Ctrl+Shift+P` / `Cmd+Shift+P`)
-2. "Lab Note: New Note" 입력
-3. 파일 이름 입력 (확장자 제외)
-4. 파일이 `filename.labnote.md`로 생성되고 에디터에서 열림
+2. "Lab Note: Create New Labnote Folder" 입력
+3. 실험 제목과 작성자 이름 입력
+4. `labnote/{번호}_{제목}/` 폴더 구조가 생성되고 README.md가 열림
+   - `README.md`: YAML front matter 포함 템플릿
+   - `images/`: 이미지 저장 폴더
+   - `resources/`: 리소스 저장 폴더
 
 ### 기존 파일 열기
 
@@ -162,8 +165,9 @@ Hardware, Software 카테고리의 실험 자동화 오퍼레이션 템플릿
 
 | 명령어 | 설명 |
 |--------|------|
-| `Lab Note: New Note` | 새 실험 노트 생성 |
 | `Lab Note: Create New Labnote Folder` | 새 실험 노트 폴더 구조 생성 |
+| `Lab Note: Add Workflow` | 워크플로 템플릿 추가 |
+| `Lab Note: Add Unit Operation` | 유닛 오퍼레이션 추가 |
 | `Lab Note: Insert Current Date` | 현재 날짜 삽입 |
 | `Lab Note: Insert Current Date and Time` | 현재 날짜/시간 삽입 |
 | `Lab Note: Update Date Field on Current Line` | 현재 줄의 날짜 필드 업데이트 |

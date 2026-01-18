@@ -58,7 +58,9 @@ export function generateReadmeContent(title: string, author?: string): string {
   
   return `---
 title: ${title}
-${authorLine}created_date: ${today}
+${authorLine}experiment_type: labnote
+sample_tracking: yes
+created_date: ${today}
 last_updated_date: ${today}
 ---
 
@@ -67,6 +69,13 @@ last_updated_date: ${today}
 ## 목표
 
 실험의 목표를 기술합니다.
+
+## Related Workflows
+
+> 워크플로 파일 목록이 자동으로 추가됩니다.
+> F1 → "Lab Note: Add Workflow" 명령으로 워크플로를 추가하세요.
+
+
 
 ## 실험 조건
 

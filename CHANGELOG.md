@@ -5,6 +5,37 @@
 형식은 [Keep a Changelog](https://keepachangelog.com/ko/1.1.0/)를 기반으로 하며,
 이 프로젝트는 [유의적 버전 관리](https://semver.org/lang/ko/)를 따릅니다.
 
+## [0.8.0] - 2026-01-18
+
+### 변경
+
+#### 워크플로 파일 확장자 변경
+- 워크플로 파일 확장자를 `.md`에서 `.labnote.md`로 변경
+- BlockNote 에디터에서 워크플로 파일 자동 열기 지원
+- `isValidWorkflowPath()`: `.labnote.md` 파일만 인식
+- `getNextWorkflowNumber()`: `.labnote.md` 파일만 카운트
+- `createWorkflowFileName()`: `.labnote.md` 확장자로 생성
+- `parseWorkflowChecklistFromReadme()`: `.labnote.md` 링크 파싱
+
+#### 명령어 구조 단순화
+- `Lab Note: New Note` 명령어 제거 (중복 기능)
+- `Lab Note: Create New Labnote Folder` 명령어로 통합
+- labnote-lite와 동일한 구조화된 워크플로 지원
+
+### 추가
+
+#### 디버깅 로그
+- `createLabnote` 명령어에 상세 디버깅 로그 추가
+- 폴더 생성 과정 추적 가능
+
+### 테스트
+
+- Extension 테스트: 194개 (12개 파일)
+- Webview 테스트: 104개 (6개 파일)
+- 총 298개 테스트 통과
+
+---
+
 ## [0.7.3] - 2026-01-18
 
 ### 수정

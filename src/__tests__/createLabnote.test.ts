@@ -104,6 +104,24 @@ describe('Create Labnote Command', () => {
       expect(result).toContain('## 결과');
       expect(result).toContain('## 결론');
     });
+
+    it('should include Related Workflows section', async () => {
+      const { generateReadmeContent } = await import('../lib/labnoteStructure');
+      
+      const result = generateReadmeContent('Test');
+      
+      expect(result).toContain('## Related Workflows');
+      expect(result).toContain('Lab Note: Add Workflow');
+    });
+
+    it('should include experiment_type and sample_tracking in YAML', async () => {
+      const { generateReadmeContent } = await import('../lib/labnoteStructure');
+      
+      const result = generateReadmeContent('Test');
+      
+      expect(result).toContain('experiment_type: labnote');
+      expect(result).toContain('sample_tracking: yes');
+    });
   });
 
   describe('createLabnoteStructure', () => {
