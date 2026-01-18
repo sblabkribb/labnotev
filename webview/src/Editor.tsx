@@ -1,9 +1,7 @@
 import React, { useEffect, useMemo, useRef, useCallback } from 'react';
 import {
-  BlockNoteEditor,
   BlockNoteSchema,
   defaultBlockSpecs,
-  PartialBlock,
 } from '@blocknote/core';
 import { BlockNoteView } from '@blocknote/mantine';
 import {
@@ -12,7 +10,7 @@ import {
   getDefaultReactSlashMenuItems,
 } from '@blocknote/react';
 import { markdownToBlocks, blocksToMarkdown } from './markdownConverter';
-import { MathBlock, insertMathBlock } from './blocks/MathBlock';
+import { MathBlock, createInsertMathBlock } from './blocks/MathBlock';
 import { usePasteHandler } from './hooks/usePasteHandler';
 import { useVSCodeTheme } from './hooks/useVSCodeTheme';
 import { getLabNoteSlashMenuItems } from './slashCommands';
@@ -27,7 +25,7 @@ interface EditorProps {
 
 export const Editor: React.FC<EditorProps> = ({
   initialContent,
-  documentUri,
+  documentUri: _documentUri,
   onSave,
   onSaveImage,
   resolveAssetUrl,
@@ -55,7 +53,7 @@ export const Editor: React.FC<EditorProps> = ({
   const schema = useMemo(() => BlockNoteSchema.create({
     blockSpecs: {
       ...defaultBlockSpecs,
-      math: MathBlock,
+      math: MathBlock(),
     },
   }), []);
 
@@ -98,7 +96,7 @@ export const Editor: React.FC<EditorProps> = ({
   // Create BlockNote editor with custom schema
   const editor = useCreateBlockNote({
     schema,
-    initialContent: initialBlocks as PartialBlock[] | undefined,
+    initialContent: initialBlocks,
     uploadFile,
     resolveFileUrl,
   });
@@ -106,7 +104,7 @@ export const Editor: React.FC<EditorProps> = ({
   // Custom slash menu items
   const slashMenuItems = useMemo(() => [
     ...getDefaultReactSlashMenuItems(editor),
-    insertMathBlock,
+    createInsertMathBlock(editor),
     ...getLabNoteSlashMenuItems(editor),
   ], [editor]);
 
@@ -167,9 +165,9 @@ export const Editor: React.FC<EditorProps> = ({
             });
           }}
           onItemClick={(item) => {
-            // BlockNote uses 'execute' function for ReactSlashMenuItem
-            if (item.execute) {
-              item.execute(editor);
+            // BlockNote 0.46 uses 'onItemClick' function for DefaultReactSuggestionItem
+            if (item.onItemClick) {
+              item.onItemClick();
             }
           }}
         />

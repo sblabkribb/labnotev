@@ -5,6 +5,37 @@
 형식은 [Keep a Changelog](https://keepachangelog.com/ko/1.1.0/)를 기반으로 하며,
 이 프로젝트는 [유의적 버전 관리](https://semver.org/lang/ko/)를 따릅니다.
 
+## [0.9.0] - 2026-01-18
+
+### 변경
+
+#### BlockNote 0.46.1 업그레이드 (Major)
+- BlockNote 0.17.1 → 0.46.1로 업그레이드
+- **복사/붙여넣기 문제 해결**: `prosemirror-view`의 `__serializeForClipboard` 함수 관련 이슈 수정
+- Ctrl+C/Ctrl+V가 BlockNote 에디터에서 정상 작동
+
+#### 의존성 업데이트
+- `@blocknote/core`: 0.17.1 → 0.46.1
+- `@blocknote/react`: 0.17.1 → 0.46.1
+- `@blocknote/mantine`: 0.17.1 → 0.46.1
+- `@mantine/core`: 7.13.0 → 8.3.11
+- `@mantine/hooks`: 추가 (8.3.11)
+- 내부적으로 `@tiptap/*` 2.x → 3.x 업그레이드
+
+#### API 변경 사항 적용
+- `ReactSlashMenuItem` → `DefaultReactSuggestionItem` 인터페이스로 변경
+- 슬래시 메뉴 아이템의 `execute()` → `onItemClick()` 메서드로 변경
+- `createReactBlockSpec` API 호환성 수정 (MathBlock)
+- 테스트 파일들을 새 API에 맞게 업데이트
+
+### 테스트
+
+- Extension 테스트: 201개 (13개 파일)
+- Webview 테스트: 108개 (6개 파일)
+- 총 309개 테스트 통과
+
+---
+
 ## [0.8.3] - 2026-01-18
 
 ### 수정

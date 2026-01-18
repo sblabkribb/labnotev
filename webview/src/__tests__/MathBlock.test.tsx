@@ -1,5 +1,5 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, screen, fireEvent, waitFor } from '@testing-library/react';
+import { describe, it, expect, vi } from 'vitest';
+import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import React from 'react';
 
@@ -13,14 +13,14 @@ vi.mock('katex', () => ({
 }));
 
 // Import after mocking
-import { insertMathBlock } from '../blocks/MathBlock';
+import { insertMathBlock, createInsertMathBlock } from '../blocks/MathBlock';
 
 // Since MathBlock uses createReactBlockSpec which is complex to test,
 // we'll test the insertMathBlock slash menu item and the core logic
 describe('MathBlock', () => {
-  describe('insertMathBlock slash menu item', () => {
-    it('should have correct name', () => {
-      expect(insertMathBlock.name).toBe('Math Formula');
+  describe('insertMathBlock default item (backward compatibility)', () => {
+    it('should have correct title', () => {
+      expect(insertMathBlock.title).toBe('Math Formula');
     });
 
     it('should have correct aliases', () => {
@@ -35,23 +35,42 @@ describe('MathBlock', () => {
       expect(insertMathBlock.group).toBe('Advanced');
     });
 
-    it('should have hint text', () => {
-      expect(insertMathBlock.hint).toBe('Insert a math formula (LaTeX)');
+    it('should have subtext', () => {
+      expect(insertMathBlock.subtext).toBe('Insert a math formula (LaTeX)');
     });
 
     it('should have an icon', () => {
       expect(insertMathBlock.icon).toBeDefined();
     });
+  });
 
-    it('should execute and insert math block', () => {
+  describe('createInsertMathBlock factory function', () => {
+    it('should create a valid slash menu item with onItemClick', () => {
       const mockEditor = {
         getTextCursorPosition: vi.fn(() => ({
           block: { id: 'current-block' },
         })),
         insertBlocks: vi.fn(),
-      };
+      } as any;
 
-      insertMathBlock.execute(mockEditor as unknown as Parameters<typeof insertMathBlock.execute>[0]);
+      const item = createInsertMathBlock(mockEditor);
+
+      expect(item.title).toBe('Math Formula');
+      expect(typeof item.onItemClick).toBe('function');
+      expect(item.aliases).toContain('math');
+      expect(item.group).toBe('Advanced');
+    });
+
+    it('should insert math block when onItemClick is called', () => {
+      const mockEditor = {
+        getTextCursorPosition: vi.fn(() => ({
+          block: { id: 'current-block' },
+        })),
+        insertBlocks: vi.fn(),
+      } as any;
+
+      const item = createInsertMathBlock(mockEditor);
+      item.onItemClick();
 
       expect(mockEditor.insertBlocks).toHaveBeenCalledWith(
         [{ type: 'math', props: { latex: '' } }],

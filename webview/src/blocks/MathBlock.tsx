@@ -1,8 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
-import {
-  createReactBlockSpec,
-  ReactSlashMenuItem,
-} from '@blocknote/react';
+import { createReactBlockSpec, DefaultReactSuggestionItem } from '@blocknote/react';
+import { BlockNoteEditor } from '@blocknote/core';
 import katex from 'katex';
 import 'katex/dist/katex.min.css';
 
@@ -137,13 +135,13 @@ export const MathBlock = createReactBlockSpec(
   }
 );
 
-// Slash menu item for math block
-export const insertMathBlock: ReactSlashMenuItem = {
-  name: 'Math Formula',
-  execute: (editor) => {
+// Factory function to create slash menu item for math block
+export const createInsertMathBlock = (editor: BlockNoteEditor<any, any, any>): DefaultReactSuggestionItem => ({
+  title: 'Math Formula',
+  onItemClick: () => {
     const currentBlock = editor.getTextCursorPosition().block;
     editor.insertBlocks(
-      [{ type: 'math', props: { latex: '' } }],
+      [{ type: 'math' as const, props: { latex: '' } }],
       currentBlock,
       'after'
     );
@@ -151,5 +149,15 @@ export const insertMathBlock: ReactSlashMenuItem = {
   aliases: ['math', 'latex', 'equation', 'formula', 'katex'],
   group: 'Advanced',
   icon: <span style={{ fontSize: '14px' }}>∑</span>,
-  hint: 'Insert a math formula (LaTeX)',
+  subtext: 'Insert a math formula (LaTeX)',
+});
+
+// For backward compatibility
+export const insertMathBlock: DefaultReactSuggestionItem = {
+  title: 'Math Formula',
+  onItemClick: () => {},
+  aliases: ['math', 'latex', 'equation', 'formula', 'katex'],
+  group: 'Advanced',
+  icon: <span style={{ fontSize: '14px' }}>∑</span>,
+  subtext: 'Insert a math formula (LaTeX)',
 };

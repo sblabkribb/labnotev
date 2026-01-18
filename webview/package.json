@@ -11,10 +11,11 @@
     "test:coverage": "vitest run --coverage"
   },
   "dependencies": {
-    "@blocknote/core": "^0.17.1",
-    "@blocknote/mantine": "^0.17.1",
-    "@blocknote/react": "^0.17.1",
-    "@mantine/core": "^7.13.0",
+    "@blocknote/core": "^0.46.1",
+    "@blocknote/mantine": "^0.46.1",
+    "@blocknote/react": "^0.46.1",
+    "@mantine/core": "^8.3.11",
+    "@mantine/hooks": "^8.3.11",
     "katex": "^0.16.9",
     "react": "^18.2.0",
     "react-dom": "^18.2.0"

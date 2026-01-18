@@ -1,5 +1,5 @@
 import { BlockNoteEditor, isStyledTextInlineContent } from '@blocknote/core';
-import { ReactSlashMenuItem } from '@blocknote/react';
+import { DefaultReactSuggestionItem } from '@blocknote/react';
 import { getSeoulDateString, getSeoulDateTimeString } from '@lib/dateUtils';
 import { SAMPLE_TYPES, generateSampleId } from '@lib/sampleUtils';
 import type { SampleType } from '@lib/sampleUtils';
@@ -46,12 +46,12 @@ function insertOrUpdateBlock(
 
 /**
  * Create a slash menu item for inserting the current date
- * Uses BlockNote's ReactSlashMenuItem interface: title, execute, subtext
+ * Uses BlockNote's DefaultReactSuggestionItem interface: title, onItemClick, subtext
  */
-export function createDateSlashItem(editor: BlockNoteEditor<any, any, any>): ReactSlashMenuItem {
+export function createDateSlashItem(editor: BlockNoteEditor<any, any, any>): DefaultReactSuggestionItem {
   return {
     title: 'Insert Date',
-    execute: (editor: BlockNoteEditor<any, any, any>) => {
+    onItemClick: () => {
       const dateStr = getSeoulDateString();
       insertOrUpdateBlock(editor, {
         type: 'paragraph',
@@ -67,12 +67,12 @@ export function createDateSlashItem(editor: BlockNoteEditor<any, any, any>): Rea
 
 /**
  * Create a slash menu item for inserting the current date and time
- * Uses BlockNote's ReactSlashMenuItem interface: title, execute, subtext
+ * Uses BlockNote's DefaultReactSuggestionItem interface: title, onItemClick, subtext
  */
-export function createDateTimeSlashItem(editor: BlockNoteEditor<any, any, any>): ReactSlashMenuItem {
+export function createDateTimeSlashItem(editor: BlockNoteEditor<any, any, any>): DefaultReactSuggestionItem {
   return {
     title: 'Insert DateTime',
-    execute: (editor: BlockNoteEditor<any, any, any>) => {
+    onItemClick: () => {
       const dateTimeStr = getSeoulDateTimeString();
       insertOrUpdateBlock(editor, {
         type: 'paragraph',
@@ -88,12 +88,12 @@ export function createDateTimeSlashItem(editor: BlockNoteEditor<any, any, any>):
 
 /**
  * Create slash menu items for sample ID generation
- * Uses BlockNote's ReactSlashMenuItem interface: title, execute, subtext
+ * Uses BlockNote's DefaultReactSuggestionItem interface: title, onItemClick, subtext
  */
-export function createSampleIdSlashItems(editor: BlockNoteEditor<any, any, any>): ReactSlashMenuItem[] {
+export function createSampleIdSlashItems(editor: BlockNoteEditor<any, any, any>): DefaultReactSuggestionItem[] {
   return SAMPLE_TYPES.map(type => ({
     title: `Insert ${type} Sample ID`,
-    execute: (editor: BlockNoteEditor<any, any, any>) => {
+    onItemClick: () => {
       const sampleId = generateSampleId(type);
       insertOrUpdateBlock(editor, {
         type: 'paragraph',
@@ -109,12 +109,12 @@ export function createSampleIdSlashItems(editor: BlockNoteEditor<any, any, any>)
 
 /**
  * Create slash menu items for workflow templates
- * Uses BlockNote's ReactSlashMenuItem interface: title, execute, subtext
+ * Uses BlockNote's DefaultReactSuggestionItem interface: title, onItemClick, subtext
  */
-export function createWorkflowSlashItems(editor: BlockNoteEditor<any, any, any>): ReactSlashMenuItem[] {
+export function createWorkflowSlashItems(editor: BlockNoteEditor<any, any, any>): DefaultReactSuggestionItem[] {
   return WORKFLOWS.map(workflow => ({
     title: `${workflow.id}: ${workflow.name}`,
-    execute: (editor: BlockNoteEditor<any, any, any>) => {
+    onItemClick: () => {
       // Insert workflow template as a heading with description
       const blocks = [
         {
@@ -301,12 +301,12 @@ export function generateOperationTemplateBlocks(operation: { id: string; name: s
 
 /**
  * Create slash menu items for unit operations
- * Uses BlockNote's ReactSlashMenuItem interface: title, execute, subtext
+ * Uses BlockNote's DefaultReactSuggestionItem interface: title, onItemClick, subtext
  */
-export function createOperationSlashItems(editor: BlockNoteEditor<any, any, any>): ReactSlashMenuItem[] {
+export function createOperationSlashItems(editor: BlockNoteEditor<any, any, any>): DefaultReactSuggestionItem[] {
   return UNIT_OPERATIONS.map(operation => ({
     title: `${operation.id}: ${operation.name}`,
-    execute: (editor: BlockNoteEditor<any, any, any>) => {
+    onItemClick: () => {
       // Generate full operation template with all sections
       const blocks = generateOperationTemplateBlocks(operation);
 
@@ -345,7 +345,7 @@ export function createOperationSlashItems(editor: BlockNoteEditor<any, any, any>
 /**
  * Get all custom slash menu items for lab notes
  */
-export function getLabNoteSlashMenuItems(editor: BlockNoteEditor<any, any, any>): ReactSlashMenuItem[] {
+export function getLabNoteSlashMenuItems(editor: BlockNoteEditor<any, any, any>): DefaultReactSuggestionItem[] {
   return [
     createDateSlashItem(editor),
     createDateTimeSlashItem(editor),

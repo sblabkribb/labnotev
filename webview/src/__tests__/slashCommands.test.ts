@@ -41,9 +41,9 @@ describe('Slash Commands', () => {
     });
   });
 
-  // BlockNote expects 'title' and 'execute' properties (ReactSlashMenuItem interface)
+  // BlockNote 0.46 expects 'title' and 'onItemClick' properties (DefaultReactSuggestionItem interface)
   describe('슬래시 명령 BlockNote 호환성', () => {
-    it('ReactSlashMenuItem 인터페이스와 호환되어야 함', () => {
+    it('DefaultReactSuggestionItem 인터페이스와 호환되어야 함', () => {
       const mockEditor = {
         getTextCursorPosition: () => ({ block: { id: 'test-block', content: [] } }),
         insertBlocks: vi.fn().mockReturnValue([{ id: 'new-block' }]),
@@ -53,10 +53,10 @@ describe('Slash Commands', () => {
 
       const items = getLabNoteSlashMenuItems(mockEditor);
       items.forEach(item => {
-        // BlockNote 필수 속성 확인 - title과 execute 사용
+        // BlockNote 0.46 필수 속성 확인 - title과 onItemClick 사용
         expect(item).toHaveProperty('title');
-        expect(item).toHaveProperty('execute');
-        expect(typeof item.execute).toBe('function');
+        expect(item).toHaveProperty('onItemClick');
+        expect(typeof item.onItemClick).toBe('function');
       });
     });
 
@@ -75,7 +75,7 @@ describe('Slash Commands', () => {
     });
   });
 
-  describe('createDateSlashItem - BlockNote ReactSlashMenuItem 형식', () => {
+  describe('createDateSlashItem - BlockNote DefaultReactSuggestionItem 형식', () => {
     it('should have title property (BlockNote requirement)', () => {
       const mockEditor = {
         getTextCursorPosition: () => ({ block: { id: 'test-block', content: [] } }),
@@ -89,7 +89,7 @@ describe('Slash Commands', () => {
       expect(item.aliases).toContain('date');
     });
 
-    it('should have execute function (BlockNote requirement)', () => {
+    it('should have onItemClick function (BlockNote 0.46 requirement)', () => {
       const mockEditor = {
         getTextCursorPosition: () => ({ block: { id: 'test-block', content: [] } }),
         insertBlocks: vi.fn().mockReturnValue([{ id: 'new-block' }]),
@@ -98,10 +98,10 @@ describe('Slash Commands', () => {
       } as any;
       const item = createDateSlashItem(mockEditor);
       
-      expect(typeof item.execute).toBe('function');
+      expect(typeof item.onItemClick).toBe('function');
     });
 
-    it('should insert date when execute is called', () => {
+    it('should insert date when onItemClick is called', () => {
       const mockInsertBlocks = vi.fn().mockReturnValue([{ id: 'new-block' }]);
       const mockEditor = {
         getTextCursorPosition: () => ({ block: { id: 'test-block', content: [] } }),
@@ -111,7 +111,7 @@ describe('Slash Commands', () => {
       } as any;
 
       const item = createDateSlashItem(mockEditor);
-      item.execute(mockEditor);
+      item.onItemClick();
 
       expect(mockInsertBlocks).toHaveBeenCalledTimes(1);
       const [blocks, position, placement] = mockInsertBlocks.mock.calls[0];
@@ -121,7 +121,7 @@ describe('Slash Commands', () => {
     });
   });
 
-  describe('createDateTimeSlashItem - BlockNote ReactSlashMenuItem 형식', () => {
+  describe('createDateTimeSlashItem - BlockNote DefaultReactSuggestionItem 형식', () => {
     it('should have title property (BlockNote requirement)', () => {
       const mockEditor = {
         getTextCursorPosition: () => ({ block: { id: 'test-block', content: [] } }),
@@ -136,7 +136,7 @@ describe('Slash Commands', () => {
       expect(item.aliases).toContain('now');
     });
 
-    it('should have execute function (BlockNote requirement)', () => {
+    it('should have onItemClick function (BlockNote 0.46 requirement)', () => {
       const mockEditor = {
         getTextCursorPosition: () => ({ block: { id: 'test-block', content: [] } }),
         insertBlocks: vi.fn().mockReturnValue([{ id: 'new-block' }]),
@@ -145,10 +145,10 @@ describe('Slash Commands', () => {
       } as any;
       const item = createDateTimeSlashItem(mockEditor);
       
-      expect(typeof item.execute).toBe('function');
+      expect(typeof item.onItemClick).toBe('function');
     });
 
-    it('should insert datetime when execute is called', () => {
+    it('should insert datetime when onItemClick is called', () => {
       const mockInsertBlocks = vi.fn().mockReturnValue([{ id: 'new-block' }]);
       const mockEditor = {
         getTextCursorPosition: () => ({ block: { id: 'test-block', content: [] } }),
@@ -158,7 +158,7 @@ describe('Slash Commands', () => {
       } as any;
 
       const item = createDateTimeSlashItem(mockEditor);
-      item.execute(mockEditor);
+      item.onItemClick();
 
       expect(mockInsertBlocks).toHaveBeenCalledTimes(1);
       const [blocks] = mockInsertBlocks.mock.calls[0];
@@ -166,7 +166,7 @@ describe('Slash Commands', () => {
     });
   });
 
-  describe('createSampleIdSlashItems - BlockNote ReactSlashMenuItem 형식', () => {
+  describe('createSampleIdSlashItems - BlockNote DefaultReactSuggestionItem 형식', () => {
     it('should create items for all sample types', () => {
       const mockEditor = {
         getTextCursorPosition: () => ({ block: { id: 'test-block', content: [] } }),
@@ -199,7 +199,7 @@ describe('Slash Commands', () => {
       expect(dnaItem!.title).toBe('Insert DNA Sample ID');
     });
 
-    it('should have execute function for each item', () => {
+    it('should have onItemClick function for each item', () => {
       const mockEditor = {
         getTextCursorPosition: () => ({ block: { id: 'test-block', content: [] } }),
         insertBlocks: vi.fn().mockReturnValue([{ id: 'new-block' }]),
@@ -209,7 +209,7 @@ describe('Slash Commands', () => {
       const items = createSampleIdSlashItems(mockEditor);
       
       items.forEach(item => {
-        expect(typeof item.execute).toBe('function');
+        expect(typeof item.onItemClick).toBe('function');
       });
     });
 
@@ -229,7 +229,7 @@ describe('Slash Commands', () => {
       expect(rnaItem!.aliases).toContain('rna');
     });
 
-    it('should insert sample ID when execute is called', () => {
+    it('should insert sample ID when onItemClick is called', () => {
       const mockInsertBlocks = vi.fn().mockReturnValue([{ id: 'new-block' }]);
       const mockEditor = {
         getTextCursorPosition: () => ({ block: { id: 'test-block', content: [] } }),
@@ -241,7 +241,7 @@ describe('Slash Commands', () => {
       const items = createSampleIdSlashItems(mockEditor);
       const dnaItem = items.find(i => i.title.includes('DNA'));
       
-      dnaItem!.execute(mockEditor);
+      dnaItem!.onItemClick();
 
       expect(mockInsertBlocks).toHaveBeenCalledTimes(1);
       const [blocks] = mockInsertBlocks.mock.calls[0];
@@ -316,15 +316,15 @@ describe('Slash Commands', () => {
       const items = createWorkflowSlashItems(mockEditor);
       expect(items.length).toBeGreaterThan(0);
       
-      // Check first item has proper structure
+      // Check first item has proper structure for BlockNote 0.46
       const firstItem = items[0];
       expect(firstItem).toHaveProperty('title');
-      expect(firstItem).toHaveProperty('execute');
+      expect(firstItem).toHaveProperty('onItemClick');
       expect(firstItem).toHaveProperty('aliases');
       expect(firstItem).toHaveProperty('group', 'Workflow');
     });
 
-    it('should insert workflow template when execute is called', async () => {
+    it('should insert workflow template when onItemClick is called', async () => {
       const { createWorkflowSlashItems } = await import('../slashCommands');
       const mockInsertBlocks = vi.fn().mockReturnValue([{ id: 'new-block' }]);
       const mockEditor = {
@@ -337,7 +337,7 @@ describe('Slash Commands', () => {
       const items = createWorkflowSlashItems(mockEditor);
       const firstItem = items[0];
       
-      firstItem.execute(mockEditor);
+      firstItem.onItemClick();
 
       expect(mockInsertBlocks).toHaveBeenCalled();
     });
@@ -385,15 +385,15 @@ describe('Slash Commands', () => {
       const items = createOperationSlashItems(mockEditor);
       expect(items.length).toBeGreaterThan(0);
       
-      // Check first item has proper structure
+      // Check first item has proper structure for BlockNote 0.46
       const firstItem = items[0];
       expect(firstItem).toHaveProperty('title');
-      expect(firstItem).toHaveProperty('execute');
+      expect(firstItem).toHaveProperty('onItemClick');
       expect(firstItem).toHaveProperty('aliases');
       expect(firstItem).toHaveProperty('group', 'Operation');
     });
 
-    it('should insert operation template when execute is called', async () => {
+    it('should insert operation template when onItemClick is called', async () => {
       const { createOperationSlashItems } = await import('../slashCommands');
       const mockInsertBlocks = vi.fn().mockReturnValue([{ id: 'new-block' }]);
       const mockEditor = {
@@ -406,7 +406,7 @@ describe('Slash Commands', () => {
       const items = createOperationSlashItems(mockEditor);
       const firstItem = items[0];
       
-      firstItem.execute(mockEditor);
+      firstItem.onItemClick();
 
       expect(mockInsertBlocks).toHaveBeenCalled();
     });
@@ -424,7 +424,7 @@ describe('Slash Commands', () => {
       const items = createOperationSlashItems(mockEditor);
       const firstItem = items[0];
       
-      firstItem.execute(mockEditor);
+      firstItem.onItemClick();
 
       const [blocks] = mockInsertBlocks.mock.calls[0];
       
@@ -464,7 +464,7 @@ describe('Slash Commands', () => {
       const items = createOperationSlashItems(mockEditor);
       const firstItem = items[0];
       
-      firstItem.execute(mockEditor);
+      firstItem.onItemClick();
 
       const [blocks] = mockInsertBlocks.mock.calls[0];
       
@@ -495,7 +495,7 @@ describe('Slash Commands', () => {
       const items = createOperationSlashItems(mockEditor);
       const firstItem = items[0];
       
-      firstItem.execute(mockEditor);
+      firstItem.onItemClick();
 
       const [blocks] = mockInsertBlocks.mock.calls[0];
       
