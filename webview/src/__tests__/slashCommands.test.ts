@@ -61,7 +61,7 @@ describe('Slash Commands', () => {
       });
     });
 
-    it('모든 커스텀 슬래시 명령이 있어야 함', () => {
+    it('모든 커스텀 슬래시 명령이 있어야 함 (샘플 ID 제외)', () => {
       const mockEditor = {
         getTextCursorPosition: () => ({ block: { id: 'test-block', content: [] } }),
         insertBlocks: vi.fn().mockReturnValue([{ id: 'new-block' }]),
@@ -71,8 +71,26 @@ describe('Slash Commands', () => {
 
       const items = getLabNoteSlashMenuItems(mockEditor);
       
-      // 날짜 명령 2개 + 샘플 타입 8개 + 워크플로 템플릿 29개 = 39개
-      expect(items.length).toBeGreaterThanOrEqual(2 + SAMPLE_TYPES.length);
+      // 날짜 명령 2개 + 워크플로 템플릿 29개 + 유닛 오퍼레이션 35개 = 66개
+      // 샘플 ID는 createSampleSlashItemsWithExisting()을 통해 동적으로 로드되므로 제외
+      expect(items.length).toBeGreaterThanOrEqual(2);
+    });
+
+    it('샘플 ID 생성 항목이 포함되지 않아야 함 (중복 방지)', () => {
+      const mockEditor = {
+        getTextCursorPosition: () => ({ block: { id: 'test-block', content: [] } }),
+        insertBlocks: vi.fn().mockReturnValue([{ id: 'new-block' }]),
+        setTextCursorPosition: vi.fn(),
+        removeBlocks: vi.fn(),
+      } as any;
+
+      const items = getLabNoteSlashMenuItems(mockEditor);
+      
+      // "Insert DNA Sample ID" 같은 항목이 없어야 함
+      const sampleIdItems = items.filter(item => 
+        item.title.includes('Sample ID') || item.title.includes('ID 생성')
+      );
+      expect(sampleIdItems.length).toBe(0);
     });
   });
 

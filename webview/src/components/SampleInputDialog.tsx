@@ -55,6 +55,12 @@ export const SampleInputDialog: React.FC<SampleInputDialogProps> = ({
       title="샘플 정보 입력"
       centered
       size="md"
+      styles={{
+        content: { backgroundColor: 'var(--vscode-editor-background, #1e1e1e)' },
+        header: { backgroundColor: 'var(--vscode-editor-background, #1e1e1e)' },
+        body: { backgroundColor: 'var(--vscode-editor-background, #1e1e1e)' },
+      }}
+      overlayProps={{ backgroundOpacity: 0.7 }}
     >
       <Stack gap="md">
         <Group gap="sm">

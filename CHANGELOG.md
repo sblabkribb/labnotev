@@ -5,6 +5,28 @@
 형식은 [Keep a Changelog](https://keepachangelog.com/ko/1.1.0/)를 기반으로 하며,
 이 프로젝트는 [유의적 버전 관리](https://semver.org/lang/ko/)를 따릅니다.
 
+## [0.10.3] - 2026-01-19
+
+### 수정
+
+#### 슬래시 명령 중복 문제 해결
+- `/dna` 등 샘플 ID 슬래시 명령에서 "Insert DNA Sample ID"와 "새 DNA ID 생성"이 중복 표시되던 문제 수정
+- `getLabNoteSlashMenuItems()`에서 `createSampleIdSlashItems()` 제거
+- 샘플 ID는 `createSampleSlashItemsWithExisting()`을 통해 동적으로 로드
+
+#### 샘플 입력 다이얼로그 스타일 개선
+- VS Code webview 환경에서 다이얼로그가 반투명하게 표시되던 문제 수정
+- Modal에 명시적 배경색 스타일 추가 (VS Code 테마 변수 사용)
+- 오버레이 불투명도 0.7로 설정하여 가독성 향상
+
+### 테스트
+
+- Extension 테스트: 205개 (13개 파일)
+- Webview 테스트: 153개 (7개 파일) - 3개 추가
+- 총 358개 테스트 통과
+
+---
+
 ## [0.10.2] - 2026-01-18
 
 ### 수정

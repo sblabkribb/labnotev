@@ -421,12 +421,15 @@ export function createOperationSlashItems(editor: BlockNoteEditor<any, any, any>
 
 /**
  * Get all custom slash menu items for lab notes
+ * Note: Sample ID items are NOT included here to avoid duplication.
+ * Sample IDs are loaded dynamically via createSampleSlashItemsWithExisting() in Editor.tsx
  */
 export function getLabNoteSlashMenuItems(editor: BlockNoteEditor<any, any, any>): DefaultReactSuggestionItem[] {
   return [
     createDateSlashItem(editor),
     createDateTimeSlashItem(editor),
-    ...createSampleIdSlashItems(editor),
+    // createSampleIdSlashItems is intentionally excluded here
+    // Samples are loaded dynamically via createSampleSlashItemsWithExisting()
     ...createWorkflowSlashItems(editor),
     ...createOperationSlashItems(editor),
   ];

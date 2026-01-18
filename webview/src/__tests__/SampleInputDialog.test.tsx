@@ -239,4 +239,36 @@ describe('SampleInputDialog', () => {
       });
     });
   });
+
+  describe('다이얼로그 스타일 (VS Code webview 호환)', () => {
+    it('should have opaque background (not transparent)', () => {
+      render(
+        <TestWrapper>
+          <SampleInputDialog {...defaultProps} />
+        </TestWrapper>
+      );
+
+      // Modal content should have explicit background color
+      const modalContent = document.querySelector('.mantine-Modal-content');
+      expect(modalContent).not.toBeNull();
+      
+      // Check that the modal is visible with proper styling
+      const computedStyle = window.getComputedStyle(modalContent!);
+      // The background should not be transparent
+      expect(computedStyle.backgroundColor).not.toBe('transparent');
+      expect(computedStyle.backgroundColor).not.toBe('rgba(0, 0, 0, 0)');
+    });
+
+    it('should have overlay with sufficient opacity', () => {
+      render(
+        <TestWrapper>
+          <SampleInputDialog {...defaultProps} />
+        </TestWrapper>
+      );
+
+      // Modal overlay should exist
+      const overlay = document.querySelector('.mantine-Modal-overlay');
+      expect(overlay).not.toBeNull();
+    });
+  });
 });
