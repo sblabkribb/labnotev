@@ -126,4 +126,129 @@ describe('vscodeApi', () => {
       expect(state).toBeUndefined();
     });
   });
+
+  describe('loadSamples', () => {
+    it('should send getSamples request and return samples', async () => {
+      const requestPromise = vscode.loadSamples('DNA');
+      
+      // Check that postMessage was called with correct type
+      expect(mockVSCodeApi.postMessage).toHaveBeenCalled();
+      const calledWith = mockVSCodeApi.postMessage.mock.calls[0][0] as {
+        type: string;
+        sampleType: string;
+        requestId: string;
+      };
+      expect(calledWith.type).toBe('getSamples');
+      expect(calledWith.sampleType).toBe('DNA');
+      expect(calledWith.requestId).toBeDefined();
+      
+      // Simulate response
+      const responseEvent = new MessageEvent('message', {
+        data: { 
+          requestId: calledWith.requestId, 
+          samples: {
+            'DNA-123': { type: 'DNA', alias: '샘플A', descriptions: ['설명A'], sources: ['test.md'] },
+          }
+        },
+      });
+      window.dispatchEvent(responseEvent);
+      
+      const result = await requestPromise;
+      expect(result['DNA-123']).toBeDefined();
+      expect(result['DNA-123'].alias).toBe('샘플A');
+    });
+
+    it('should return empty object when no samples exist', async () => {
+      const requestPromise = vscode.loadSamples('RNA');
+      
+      const calledWith = mockVSCodeApi.postMessage.mock.calls[0][0] as {
+        type: string;
+        sampleType: string;
+        requestId: string;
+      };
+      
+      // Simulate empty response
+      const responseEvent = new MessageEvent('message', {
+        data: { 
+          requestId: calledWith.requestId, 
+          samples: {}
+        },
+      });
+      window.dispatchEvent(responseEvent);
+      
+      const result = await requestPromise;
+      expect(Object.keys(result).length).toBe(0);
+    });
+  });
+
+  describe('saveSample', () => {
+    it('should send saveSample request with sample info', async () => {
+      const savePromise = vscode.saveSample({
+        sampleType: 'DNA',
+        sampleId: 'DNA-789',
+        alias: '새샘플',
+        description: '새로운 설명',
+      });
+      
+      // Check that postMessage was called with correct data
+      expect(mockVSCodeApi.postMessage).toHaveBeenCalled();
+      const calledWith = mockVSCodeApi.postMessage.mock.calls[0][0] as {
+        type: string;
+        sampleType: string;
+        sampleId: string;
+        alias: string;
+        description: string;
+        requestId: string;
+      };
+      expect(calledWith.type).toBe('saveSample');
+      expect(calledWith.sampleType).toBe('DNA');
+      expect(calledWith.sampleId).toBe('DNA-789');
+      expect(calledWith.alias).toBe('새샘플');
+      expect(calledWith.description).toBe('새로운 설명');
+      
+      // Simulate success response
+      const responseEvent = new MessageEvent('message', {
+        data: { 
+          requestId: calledWith.requestId, 
+          success: true
+        },
+      });
+      window.dispatchEvent(responseEvent);
+      
+      const result = await savePromise;
+      expect(result.success).toBe(true);
+    });
+
+    it('should handle saveSample with null alias and description', async () => {
+      const savePromise = vscode.saveSample({
+        sampleType: 'RNA',
+        sampleId: 'RNA-001',
+        alias: null,
+        description: null,
+      });
+      
+      const calledWith = mockVSCodeApi.postMessage.mock.calls[0][0] as {
+        type: string;
+        sampleType: string;
+        sampleId: string;
+        alias: null;
+        description: null;
+        requestId: string;
+      };
+      expect(calledWith.alias).toBeNull();
+      expect(calledWith.description).toBeNull();
+      
+      // Simulate success response
+      const responseEvent = new MessageEvent('message', {
+        data: { 
+          requestId: calledWith.requestId, 
+          success: true
+        },
+      });
+      window.dispatchEvent(responseEvent);
+      
+      const result = await savePromise;
+      expect(result.success).toBe(true);
+    });
+  });
 });

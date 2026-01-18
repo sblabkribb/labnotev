@@ -1,8 +1,17 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { mockVscode } from './setup';
 
+// Mock sampleStorage module
+vi.mock('../lib/sampleStorage', () => ({
+  getLabsamplesFolder: vi.fn(() => '/test/workspace/resources/labsamples'),
+  loadSamplesByType: vi.fn(() => ({})),
+  saveSamplesByType: vi.fn(),
+  SampleRecord: {},
+}));
+
 // Import after mocking
 import { LabNoteEditorProvider } from '../labNoteEditorProvider';
+import * as sampleStorage from '../lib/sampleStorage';
 
 describe('LabNoteEditorProvider', () => {
   let provider: LabNoteEditorProvider;
@@ -214,6 +223,183 @@ describe('LabNoteEditorProvider', () => {
             requestId: 'req123',
           })
         );
+      });
+
+      it('should handle getSamples message and return samples for type', async () => {
+        let messageHandler: (message: { type: string; sampleType?: string; requestId?: string }) => Promise<void>;
+        mockWebviewPanel.webview.onDidReceiveMessage.mockImplementation((handler: typeof messageHandler) => {
+          messageHandler = handler;
+          return { dispose: vi.fn() };
+        });
+
+        // Mock loadSamplesByType to return sample data
+        vi.mocked(sampleStorage.loadSamplesByType).mockReturnValue({
+          'DNA-123': { type: 'DNA', alias: '샘플A', descriptions: ['설명A'], sources: ['test.md'] },
+          'DNA-456': { type: 'DNA', alias: null, descriptions: [], sources: ['test.md'] },
+        });
+
+        await provider.resolveCustomTextEditor(
+          mockDocument as unknown as Parameters<typeof provider.resolveCustomTextEditor>[0],
+          mockWebviewPanel as unknown as Parameters<typeof provider.resolveCustomTextEditor>[1],
+          { isCancellationRequested: false, onCancellationRequested: vi.fn() }
+        );
+
+        await messageHandler!({
+          type: 'getSamples',
+          sampleType: 'DNA',
+          requestId: 'req-samples-1',
+        });
+
+        expect(sampleStorage.loadSamplesByType).toHaveBeenCalledWith(
+          '/test/workspace/resources/labsamples',
+          'DNA'
+        );
+        expect(mockWebviewPanel.webview.postMessage).toHaveBeenCalledWith({
+          type: 'samples',
+          requestId: 'req-samples-1',
+          samples: {
+            'DNA-123': { type: 'DNA', alias: '샘플A', descriptions: ['설명A'], sources: ['test.md'] },
+            'DNA-456': { type: 'DNA', alias: null, descriptions: [], sources: ['test.md'] },
+          },
+        });
+      });
+
+      it('should handle getSamples message with empty result when no samples', async () => {
+        let messageHandler: (message: { type: string; sampleType?: string; requestId?: string }) => Promise<void>;
+        mockWebviewPanel.webview.onDidReceiveMessage.mockImplementation((handler: typeof messageHandler) => {
+          messageHandler = handler;
+          return { dispose: vi.fn() };
+        });
+
+        // Mock loadSamplesByType to return empty object
+        vi.mocked(sampleStorage.loadSamplesByType).mockReturnValue({});
+
+        await provider.resolveCustomTextEditor(
+          mockDocument as unknown as Parameters<typeof provider.resolveCustomTextEditor>[0],
+          mockWebviewPanel as unknown as Parameters<typeof provider.resolveCustomTextEditor>[1],
+          { isCancellationRequested: false, onCancellationRequested: vi.fn() }
+        );
+
+        await messageHandler!({
+          type: 'getSamples',
+          sampleType: 'RNA',
+          requestId: 'req-samples-2',
+        });
+
+        expect(mockWebviewPanel.webview.postMessage).toHaveBeenCalledWith({
+          type: 'samples',
+          requestId: 'req-samples-2',
+          samples: {},
+        });
+      });
+
+      it('should handle saveSample message and save to JSON file', async () => {
+        let messageHandler: (message: { 
+          type: string; 
+          sampleType?: string; 
+          sampleId?: string;
+          alias?: string | null;
+          description?: string | null;
+          requestId?: string 
+        }) => Promise<void>;
+        mockWebviewPanel.webview.onDidReceiveMessage.mockImplementation((handler: typeof messageHandler) => {
+          messageHandler = handler;
+          return { dispose: vi.fn() };
+        });
+
+        // Mock loadSamplesByType to return empty (new sample)
+        vi.mocked(sampleStorage.loadSamplesByType).mockReturnValue({});
+
+        await provider.resolveCustomTextEditor(
+          mockDocument as unknown as Parameters<typeof provider.resolveCustomTextEditor>[0],
+          mockWebviewPanel as unknown as Parameters<typeof provider.resolveCustomTextEditor>[1],
+          { isCancellationRequested: false, onCancellationRequested: vi.fn() }
+        );
+
+        await messageHandler!({
+          type: 'saveSample',
+          sampleType: 'DNA',
+          sampleId: 'DNA-789',
+          alias: '새샘플',
+          description: '새로운 샘플 설명',
+          requestId: 'req-save-1',
+        });
+
+        // Should call saveSamplesByType with correct arguments
+        expect(sampleStorage.saveSamplesByType).toHaveBeenCalledWith(
+          '/test/workspace/resources/labsamples',
+          'DNA',
+          {
+            'DNA-789': {
+              type: 'DNA',
+              alias: '새샘플',
+              descriptions: ['새로운 샘플 설명'],
+              sources: ['test.labnote.md'],
+            },
+          }
+        );
+        
+        expect(mockWebviewPanel.webview.postMessage).toHaveBeenCalledWith({
+          type: 'sampleSaved',
+          requestId: 'req-save-1',
+          success: true,
+        });
+      });
+
+      it('should handle saveSample message and merge with existing samples', async () => {
+        let messageHandler: (message: { 
+          type: string; 
+          sampleType?: string; 
+          sampleId?: string;
+          alias?: string | null;
+          description?: string | null;
+          requestId?: string 
+        }) => Promise<void>;
+        mockWebviewPanel.webview.onDidReceiveMessage.mockImplementation((handler: typeof messageHandler) => {
+          messageHandler = handler;
+          return { dispose: vi.fn() };
+        });
+
+        // Mock existing samples
+        vi.mocked(sampleStorage.loadSamplesByType).mockReturnValue({
+          'DNA-123': { type: 'DNA', alias: '기존샘플', descriptions: ['기존설명'], sources: ['old.md'] },
+        });
+
+        await provider.resolveCustomTextEditor(
+          mockDocument as unknown as Parameters<typeof provider.resolveCustomTextEditor>[0],
+          mockWebviewPanel as unknown as Parameters<typeof provider.resolveCustomTextEditor>[1],
+          { isCancellationRequested: false, onCancellationRequested: vi.fn() }
+        );
+
+        await messageHandler!({
+          type: 'saveSample',
+          sampleType: 'DNA',
+          sampleId: 'DNA-456',
+          alias: '새샘플',
+          description: null,
+          requestId: 'req-save-2',
+        });
+
+        // Should call saveSamplesByType with merged data
+        expect(sampleStorage.saveSamplesByType).toHaveBeenCalledWith(
+          '/test/workspace/resources/labsamples',
+          'DNA',
+          expect.objectContaining({
+            'DNA-123': { type: 'DNA', alias: '기존샘플', descriptions: ['기존설명'], sources: ['old.md'] },
+            'DNA-456': {
+              type: 'DNA',
+              alias: '새샘플',
+              descriptions: [],
+              sources: ['test.labnote.md'],
+            },
+          })
+        );
+
+        expect(mockWebviewPanel.webview.postMessage).toHaveBeenCalledWith({
+          type: 'sampleSaved',
+          requestId: 'req-save-2',
+          success: true,
+        });
       });
     });
   });

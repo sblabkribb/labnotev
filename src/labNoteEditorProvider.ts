@@ -1,5 +1,11 @@
 import * as vscode from 'vscode';
 import * as path from 'path';
+import { 
+  getLabsamplesFolder, 
+  loadSamplesByType, 
+  saveSamplesByType,
+  SampleRecord 
+} from './lib/sampleStorage';
 
 export class LabNoteEditorProvider implements vscode.CustomTextEditorProvider {
   public static readonly viewType = 'labnotev.editor';
@@ -68,6 +74,30 @@ export class LabNoteEditorProvider implements vscode.CustomTextEditorProvider {
             type: 'assetUri',
             requestId: message.requestId,
             uri: assetUri,
+          });
+          break;
+
+        case 'getSamples':
+          const samples = await this.getSamples(document, message.sampleType);
+          webviewPanel.webview.postMessage({
+            type: 'samples',
+            requestId: message.requestId,
+            samples,
+          });
+          break;
+
+        case 'saveSample':
+          await this.saveSample(
+            document,
+            message.sampleType,
+            message.sampleId,
+            message.alias,
+            message.description
+          );
+          webviewPanel.webview.postMessage({
+            type: 'sampleSaved',
+            requestId: message.requestId,
+            success: true,
           });
           break;
       }
@@ -160,5 +190,48 @@ export class LabNoteEditorProvider implements vscode.CustomTextEditorProvider {
     const documentDir = path.dirname(document.uri.fsPath);
     const absolutePath = path.join(documentDir, relativePath);
     return webview.asWebviewUri(vscode.Uri.file(absolutePath)).toString();
+  }
+
+  /**
+   * Get samples of a specific type from the labsamples folder
+   */
+  private async getSamples(
+    document: vscode.TextDocument,
+    sampleType: string
+  ): Promise<Record<string, SampleRecord>> {
+    try {
+      const labsamplesFolder = getLabsamplesFolder(document.uri.fsPath);
+      return loadSamplesByType(labsamplesFolder, sampleType);
+    } catch {
+      return {};
+    }
+  }
+
+  /**
+   * Save a sample to the labsamples folder
+   */
+  private async saveSample(
+    document: vscode.TextDocument,
+    sampleType: string,
+    sampleId: string,
+    alias: string | null,
+    description: string | null
+  ): Promise<void> {
+    const labsamplesFolder = getLabsamplesFolder(document.uri.fsPath);
+    const sourceFile = path.basename(document.uri.fsPath);
+
+    // Load existing samples
+    const existingSamples = loadSamplesByType(labsamplesFolder, sampleType);
+
+    // Add or update the sample
+    existingSamples[sampleId] = {
+      type: sampleType,
+      alias,
+      descriptions: description ? [description] : [],
+      sources: [sourceFile],
+    };
+
+    // Save back to file
+    saveSamplesByType(labsamplesFolder, sampleType, existingSamples);
   }
 }

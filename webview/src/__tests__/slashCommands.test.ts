@@ -511,4 +511,141 @@ describe('Slash Commands', () => {
       expect(allText).toMatch(/Start_date.*\d{4}-\d{2}-\d{2} \d{2}:\d{2}/);
     });
   });
+
+  describe('createSampleSlashItemsWithExisting - 기존 샘플 목록 포함', () => {
+    it('should create slash items including existing samples', async () => {
+      const { createSampleSlashItemsWithExisting } = await import('../slashCommands');
+      const mockEditor = {
+        getTextCursorPosition: () => ({ block: { id: 'test-block', content: [] } }),
+        insertBlocks: vi.fn().mockReturnValue([{ id: 'new-block' }]),
+        setTextCursorPosition: vi.fn(),
+        removeBlocks: vi.fn(),
+      } as any;
+
+      const existingSamples = {
+        'DNA-123': { type: 'DNA', alias: '샘플A', descriptions: ['설명A'], sources: ['test.md'] },
+        'DNA-456': { type: 'DNA', alias: null, descriptions: [], sources: ['test.md'] },
+      };
+
+      const onNewSample = vi.fn();
+      const items = createSampleSlashItemsWithExisting(
+        mockEditor,
+        'DNA',
+        existingSamples,
+        onNewSample
+      );
+
+      // Should have: 1 "새 ID 생성" + 2 existing samples = 3 items
+      expect(items.length).toBe(3);
+
+      // First item should be "새 ID 생성"
+      expect(items[0].title).toContain('새 DNA ID 생성');
+    });
+
+    it('should include existing sample with alias in title', async () => {
+      const { createSampleSlashItemsWithExisting } = await import('../slashCommands');
+      const mockEditor = {
+        getTextCursorPosition: () => ({ block: { id: 'test-block', content: [] } }),
+        insertBlocks: vi.fn().mockReturnValue([{ id: 'new-block' }]),
+        setTextCursorPosition: vi.fn(),
+        removeBlocks: vi.fn(),
+      } as any;
+
+      const existingSamples = {
+        'DNA-123': { type: 'DNA', alias: '샘플A', descriptions: ['설명A'], sources: ['test.md'] },
+      };
+
+      const items = createSampleSlashItemsWithExisting(mockEditor, 'DNA', existingSamples, vi.fn());
+
+      // Second item should be existing sample with alias
+      expect(items[1].title).toBe('DNA-123 (샘플A)');
+      expect(items[1].subtext).toBe('설명A');
+    });
+
+    it('should insert ID|alias format when existing sample selected', async () => {
+      const { createSampleSlashItemsWithExisting } = await import('../slashCommands');
+      const mockInsertBlocks = vi.fn().mockReturnValue([{ id: 'new-block' }]);
+      const mockEditor = {
+        getTextCursorPosition: () => ({ block: { id: 'test-block', content: [] } }),
+        insertBlocks: mockInsertBlocks,
+        setTextCursorPosition: vi.fn(),
+        removeBlocks: vi.fn(),
+      } as any;
+
+      const existingSamples = {
+        'DNA-123': { type: 'DNA', alias: '샘플A', descriptions: ['설명A'], sources: ['test.md'] },
+      };
+
+      const items = createSampleSlashItemsWithExisting(mockEditor, 'DNA', existingSamples, vi.fn());
+      
+      // Click on existing sample
+      items[1].onItemClick();
+
+      // Should insert ID|alias format
+      const [blocks] = mockInsertBlocks.mock.calls[0];
+      expect(blocks[0].content[0].text).toBe('DNA-123|샘플A');
+    });
+
+    it('should insert ID only when existing sample has no alias', async () => {
+      const { createSampleSlashItemsWithExisting } = await import('../slashCommands');
+      const mockInsertBlocks = vi.fn().mockReturnValue([{ id: 'new-block' }]);
+      const mockEditor = {
+        getTextCursorPosition: () => ({ block: { id: 'test-block', content: [] } }),
+        insertBlocks: mockInsertBlocks,
+        setTextCursorPosition: vi.fn(),
+        removeBlocks: vi.fn(),
+      } as any;
+
+      const existingSamples = {
+        'DNA-456': { type: 'DNA', alias: null, descriptions: ['어떤 설명'], sources: ['test.md'] },
+      };
+
+      const items = createSampleSlashItemsWithExisting(mockEditor, 'DNA', existingSamples, vi.fn());
+      
+      // Click on existing sample without alias
+      items[1].onItemClick();
+
+      // Should insert ID only
+      const [blocks] = mockInsertBlocks.mock.calls[0];
+      expect(blocks[0].content[0].text).toBe('DNA-456');
+    });
+
+    it('should call onNewSample callback when creating new ID', async () => {
+      const { createSampleSlashItemsWithExisting } = await import('../slashCommands');
+      const mockEditor = {
+        getTextCursorPosition: () => ({ block: { id: 'test-block', content: [] } }),
+        insertBlocks: vi.fn().mockReturnValue([{ id: 'new-block' }]),
+        setTextCursorPosition: vi.fn(),
+        removeBlocks: vi.fn(),
+      } as any;
+
+      const onNewSample = vi.fn();
+      const items = createSampleSlashItemsWithExisting(mockEditor, 'DNA', {}, onNewSample);
+      
+      // Click on "새 ID 생성"
+      items[0].onItemClick();
+
+      // Should call callback with new ID and type
+      expect(onNewSample).toHaveBeenCalled();
+      const [sampleType, sampleId] = onNewSample.mock.calls[0];
+      expect(sampleType).toBe('DNA');
+      expect(sampleId).toMatch(/^DNA-\d+/);
+    });
+
+    it('should work with empty existing samples', async () => {
+      const { createSampleSlashItemsWithExisting } = await import('../slashCommands');
+      const mockEditor = {
+        getTextCursorPosition: () => ({ block: { id: 'test-block', content: [] } }),
+        insertBlocks: vi.fn().mockReturnValue([{ id: 'new-block' }]),
+        setTextCursorPosition: vi.fn(),
+        removeBlocks: vi.fn(),
+      } as any;
+
+      const items = createSampleSlashItemsWithExisting(mockEditor, 'RNA', {}, vi.fn());
+
+      // Should have only 1 item (새 ID 생성)
+      expect(items.length).toBe(1);
+      expect(items[0].title).toContain('새 RNA ID 생성');
+    });
+  });
 });

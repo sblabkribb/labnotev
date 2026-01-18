@@ -11,6 +11,26 @@ export type MessageHandler = (message: {
   [key: string]: unknown;
 }) => void;
 
+/**
+ * Sample record structure (matching extension's SampleRecord)
+ */
+export interface SampleRecord {
+  type: string;
+  alias: string | null;
+  descriptions: string[];
+  sources: string[];
+}
+
+/**
+ * Input for saving a sample
+ */
+export interface SaveSampleInput {
+  sampleType: string;
+  sampleId: string;
+  alias: string | null;
+  description: string | null;
+}
+
 class VSCodeBridge {
   private api: VSCodeApi;
   private handlers: Set<MessageHandler> = new Set();
@@ -62,6 +82,31 @@ class VSCodeBridge {
 
   setState<T>(state: T): void {
     this.api.setState(state);
+  }
+
+  /**
+   * Load samples of a specific type from the extension
+   */
+  async loadSamples(sampleType: string): Promise<Record<string, SampleRecord>> {
+    const response = await this.request<{ samples: Record<string, SampleRecord> }>({
+      type: 'getSamples',
+      sampleType,
+    });
+    return response.samples;
+  }
+
+  /**
+   * Save a sample to the extension's storage
+   */
+  async saveSample(input: SaveSampleInput): Promise<{ success: boolean }> {
+    const response = await this.request<{ success: boolean }>({
+      type: 'saveSample',
+      sampleType: input.sampleType,
+      sampleId: input.sampleId,
+      alias: input.alias,
+      description: input.description,
+    });
+    return response;
   }
 }
 

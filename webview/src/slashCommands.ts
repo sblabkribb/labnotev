@@ -87,6 +87,16 @@ export function createDateTimeSlashItem(editor: BlockNoteEditor<any, any, any>):
 }
 
 /**
+ * Sample record structure (matching extension's SampleRecord)
+ */
+export interface SampleRecord {
+  type: string;
+  alias: string | null;
+  descriptions: string[];
+  sources: string[];
+}
+
+/**
  * Create slash menu items for sample ID generation
  * Uses BlockNote's DefaultReactSuggestionItem interface: title, onItemClick, subtext
  */
@@ -105,6 +115,73 @@ export function createSampleIdSlashItems(editor: BlockNoteEditor<any, any, any>)
     group: 'Sample',
     subtext: `Generate a new ${type} sample ID`,
   }));
+}
+
+/**
+ * Create slash menu items for sample ID with existing samples
+ * Includes: "새 ID 생성" + existing samples from storage
+ * 
+ * @param editor BlockNote editor instance
+ * @param sampleType Sample type (DNA, RNA, etc.)
+ * @param existingSamples Existing samples from storage
+ * @param onNewSample Callback when new sample is created (for dialog)
+ */
+export function createSampleSlashItemsWithExisting(
+  editor: BlockNoteEditor<any, any, any>,
+  sampleType: string,
+  existingSamples: Record<string, SampleRecord>,
+  onNewSample: (type: string, id: string) => void
+): DefaultReactSuggestionItem[] {
+  const items: DefaultReactSuggestionItem[] = [];
+
+  // 1. "새 ID 생성" item (first)
+  items.push({
+    title: `새 ${sampleType} ID 생성`,
+    onItemClick: () => {
+      const sampleId = generateSampleId(sampleType as SampleType);
+      insertOrUpdateBlock(editor, {
+        type: 'paragraph',
+        props: {},
+        content: [{ type: 'text', text: sampleId, styles: {} }],
+      });
+      // Call callback to open dialog for alias/description input
+      onNewSample(sampleType, sampleId);
+    },
+    aliases: [sampleType.toLowerCase(), `new-${sampleType.toLowerCase()}`],
+    group: 'Sample',
+    subtext: `새로운 ${sampleType} 샘플 ID 생성`,
+  });
+
+  // 2. Existing samples
+  for (const [id, record] of Object.entries(existingSamples)) {
+    const alias = record.alias;
+    const description = record.descriptions.length > 0 ? record.descriptions[0] : null;
+
+    // Title format: "DNA-123 (샘플A)" or "DNA-123"
+    const title = alias ? `${id} (${alias})` : id;
+
+    items.push({
+      title,
+      onItemClick: () => {
+        // Insert ID|alias or ID only
+        const text = alias ? `${id}|${alias}` : id;
+        insertOrUpdateBlock(editor, {
+          type: 'paragraph',
+          props: {},
+          content: [{ type: 'text', text, styles: {} }],
+        });
+      },
+      aliases: [
+        id.toLowerCase(),
+        alias?.toLowerCase() || '',
+        `${sampleType.toLowerCase()}-existing`,
+      ].filter(Boolean),
+      group: 'Sample',
+      subtext: description || `기존 ${sampleType} 샘플`,
+    });
+  }
+
+  return items;
 }
 
 /**

@@ -5,6 +5,44 @@
 형식은 [Keep a Changelog](https://keepachangelog.com/ko/1.1.0/)를 기반으로 하며,
 이 프로젝트는 [유의적 버전 관리](https://semver.org/lang/ko/)를 따릅니다.
 
+## [0.10.0] - 2026-01-18
+
+### 추가
+
+#### 샘플 관리 기능 확장 (labsample 통합)
+- 슬래시 명령에서 기존 샘플 목록 표시 및 선택 기능
+- 새 샘플 ID 생성 후 별칭/설명 입력 다이얼로그 추가
+- Extension-Webview 간 샘플 데이터 통신 구현
+
+#### Extension 메시지 핸들러
+- `getSamples` 메시지 핸들러: 타입별 샘플 목록 반환
+- `saveSample` 메시지 핸들러: 새 샘플 정보 저장
+- `sampleStorage.ts`의 기존 함수 활용
+
+#### Webview API 확장
+- `vscode.loadSamples(type)`: 샘플 데이터 로드
+- `vscode.saveSample(info)`: 샘플 데이터 저장
+- `SampleRecord` 인터페이스 추가
+
+#### 슬래시 명령 확장
+- `createSampleSlashItemsWithExisting()`: 기존 샘플 포함 슬래시 아이템 생성
+- "새 ID 생성" + 기존 샘플 목록 동적 로드
+- 기존 샘플 선택 시 `ID|별칭` 형식으로 삽입
+
+#### SampleInputDialog 컴포넌트
+- Mantine Modal 기반 다이얼로그
+- 별칭/설명 입력 필드
+- 확인/취소/건너뛰기 버튼
+- 다이얼로그 상태 관리 및 Editor 통합
+
+### 테스트
+
+- Extension 테스트: 205개 (13개 파일) - 4개 추가
+- Webview 테스트: 131개 (7개 파일) - 23개 추가
+- 총 336개 테스트 통과
+
+---
+
 ## [0.9.0] - 2026-01-18
 
 ### 변경

@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useRef, useCallback } from 'react';
+import React, { useEffect, useMemo, useRef, useCallback, useState } from 'react';
 import {
   BlockNoteSchema,
   defaultBlockSpecs,
@@ -13,7 +13,14 @@ import { markdownToBlocks, blocksToMarkdown } from './markdownConverter';
 import { MathBlock, createInsertMathBlock } from './blocks/MathBlock';
 import { usePasteHandler } from './hooks/usePasteHandler';
 import { useVSCodeTheme } from './hooks/useVSCodeTheme';
-import { getLabNoteSlashMenuItems } from './slashCommands';
+import { 
+  getLabNoteSlashMenuItems, 
+  createSampleSlashItemsWithExisting,
+  SAMPLE_TYPES,
+  SampleRecord,
+} from './slashCommands';
+import { SampleInputDialog, SampleInputResult } from './components/SampleInputDialog';
+import { vscode } from './vscodeApi';
 
 interface EditorProps {
   initialContent: string;
@@ -34,6 +41,13 @@ export const Editor: React.FC<EditorProps> = ({
   const isInitializedRef = useRef(false);
   const lastSavedContentRef = useRef<string>(initialContent);
   const vscodeTheme = useVSCodeTheme();
+
+  // Sample dialog state
+  const [dialogOpen, setDialogOpen] = useState(false);
+  const [pendingSample, setPendingSample] = useState<{ type: string; id: string } | null>(null);
+  
+  // Sample data cache (loaded from extension)
+  const [samplesCache, setSamplesCache] = useState<Record<string, Record<string, SampleRecord>>>({});
 
   // Parse initial content to blocks
   const initialBlocks = useMemo(() => {
@@ -101,8 +115,60 @@ export const Editor: React.FC<EditorProps> = ({
     resolveFileUrl,
   });
 
-  // Custom slash menu items
-  const slashMenuItems = useMemo(() => [
+  // Load samples for a type from extension
+  const loadSamplesForType = useCallback(async (type: string) => {
+    if (samplesCache[type]) {
+      return samplesCache[type];
+    }
+    try {
+      const samples = await vscode.loadSamples(type);
+      setSamplesCache(prev => ({ ...prev, [type]: samples }));
+      return samples;
+    } catch (e) {
+      console.error('Failed to load samples:', e);
+      return {};
+    }
+  }, [samplesCache]);
+
+  // Handle new sample creation (opens dialog)
+  const handleNewSample = useCallback((type: string, id: string) => {
+    setPendingSample({ type, id });
+    setDialogOpen(true);
+  }, []);
+
+  // Handle dialog confirm
+  const handleDialogConfirm = useCallback(async (result: SampleInputResult) => {
+    if (pendingSample && !result.skipSave) {
+      // Save sample to extension
+      try {
+        await vscode.saveSample({
+          sampleType: pendingSample.type,
+          sampleId: pendingSample.id,
+          alias: result.alias,
+          description: result.description,
+        });
+        // Invalidate cache for this type
+        setSamplesCache(prev => {
+          const updated = { ...prev };
+          delete updated[pendingSample.type];
+          return updated;
+        });
+      } catch (e) {
+        console.error('Failed to save sample:', e);
+      }
+    }
+    setDialogOpen(false);
+    setPendingSample(null);
+  }, [pendingSample]);
+
+  // Handle dialog cancel
+  const handleDialogCancel = useCallback(() => {
+    setDialogOpen(false);
+    setPendingSample(null);
+  }, []);
+
+  // Custom slash menu items (excluding sample items - they're loaded dynamically)
+  const baseSlashMenuItems = useMemo(() => [
     ...getDefaultReactSlashMenuItems(editor),
     createInsertMathBlock(editor),
     ...getLabNoteSlashMenuItems(editor),
@@ -153,8 +219,29 @@ export const Editor: React.FC<EditorProps> = ({
           triggerCharacter="/"
           getItems={async (query) => {
             const queryLower = query.toLowerCase();
-            return slashMenuItems.filter((item) => {
-              // BlockNote uses 'title' property for display
+            
+            // Check if query matches a sample type
+            const matchedType = SAMPLE_TYPES.find(type => 
+              type.toLowerCase().includes(queryLower) ||
+              queryLower.includes(type.toLowerCase())
+            );
+            
+            // Load sample items dynamically if a sample type is matched
+            let dynamicSampleItems: typeof baseSlashMenuItems = [];
+            if (matchedType) {
+              const samples = await loadSamplesForType(matchedType);
+              dynamicSampleItems = createSampleSlashItemsWithExisting(
+                editor,
+                matchedType,
+                samples,
+                handleNewSample
+              );
+            }
+            
+            // Combine base items with dynamic sample items
+            const allItems = [...baseSlashMenuItems, ...dynamicSampleItems];
+            
+            return allItems.filter((item) => {
               const itemTitle = item.title || '';
               return (
                 itemTitle.toLowerCase().includes(queryLower) ||
@@ -172,6 +259,15 @@ export const Editor: React.FC<EditorProps> = ({
           }}
         />
       </BlockNoteView>
+      
+      {/* Sample Input Dialog */}
+      <SampleInputDialog
+        isOpen={dialogOpen}
+        sampleType={pendingSample?.type || ''}
+        sampleId={pendingSample?.id || ''}
+        onConfirm={handleDialogConfirm}
+        onCancel={handleDialogCancel}
+      />
     </div>
   );
 };
