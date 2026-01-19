@@ -9,28 +9,10 @@ VS Code용 마크다운 기반 실험실 노트 에디터입니다. 샘플 ID �
 - **@ 기반 자동완성**: `@dna:`, `@rna:`, `@sample:` 등으로 샘플 ID 자동완성
 - **AI 편집 지원**: Cursor, Copilot 등 AI 도구와 완벽한 호환
 
-### 🎨 BlockNote 에디터 (선택)
-- **Notion 스타일 편집**: 드래그 앤 드롭 재정렬이 가능한 블록 기반 에디터
-- **마크다운 지원**: 마크다운과 블록 간 양방향 변환
-- **슬래시 명령**: `/` 메뉴로 빠른 블록 삽입
-- 우클릭 → "Edit in BlockNote Mode"로 전환
-
-### 🧩 지원하는 블록 타입
-- **제목** (H1, H2, H3)
-- **문단** 및 인라인 서식 (굵게, 기울임, 코드)
-- **목록** (글머리 기호, 번호)
-- **코드 블록** 및 구문 강조
-- **이미지** 및 로컬 저장소 연동
-- **표** (GFM 형식)
-- **수학 블록** 및 KaTeX 렌더링
+### 🎨 BlockNote 에디터 (사용 안함, 작동 불안)
 
 ### 🖼️ 이미지 처리
 - **클립보드 이미지 붙여넣기** (Ctrl+V)
-  - 스크린샷
-  - 파일 탐색기의 이미지 파일
-  - 임베디드 이미지가 포함된 서식 있는 텍스트
-- **자동 저장**: `assets/` 폴더에 저장
-- **드래그 앤 드롭** 이미지 업로드
 - **이미지 미리보기 패널**: 이미지 링크 클릭 시 별도 패널에서 이미지 열기
   - 닫기 버튼을 누르기 전까지 패널 유지
   - 여러 이미지를 동시에 여러 패널로 열기 가능
@@ -46,10 +28,6 @@ VS Code용 마크다운 기반 실험실 노트 에디터입니다. 샘플 ID �
 - 검색어 입력으로 필터링 (예: `@dna:test`)
 - "새 ID 생성", "정보 입력" 옵션 제공
 
-#### 슬래시 명령 (BlockNote 에디터)
-- `/dna`, `/rna`, `/protein` 등의 슬래시 명령으로 고유 ID 생성
-- 기존 샘플 선택 시 `ID|별칭` 형식으로 자동 삽입
-- 별칭/설명 입력 다이얼로그 제공
 
 #### 공통 기능
 - **샘플 ID 하이라이팅**: 타입별 색상으로 샘플 ID 강조 표시
@@ -69,12 +47,12 @@ VS Code용 마크다운 기반 실험실 노트 에디터입니다. 샘플 ID �
   - `DNA [3]`, `RNA [1]` 등: 타입별 노드 (언폴딩)
   - `DNA-123 | 샘플A`: 개별 샘플 (폴딩, 클릭하여 상세 정보)
 - **컨텍스트 메뉴**:
-  - 샘플 더블클릭: BlockNote에 `ID|별칭` 삽입
+  - 샘플 더블클릭: 에디터에 `ID|별칭` 삽입
   - 타입 우클릭: 새 샘플 추가
   - 샘플 우클릭: 편집 / 삭제
 - **샘플 검색**: 트리뷰 제목 바의 🔍 아이콘 또는 `Lab Note: Search Sample` 명령어
   - QuickPick으로 ID, 별칭, 설명 검색
-  - 선택 시 BlockNote에 자동 삽입
+  - 선택 시 에디터에 자동 삽입
 - **설정**: `labnotev.sampleTracking`으로 트리뷰 표시 제어
 
 ### 📁 실험 노트 폴더 구조
@@ -95,15 +73,9 @@ VS Code용 마크다운 기반 실험실 노트 에디터입니다. 샘플 ID �
 - **Sample Tracking 설정**: `Sample Tracking: Yes/No`로 샘플 하이라이팅 활성화/비활성화
 - **메타데이터 편집**: `created_date`, `last_updated_date` 등 YAML 필드 편집 가능
 
-### 🔄 에디터 모드 전환
-- **BlockNote → 텍스트 모드**: BlockNote 에디터에서 우클릭 → "Edit in Text Mode"
-- **텍스트 → BlockNote 모드**: 텍스트 에디터에서 우클릭 → "Edit in BlockNote Mode"
-- AI 편집, 정규식 검색/교체 등 텍스트 에디터 기능 활용 가능
-
 ### 🎨 VS Code 통합
 - **테마 지원**: VS Code 라이트/다크 테마에 자동 적응
 - **기본 에디터**: 모든 `.md` 파일이 마크다운 텍스트 에디터로 열림
-- **선택적 BlockNote**: 우클릭 → "Edit in BlockNote Mode"로 전환
 
 ### ⚙️ MongoDB 연동 (선택)
 Equip, Labware 타입의 샘플은 SBLIMS MongoDB 데이터베이스에서 자동으로 로드됩니다.
@@ -153,75 +125,6 @@ npm run build
    - `README.md`: YAML front matter 포함 템플릿
    - `images/`: 이미지 저장 폴더
    - `resources/`: 리소스 저장 폴더
-
-### 기존 파일 열기
-
-VS Code에서 아무 `.labnote.md` 파일을 열면 커스텀 에디터가 자동으로 활성화됩니다.
-
-### 편집
-
-- **`/` 입력**: 슬래시 명령 메뉴 열기
-  - 검색어 입력 시 **명령어, 설명, 별칭** 모두 검색
-  - 예: `/Design` → "Design of Experiment" 설명이 포함된 항목 표시
-- **블록 드래그**: 블록 재정렬
-- **이미지 붙여넣기**: `Ctrl+V` (Mac: `Cmd+V`)
-- **텍스트 서식 지정**:
-  - `Ctrl+B` / `Cmd+B`: 굵게
-  - `Ctrl+I` / `Cmd+I`: 기울임
-  - `Ctrl+K` / `Cmd+K`: 링크
-
-### 수학 블록
-
-`/math` 명령을 사용하거나 `$$`를 입력하고 Enter를 눌러 수학 방정식을 삽입합니다. 수학 블록은 LaTeX 문법을 지원하며 KaTeX로 렌더링됩니다.
-
-예시:
-```latex
-\int_{-\infty}^{\infty} e^{-x^2} dx = \sqrt{\pi}
-```
-
-### 슬래시 명령 목록
-
-#### 기본 명령
-
-| 명령어 | 설명 |
-|--------|------|
-| `/date` | 현재 날짜 삽입 (YYYY-MM-DD) |
-| `/datetime` | 현재 날짜/시간 삽입 (YYYY-MM-DD HH:mm) |
-
-#### 샘플 ID 생성
-
-| 명령어 | 설명 |
-|--------|------|
-| `/dna` | DNA 샘플 ID 생성 |
-| `/rna` | RNA 샘플 ID 생성 |
-| `/protein` | Protein 샘플 ID 생성 |
-| `/plasmid` | Plasmid 샘플 ID 생성 |
-| `/reagent` | Reagent 샘플 ID 생성 |
-| `/primer` | Primer 샘플 ID 생성 |
-| `/equip` | Equip 샘플 ID 생성 |
-| `/labware` | Labware 샘플 ID 생성 |
-
-#### 워크플로 템플릿 (29개)
-
-Design, Build, Test, Learn 카테고리의 DBTL 사이클 기반 워크플로 템플릿
-
-| 예시 명령 | 설명 |
-|-----------|------|
-| `/wd010` | General Design of Experiment |
-| `/wb010` | DNA Oligomer Assembly |
-| `/wt010` | Nucleotide Sequencing |
-| `/wl010` | Sequence Variant Analysis |
-
-#### 유닛 오퍼레이션 (35개)
-
-Hardware, Software 카테고리의 실험 자동화 오퍼레이션 템플릿
-
-| 예시 명령 | 설명 |
-|-----------|------|
-| `/ophw-001` | Acoustic Liquid Handling |
-| `/ophw-005` | Thermocycler |
-| `/opsw-001` | Sequence Alignment |
-| `/opsw-006` | Protein Structure Prediction |
 
 ### VS Code 명령어
 
@@ -300,7 +203,7 @@ npm run test:all
 1. VS Code에서 프로젝트 열기
 2. `F5`를 눌러 디버깅 시작
 3. 새 Extension Development Host 창이 열림
-4. 새 창에서 `.labnote.md` 파일을 열어 테스트
+4. 새 창에서 `.md` 파일을 열어 테스트
 
 ## 테스트
 
@@ -319,11 +222,8 @@ npm run test:all         # 모든 테스트
 
 ## 파일 형식
 
-실험 노트는 마크다운 파일(`.labnote.md`)로 저장됩니다. 에디터는 표준 마크다운 문법과의 호환성을 유지하면서 시각적 인터페이스를 제공합니다.
+실험 노트는 마크다운 파일(`.md`)로 저장됩니다. 에디터는 표준 마크다운 문법과의 호환성을 유지하면서 시각적 인터페이스를 제공합니다.
 
-### 이미지 저장
-
-이미지는 노트 파일과 같은 디렉토리의 `assets/` 폴더에 자동으로 저장됩니다. 마크다운 파일은 상대 경로를 사용하여 이미지를 참조합니다:
 
 ```markdown
 ![이미지 캡션](./assets/1234567890_abc123.png)
@@ -335,10 +235,6 @@ npm run test:all         # 모든 테스트
 - **Node.js**: >= 18.0.0
 - **npm**: >= 8.0.0
 
-## 알려진 제한 사항
-
-- **드래그 앤 드롭 미지원**: VS Code webview 보안 정책으로 인해 외부 파일 드래그 앤 드롭이 지원되지 않습니다. 대신 `Ctrl+V` 붙여넣기를 사용하세요.
-- 큰 이미지는 처리에 시간이 걸릴 수 있음
 
 ## 기여
 

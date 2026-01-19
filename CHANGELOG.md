@@ -5,6 +5,17 @@
 형식은 [Keep a Changelog](https://keepachangelog.com/ko/1.1.0/)를 기반으로 하며,
 이 프로젝트는 [유의적 버전 관리](https://semver.org/lang/ko/)를 따릅니다.
 
+## [0.14.1] - 2026-01-20
+
+### 문서 정리
+
+- README에서 BlockNote 관련 설명 제거 (작동 불안정으로 사용 중단)
+- 슬래시 명령, 수학 블록 등 BlockNote 전용 기능 설명 제거
+- TreeView 삽입 설명을 "BlockNote" 대신 "에디터"로 변경
+- `.labnote.md` → `.md` 참조 정리
+
+---
+
 ## [0.14.0] - 2026-01-20
 
 ### 변경 (Major)
