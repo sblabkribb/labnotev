@@ -58,8 +58,8 @@ describe('LabNoteEditorProvider', () => {
       mockDocument = {
         getText: vi.fn(() => '# Test Document'),
         uri: {
-          fsPath: '/test/workspace/test.labnote.md',
-          toString: () => 'file:///test/workspace/test.labnote.md',
+          fsPath: '/test/workspace/test.md',
+          toString: () => 'file:///test/workspace/test.md',
         },
         lineCount: 1,
       };
@@ -153,7 +153,7 @@ describe('LabNoteEditorProvider', () => {
         expect(mockWebviewPanel.webview.postMessage).toHaveBeenCalledWith({
           type: 'update',
           content: '# Test Document',
-          documentUri: 'file:///test/workspace/test.labnote.md',
+          documentUri: 'file:///test/workspace/test.md',
         });
       });
 
@@ -336,7 +336,7 @@ describe('LabNoteEditorProvider', () => {
               type: 'DNA',
               alias: '새샘플',
               descriptions: ['새로운 샘플 설명'],
-              sources: ['test.labnote.md'],
+              sources: ['test.md'],
             },
           }
         );
@@ -392,7 +392,7 @@ describe('LabNoteEditorProvider', () => {
               type: 'DNA',
               alias: '새샘플',
               descriptions: [],
-              sources: ['test.labnote.md'],
+              sources: ['test.md'],
             },
           })
         );

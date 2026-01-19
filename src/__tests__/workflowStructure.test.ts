@@ -38,17 +38,17 @@ describe('Workflow Structure', () => {
   });
 
   describe('isValidWorkflowPath', () => {
-    it('should return true for .labnote.md workflow files in labnote subfolder', async () => {
+    it('should return true for .md workflow files in labnote subfolder with 3-digit prefix', async () => {
       const { isValidWorkflowPath } = await import('../lib/workflowStructure');
       
-      expect(isValidWorkflowPath('C:\\workspace\\labnote\\001_Test\\001_WD010_Design.labnote.md')).toBe(true);
-      expect(isValidWorkflowPath('/workspace/labnote/001_Test/002_WB010_Build.labnote.md')).toBe(true);
+      expect(isValidWorkflowPath('C:\\workspace\\labnote\\001_Test\\001_WD010_Design.md')).toBe(true);
+      expect(isValidWorkflowPath('/workspace/labnote/001_Test/002_WB010_Build.md')).toBe(true);
     });
 
-    it('should return false for regular .md files', async () => {
+    it('should return false for .md files without 3-digit prefix', async () => {
       const { isValidWorkflowPath } = await import('../lib/workflowStructure');
       
-      expect(isValidWorkflowPath('C:\\workspace\\labnote\\001_Test\\001_WD010_Design.md')).toBe(false);
+      expect(isValidWorkflowPath('C:\\workspace\\labnote\\001_Test\\notes.md')).toBe(false);
     });
 
     it('should return false for README.md', async () => {
@@ -60,7 +60,7 @@ describe('Workflow Structure', () => {
     it('should return false for files not in labnote folder', async () => {
       const { isValidWorkflowPath } = await import('../lib/workflowStructure');
       
-      expect(isValidWorkflowPath('C:\\workspace\\docs\\001_WD010.labnote.md')).toBe(false);
+      expect(isValidWorkflowPath('C:\\workspace\\docs\\001_WD010.md')).toBe(false);
     });
   });
 
@@ -76,7 +76,7 @@ describe('Workflow Structure', () => {
     it('should return 002 when 001 exists', async () => {
       const { getNextWorkflowNumber } = await import('../lib/workflowStructure');
       
-      const result = getNextWorkflowNumber(['001_WD010_Design.labnote.md']);
+      const result = getNextWorkflowNumber(['001_WD010_Design.md']);
       
       expect(result).toBe('002');
     });
@@ -84,17 +84,18 @@ describe('Workflow Structure', () => {
     it('should find the next number after max', async () => {
       const { getNextWorkflowNumber } = await import('../lib/workflowStructure');
       
-      const result = getNextWorkflowNumber(['001_WD010.labnote.md', '003_WB010.labnote.md']);
+      const result = getNextWorkflowNumber(['001_WD010.md', '003_WB010.md']);
       
       expect(result).toBe('004');
     });
 
-    it('should ignore non-workflow files like README.md and regular .md', async () => {
+    it('should ignore README.md but count numbered .md files', async () => {
       const { getNextWorkflowNumber } = await import('../lib/workflowStructure');
       
-      const result = getNextWorkflowNumber(['README.md', '001_WD010.labnote.md', '002_notes.md']);
+      // README.md is ignored, but 001_WD010.md and 002_WB010.md are counted
+      const result = getNextWorkflowNumber(['README.md', '001_WD010.md', '002_WB010.md']);
       
-      expect(result).toBe('002');
+      expect(result).toBe('003');
     });
   });
 
@@ -172,7 +173,7 @@ describe('Workflow Structure', () => {
   });
 
   describe('createWorkflowFileName', () => {
-    it('should create filename with .labnote.md extension', async () => {
+    it('should create filename with .md extension', async () => {
       const { createWorkflowFileName } = await import('../lib/workflowStructure');
       
       const result = createWorkflowFileName('001', {
@@ -181,7 +182,7 @@ describe('Workflow Structure', () => {
         description: '',
       }, '');
       
-      expect(result).toBe('001_WD010_General_Design_of_Experiment.labnote.md');
+      expect(result).toBe('001_WD010_General_Design_of_Experiment.md');
     });
 
     it('should include description if provided', async () => {
@@ -193,20 +194,20 @@ describe('Workflow Structure', () => {
         description: '',
       }, 'Day 1');
       
-      expect(result).toBe('002_WB010_DNA_Assembly_Day_1.labnote.md');
+      expect(result).toBe('002_WB010_DNA_Assembly_Day_1.md');
     });
   });
 
   describe('parseWorkflowChecklistFromReadme', () => {
-    it('should extract .labnote.md workflow links from README', async () => {
+    it('should extract .md workflow links from README', async () => {
       const { parseWorkflowChecklistFromReadme } = await import('../lib/workflowStructure');
       
       const readmeContent = `# Test
 ## Related Workflows
 > Instructions
 
-[ ] [001 WD010 Design](./001_WD010_Design.labnote.md)
-[x] [002 WB010 Build](./002_WB010_Build.labnote.md)
+[ ] [001 WD010 Design](./001_WD010_Design.md)
+[x] [002 WB010 Build](./002_WB010_Build.md)
 
 ## Other Section
 `;
@@ -214,9 +215,9 @@ describe('Workflow Structure', () => {
       const result = parseWorkflowChecklistFromReadme(readmeContent);
       
       expect(result.length).toBe(2);
-      expect(result[0].fileName).toBe('001_WD010_Design.labnote.md');
+      expect(result[0].fileName).toBe('001_WD010_Design.md');
       expect(result[0].done).toBe(false);
-      expect(result[1].fileName).toBe('002_WB010_Build.labnote.md');
+      expect(result[1].fileName).toBe('002_WB010_Build.md');
       expect(result[1].done).toBe(true);
     });
 
@@ -235,18 +236,18 @@ Content here
   });
 
   describe('generateWorkflowChecklist', () => {
-    it('should generate checklist markdown with .labnote.md links', async () => {
+    it('should generate checklist markdown with .md links', async () => {
       const { generateWorkflowChecklist } = await import('../lib/workflowStructure');
       
       const items = [
-        { fileName: '001_WD010_Design.labnote.md', title: '001 WD010 General Design', done: false },
-        { fileName: '002_WB010_Build.labnote.md', title: '002 WB010 DNA Assembly', done: true },
+        { fileName: '001_WD010_Design.md', title: '001 WD010 General Design', done: false },
+        { fileName: '002_WB010_Build.md', title: '002 WB010 DNA Assembly', done: true },
       ];
       
       const result = generateWorkflowChecklist(items);
       
-      expect(result).toContain('[ ] [001 WD010 General Design](./001_WD010_Design.labnote.md)');
-      expect(result).toContain('[x] [002 WB010 DNA Assembly](./002_WB010_Build.labnote.md)');
+      expect(result).toContain('[ ] [001 WD010 General Design](./001_WD010_Design.md)');
+      expect(result).toContain('[x] [002 WB010 DNA Assembly](./002_WB010_Build.md)');
     });
 
     it('should return empty string for empty array', async () => {

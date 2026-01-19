@@ -1,13 +1,19 @@
 # Lab Note Editor
 
-VS Code용 Notion 스타일 블록 에디터로, 실험실 노트 작성을 위해 특별히 설계되었습니다. BlockNote와 React로 구축되어 과학 문서화를 위한 현대적이고 직관적인 편집 경험을 제공합니다.
+VS Code용 마크다운 기반 실험실 노트 에디터입니다. 샘플 ID 관리, 워크플로 템플릿, 유닛 오퍼레이션 카탈로그를 통해 체계적인 과학 문서화를 지원합니다.
 
 ## 주요 기능
 
-### 📝 리치 블록 에디터
+### 📝 마크다운 텍스트 에디터 (기본)
+- **VS Code 기본 마크다운 에디터**: 모든 `.md` 파일이 기본 텍스트 에디터로 열림
+- **@ 기반 자동완성**: `@dna:`, `@rna:`, `@sample:` 등으로 샘플 ID 자동완성
+- **AI 편집 지원**: Cursor, Copilot 등 AI 도구와 완벽한 호환
+
+### 🎨 BlockNote 에디터 (선택)
 - **Notion 스타일 편집**: 드래그 앤 드롭 재정렬이 가능한 블록 기반 에디터
 - **마크다운 지원**: 마크다운과 블록 간 양방향 변환
 - **슬래시 명령**: `/` 메뉴로 빠른 블록 삽입
+- 우클릭 → "Edit in BlockNote Mode"로 전환
 
 ### 🧩 지원하는 블록 타입
 - **제목** (H1, H2, H3)
@@ -32,14 +38,22 @@ VS Code용 Notion 스타일 블록 에디터로, 실험실 노트 작성을 위�
   - 키보드 단축키: Esc(닫기), +/-(줌), 0(리셋)
 
 ### 🔬 샘플 ID 관리
-- **샘플 ID 생성**: `/dna`, `/rna`, `/protein` 등의 슬래시 명령으로 고유 ID 생성
-- **기존 샘플 선택**: 슬래시 명령에서 기존 샘플 목록 표시 및 선택
-  - 기존 샘플 선택 시 `ID|별칭` 형식으로 자동 삽입
-- **별칭/설명 입력 다이얼로그**: 새 ID 생성 후 별칭과 설명 입력 UI
-  - 입력 시 `ID|별칭:설명` 형식으로 삽입 및 JSON 저장
-  - 건너뛰기 옵션으로 ID만 삽입 가능
+
+#### @ 기반 자동완성 (텍스트 에디터)
+- `@dna:`, `@rna:`, `@plasmid:`, `@reagent:`, `@primer:` - 타입별 샘플 검색
+- `@sample:` - 모든 타입 샘플 검색
+- `@equip:`, `@labware:` - MongoDB 연동 장비/기자재 검색
+- 검색어 입력으로 필터링 (예: `@dna:test`)
+- "새 ID 생성", "정보 입력" 옵션 제공
+
+#### 슬래시 명령 (BlockNote 에디터)
+- `/dna`, `/rna`, `/protein` 등의 슬래시 명령으로 고유 ID 생성
+- 기존 샘플 선택 시 `ID|별칭` 형식으로 자동 삽입
+- 별칭/설명 입력 다이얼로그 제공
+
+#### 공통 기능
 - **샘플 ID 하이라이팅**: 타입별 색상으로 샘플 ID 강조 표시
-  - DNA, RNA, Plasmid, Reagent, Primer, Protein, Equip, Labware 지원
+  - DNA, RNA, Plasmid, Reagent, Primer, Equip, Labware 지원
 - **Sample Info 패널**: 문서 내 모든 샘플 ID 조회
   - 별칭, 설명, 출처 표시
   - 위치로 이동, Rename, Replace 기능
@@ -88,8 +102,23 @@ VS Code용 Notion 스타일 블록 에디터로, 실험실 노트 작성을 위�
 
 ### 🎨 VS Code 통합
 - **테마 지원**: VS Code 라이트/다크 테마에 자동 적응
-- **커스텀 에디터**: `.labnote.md` 파일 자동 열기
-- **자동 저장**: 부드러운 편집을 위한 500ms 디바운스 저장
+- **기본 에디터**: 모든 `.md` 파일이 마크다운 텍스트 에디터로 열림
+- **선택적 BlockNote**: 우클릭 → "Edit in BlockNote Mode"로 전환
+
+### ⚙️ MongoDB 연동 (선택)
+Equip, Labware 타입의 샘플은 SBLIMS MongoDB 데이터베이스에서 자동으로 로드됩니다.
+
+#### 설정 방법
+1. VS Code 설정 열기 (`Ctrl+,`)
+2. "Lab Note Editor" 검색
+3. 다음 설정 입력:
+   - `Mongo Url`: MongoDB 연결 URL
+   - `Mongo Db Name`: 데이터베이스 이름 (기본값: SBLIMS)
+
+#### 연결 URL 형식
+```
+mongodb://username:password@host:port/?authMechanism=SCRAM-SHA-256&authSource=SBLIMS
+```
 
 ## 설치
 

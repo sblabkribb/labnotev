@@ -54,14 +54,21 @@ export function isValidReadmePath(filePath: string): boolean {
 
 /**
  * Check if a file path is a valid workflow file in a labnote subfolder
- * Path should be: {workspace}/labnote/{###_ExperimentName}/{###_WX###_Name}.labnote.md
+ * Path should be: {workspace}/labnote/{###_ExperimentName}/{###_WX###_Name}.md
  */
 export function isValidWorkflowPath(filePath: string): boolean {
   // Normalize path separators
   const normalizedPath = filePath.replace(/\\/g, '/');
+  const baseName = path.basename(normalizedPath).toLowerCase();
   
-  // Must be a .labnote.md file
-  if (!normalizedPath.toLowerCase().endsWith('.labnote.md')) {
+  // Must be a .md file (not README.md) with 3-digit prefix
+  if (!normalizedPath.toLowerCase().endsWith('.md') || baseName === 'readme.md') {
+    return false;
+  }
+  
+  // Check if filename starts with 3-digit prefix
+  const fileName = path.basename(normalizedPath);
+  if (!/^\d{3}_/.test(fileName)) {
     return false;
   }
   
@@ -80,13 +87,13 @@ export function isValidWorkflowPath(filePath: string): boolean {
 
 /**
  * Get the next workflow number based on existing files
- * @param existingFiles Array of existing file names (e.g., ['001_WD010_Design.labnote.md'])
+ * @param existingFiles Array of existing file names (e.g., ['001_WD010_Design.md'])
  * @returns Next number as 3-digit string (e.g., '002')
  */
 export function getNextWorkflowNumber(existingFiles: string[]): string {
   const numbers = existingFiles
-    // Only count .labnote.md files with 3-digit prefix
-    .filter(file => /^\d{3}_.*\.labnote\.md$/i.test(file))
+    // Only count .md files with 3-digit prefix (excluding readme.md)
+    .filter(file => /^\d{3}_.*\.md$/i.test(file) && file.toLowerCase() !== 'readme.md')
     .map(file => {
       const match = file.match(/^(\d{3})_/);
       return match ? parseInt(match[1], 10) : 0;
@@ -155,7 +162,7 @@ ${headerTitle}
 }
 
 /**
- * Create workflow filename with .labnote.md extension
+ * Create workflow filename with .md extension
  * @param sequence 3-digit sequence number (e.g., '001')
  * @param workflow Workflow information
  * @param userDescription Optional description from user
@@ -168,7 +175,7 @@ export function createWorkflowFileName(
   const safeName = sanitizeWorkflowName(workflow.name);
   const safeDescription = userDescription ? `_${sanitizeWorkflowName(userDescription)}` : '';
   
-  return `${sequence}_${workflow.id}_${safeName}${safeDescription}.labnote.md`;
+  return `${sequence}_${workflow.id}_${safeName}${safeDescription}.md`;
 }
 
 /**
@@ -194,8 +201,8 @@ export function parseWorkflowChecklistFromReadme(readmeContent: string): Workflo
       break;
     }
     
-    // Parse checkbox items: [ ] [title](./filename.labnote.md) or [x] [title](./filename.labnote.md)
-    const checkboxMatch = line.match(/^\[([ x])\]\s*\[([^\]]+)\]\(\.\/([\w\-_.]+\.labnote\.md)\)/i);
+    // Parse checkbox items: [ ] [title](./filename.md) or [x] [title](./filename.md)
+    const checkboxMatch = line.match(/^\[([ x])\]\s*\[([^\]]+)\]\(\.\/([\w\-_.]+\.md)\)/i);
     if (checkboxMatch) {
       items.push({
         done: checkboxMatch[1].toLowerCase() === 'x',

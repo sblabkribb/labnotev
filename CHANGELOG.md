@@ -5,6 +5,59 @@
 형식은 [Keep a Changelog](https://keepachangelog.com/ko/1.1.0/)를 기반으로 하며,
 이 프로젝트는 [유의적 버전 관리](https://semver.org/lang/ko/)를 따릅니다.
 
+## [0.14.0] - 2026-01-20
+
+### 변경 (Major)
+
+#### 마크다운 텍스트 에디터 기본 전환
+- `.labnote.md` → `.md` 확장자 사용 (모든 마크다운 파일에 적용)
+- BlockNote 에디터를 **선택적** 에디터로 변경 (`priority: option`)
+- 기본 마크다운 텍스트 에디터에서 모든 편집 작업 수행
+
+### 추가
+
+#### @ 기반 샘플 ID 자동완성 (labsample 통합)
+- `@dna:`, `@rna:`, `@plasmid:`, `@reagent:`, `@primer:` 등 타입별 자동완성
+- `@sample:` 전체 샘플 검색
+- `@equip:`, `@labware:` MongoDB 연동 (Equip, Labware 타입)
+- 기존 샘플 목록 표시 및 선택
+- "새 ID 생성", "정보 입력" 옵션
+
+#### JSON 기반 워크플로/유닛오퍼레이션 카탈로그
+- `resources/workflows/workflows_en.json` (68개 워크플로)
+- `resources/workflows/unitoperations_hw_en.json` (50개 HW 오퍼레이션)
+- `resources/workflows/unitoperations_sw_en.json` (40개 SW 오퍼레이션)
+- 마크다운 기반에서 JSON 기반으로 전환
+
+#### 새 명령어
+- `labnotev.manageTemplates` - JSON 템플릿 카탈로그 편집
+- `labnotev.reorderWorkflows` - 워크플로 번호 재정렬
+- `labnotev.reorderLabnotes` - 랩노트 폴더 번호 재정렬
+- `labnotev.generateSampleId` - 새 샘플 ID 자동 생성
+- `labnotev.inputSampleInfo` - 샘플 정보 직접 입력
+
+#### MongoDB 설정
+- `labnotev.mongoUrl` - MongoDB 연결 URL 설정
+- `labnotev.mongoDbName` - 데이터베이스 이름 설정
+- SBLIMS 데이터베이스 Equip/Labware 연동
+
+### 변경
+
+#### TreeView 샘플 삽입 방식
+- BlockNote 웹뷰 대신 텍스트 에디터에 직접 삽입
+- 텍스트 에디터가 활성화되어 있으면 해당 에디터에 삽입
+- 폴백: BlockNote 웹뷰로 전송
+
+#### 기존 명령어 데이터 소스 변경
+- `labnotev.addWorkflow` - `workflows_en.json`에서 68개 워크플로 로드
+- `labnotev.addUnitOperation` - `unitoperations_*.json`에서 90개 오퍼레이션 로드
+
+### 새 파일
+- `src/lib/dataLoader.ts` - Local/Global JSON + MongoDB 데이터 관리
+- `src/providers/SampleCompletionProvider.ts` - @ 기반 자동완성 프로바이더
+
+---
+
 ## [0.13.0] - 2026-01-20
 
 ### 추가

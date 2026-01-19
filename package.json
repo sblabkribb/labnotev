@@ -1,8 +1,8 @@
 {
   "name": "labnotev",
   "displayName": "Lab Note Editor",
-  "description": "Notion-style block editor for lab notes using BlockNote",
-  "version": "0.13.0",
+  "description": "Markdown-based lab note editor with sample tracking and workflow management",
+  "version": "0.14.0",
   "publisher": "labnotev",
   "engines": {
     "vscode": "^1.85.0"
@@ -10,19 +10,21 @@
   "categories": [
     "Other"
   ],
-  "activationEvents": [],
+  "activationEvents": [
+    "onLanguage:markdown"
+  ],
   "main": "./dist/extension.js",
   "contributes": {
     "customEditors": [
       {
         "viewType": "labnotev.editor",
-        "displayName": "Lab Note Editor",
+        "displayName": "Lab Note Editor (BlockNote)",
         "selector": [
           {
-            "filenamePattern": "*.labnote.md"
+            "filenamePattern": "*.md"
           }
         ],
-        "priority": "default"
+        "priority": "option"
       }
     ],
     "viewsContainers": {
@@ -116,6 +118,18 @@
       {
         "command": "labnotev.openImagePreview",
         "title": "Lab Note: Open Image Preview"
+      },
+      {
+        "command": "labnotev.manageTemplates",
+        "title": "Lab Note: Manage Templates"
+      },
+      {
+        "command": "labnotev.reorderWorkflows",
+        "title": "Lab Note: Reorder Workflows"
+      },
+      {
+        "command": "labnotev.reorderLabnotes",
+        "title": "Lab Note: Reorder Labnotes"
       }
     ],
     "menus": {
@@ -156,7 +170,7 @@
       "editor/context": [
         {
           "command": "labnotev.openInBlocknoteMode",
-          "when": "resourceFilename =~ /\\.labnote\\.md$/",
+          "when": "resourceExtname == .md",
           "group": "navigation"
         }
       ]
@@ -168,6 +182,18 @@
           "type": "boolean",
           "default": true,
           "description": "Enable Sample TreeView in Activity Bar"
+        },
+        "labnotev.mongoUrl": {
+          "type": "string",
+          "default": "",
+          "description": "MongoDB connection URL for SBLIMS (format: mongodb://username:password@host:port/?authMechanism=SCRAM-SHA-256&authSource=SBLIMS)",
+          "order": 10
+        },
+        "labnotev.mongoDbName": {
+          "type": "string",
+          "default": "SBLIMS",
+          "description": "MongoDB database name",
+          "order": 11
         }
       }
     },
@@ -214,6 +240,7 @@
     "vitest": "^1.6.1"
   },
   "dependencies": {
-    "js-yaml": "^4.1.1"
+    "js-yaml": "^4.1.1",
+    "mongodb": "^7.0.0"
   }
 }

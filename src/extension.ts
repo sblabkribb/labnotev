@@ -17,7 +17,7 @@ import { ImagePreviewPanel } from './views/ImagePreviewPanel';
 import { ImageLinkProvider } from './lib/imageLinkProvider';
 import { saveSamplesFromDocument, parseSampleTracking } from './lib/sampleStorage';
 import { generateSampleId } from './lib/sampleUtils';
-import { createLabnoteStructure } from './lib/labnoteStructure';
+import { createLabnoteStructure, getNextLabnoteNumber, sanitizeTitle } from './lib/labnoteStructure';
 import {
   isValidReadmePath,
   isValidWorkflowPath,
@@ -30,14 +30,71 @@ import {
   parseExperimenterFromReadme,
   WorkflowChecklistItem,
 } from './lib/workflowStructure';
-import { WORKFLOWS } from './lib/workflows';
-import { UNIT_OPERATIONS, getOperationsByCategory } from './lib/unitOperations';
 import { getSeoulDateTimeString as getDateTime } from './lib/dateUtils';
+import { createSampleCompletionProvider } from './providers/SampleCompletionProvider';
+import { initRemoteData, disposeRemoteData, saveSampleToResources, findResourcesFolder, ensureResourcesFolder } from './lib/dataLoader';
 
-export function activate(context: vscode.ExtensionContext) {
+// Workflow and Unit Operation types from JSON resources
+interface WorkflowJson {
+  id: string;
+  name: string;
+  description: string;
+  category: string;
+}
+
+interface UnitOperationJson {
+  id: string;
+  name: string;
+  description: string;
+  equipment?: string;
+  software?: string;
+}
+
+// Load workflows from JSON
+function loadWorkflows(extensionPath: string): WorkflowJson[] {
+  const filePath = path.join(extensionPath, 'resources', 'workflows', 'workflows_en.json');
+  try {
+    if (fs.existsSync(filePath)) {
+      const content = fs.readFileSync(filePath, 'utf8');
+      const data = JSON.parse(content);
+      return data.workflows || [];
+    }
+  } catch (error) {
+    console.error('[LabNoteV] Failed to load workflows:', error);
+  }
+  return [];
+}
+
+// Load unit operations from JSON
+function loadUnitOperations(extensionPath: string, type: 'hw' | 'sw'): UnitOperationJson[] {
+  const fileName = type === 'hw' ? 'unitoperations_hw_en.json' : 'unitoperations_sw_en.json';
+  const filePath = path.join(extensionPath, 'resources', 'workflows', fileName);
+  try {
+    if (fs.existsSync(filePath)) {
+      const content = fs.readFileSync(filePath, 'utf8');
+      const data = JSON.parse(content);
+      return data.unitOperations || [];
+    }
+  } catch (error) {
+    console.error(`[LabNoteV] Failed to load ${type} unit operations:`, error);
+  }
+  return [];
+}
+
+export async function activate(context: vscode.ExtensionContext) {
   console.log('Lab Note Editor is now active');
 
-  // Register the custom editor provider
+  // Initialize MongoDB connection (for Equip/Labware)
+  try {
+    await initRemoteData();
+  } catch (error) {
+    console.warn('[LabNoteV] MongoDB initialization failed:', error);
+  }
+
+  // Register Sample Completion Provider for @ based auto-completion
+  context.subscriptions.push(createSampleCompletionProvider());
+
+  // Register the custom editor provider (BlockNote - optional)
   const provider = new LabNoteEditorProvider(context);
   context.subscriptions.push(
     vscode.window.registerCustomEditorProvider(
@@ -108,11 +165,20 @@ export function activate(context: vscode.ExtensionContext) {
 
   // Register insert sample to editor command
   context.subscriptions.push(
-    vscode.commands.registerCommand('labnotev.insertSampleToEditor', (item: SampleTreeItem) => {
+    vscode.commands.registerCommand('labnotev.insertSampleToEditor', async (item: SampleTreeItem) => {
       if (item && item.itemType === SampleTreeItemType.Sample) {
         const insertText = getInsertText(item);
-        // Send message to active webview (BlockNote editor)
-        provider.insertTextToActiveEditor(insertText);
+        
+        // First try to insert into active text editor
+        const editor = vscode.window.activeTextEditor;
+        if (editor && editor.document.languageId === 'markdown') {
+          await editor.edit(editBuilder => {
+            editBuilder.insert(editor.selection.active, insertText);
+          });
+        } else {
+          // Fallback to BlockNote webview
+          provider.insertTextToActiveEditor(insertText);
+        }
       }
     })
   );
@@ -256,7 +322,17 @@ export function activate(context: vscode.ExtensionContext) {
         const insertText = selected.alias 
           ? `${selected.sampleId}|${selected.alias}`
           : selected.sampleId;
-        provider.insertTextToActiveEditor(insertText);
+        
+        // First try to insert into active text editor
+        const editor = vscode.window.activeTextEditor;
+        if (editor && editor.document.languageId === 'markdown') {
+          await editor.edit(editBuilder => {
+            editBuilder.insert(editor.selection.active, insertText);
+          });
+        } else {
+          // Fallback to BlockNote webview
+          provider.insertTextToActiveEditor(insertText);
+        }
       }
     })
   );
@@ -614,8 +690,15 @@ export function activate(context: vscode.ExtensionContext) {
         return;
       }
 
+      // Load workflows from JSON resources
+      const workflows = loadWorkflows(context.extensionPath);
+      if (workflows.length === 0) {
+        vscode.window.showErrorMessage('워크플로 카탈로그를 로드할 수 없습니다');
+        return;
+      }
+
       // Select workflow from list
-      const workflowItems = WORKFLOWS.map(wf => ({
+      const workflowItems = workflows.map(wf => ({
         label: `${wf.id}: ${wf.name}`,
         description: wf.category,
         detail: wf.description,
@@ -642,10 +725,10 @@ export function activate(context: vscode.ExtensionContext) {
       const readmeContent = editor.document.getText();
       const experimenter = parseExperimenterFromReadme(readmeContent);
 
-      // Get existing workflow files (.labnote.md only)
+      // Get existing workflow files (.md only, excluding README.md)
       const labnoteDir = path.dirname(readmePath);
       const existingFiles = fs.readdirSync(labnoteDir)
-        .filter(file => /^\d{3}_.+\.labnote\.md$/i.test(file));
+        .filter(file => /^\d{3}_.+\.md$/i.test(file) && file.toLowerCase() !== 'readme.md');
 
       // Create workflow file
       const sequence = getNextWorkflowNumber(existingFiles);
@@ -736,8 +819,14 @@ export function activate(context: vscode.ExtensionContext) {
       const category = categoryChoice.label as 'Hardware' | 'Software';
       console.log('[LabNoteV] Selected category:', category);
       
-      const operations = getOperationsByCategory(category);
+      // Load unit operations from JSON resources
+      const operations = loadUnitOperations(context.extensionPath, category === 'Hardware' ? 'hw' : 'sw');
       console.log('[LabNoteV] Operations count:', operations.length);
+      
+      if (operations.length === 0) {
+        vscode.window.showErrorMessage('유닛 오퍼레이션 카탈로그를 로드할 수 없습니다');
+        return;
+      }
 
       // Select unit operation
       const operationItems = operations.map(op => ({
@@ -831,6 +920,281 @@ export function activate(context: vscode.ExtensionContext) {
       }
     })
   );
+
+  // Register manage templates command
+  context.subscriptions.push(
+    vscode.commands.registerCommand('labnotev.manageTemplates', async () => {
+      const workflowsPath = path.join(context.extensionPath, 'resources', 'workflows');
+      
+      const files = [
+        { label: 'workflows_en.json', description: '워크플로 카탈로그 (68개)' },
+        { label: 'unitoperations_hw_en.json', description: 'HW 유닛 오퍼레이션 카탈로그 (50개)' },
+        { label: 'unitoperations_sw_en.json', description: 'SW 유닛 오퍼레이션 카탈로그 (40개)' },
+      ];
+      
+      const selected = await vscode.window.showQuickPick(files, {
+        placeHolder: '편집할 템플릿 파일을 선택하세요',
+      });
+      
+      if (selected) {
+        const filePath = path.join(workflowsPath, selected.label);
+        if (fs.existsSync(filePath)) {
+          const document = await vscode.workspace.openTextDocument(filePath);
+          await vscode.window.showTextDocument(document);
+        } else {
+          vscode.window.showErrorMessage(`파일을 찾을 수 없습니다: ${selected.label}`);
+        }
+      }
+    })
+  );
+
+  // Register reorder workflows command
+  context.subscriptions.push(
+    vscode.commands.registerCommand('labnotev.reorderWorkflows', async () => {
+      const editor = vscode.window.activeTextEditor;
+      if (!editor) {
+        vscode.window.showWarningMessage('README.md 파일을 열어주세요');
+        return;
+      }
+
+      const readmePath = editor.document.uri.fsPath;
+      
+      if (!isValidReadmePath(readmePath)) {
+        vscode.window.showWarningMessage('labnote 폴더 내의 README.md 파일에서 실행해주세요');
+        return;
+      }
+
+      const labnoteDir = path.dirname(readmePath);
+      const files = fs.readdirSync(labnoteDir)
+        .filter(file => /^\d{3}_.+\.md$/i.test(file) && file.toLowerCase() !== 'readme.md')
+        .sort();
+      
+      if (files.length === 0) {
+        vscode.window.showInformationMessage('재정렬할 워크플로 파일이 없습니다');
+        return;
+      }
+
+      // Rename files with new sequence numbers
+      let newNumber = 1;
+      for (const file of files) {
+        const newPrefix = String(newNumber).padStart(3, '0');
+        const oldPrefix = file.substring(0, 3);
+        
+        if (oldPrefix !== newPrefix) {
+          const newFileName = newPrefix + file.substring(3);
+          const oldPath = path.join(labnoteDir, file);
+          const newPath = path.join(labnoteDir, newFileName);
+          fs.renameSync(oldPath, newPath);
+        }
+        newNumber++;
+      }
+
+      // Update README checklist
+      const readmeContent = fs.readFileSync(readmePath, 'utf8');
+      const items = parseWorkflowChecklistFromReadme(readmeContent);
+      
+      // Update file names in checklist items
+      const updatedItems = items.map((item, index) => {
+        const newPrefix = String(index + 1).padStart(3, '0');
+        const oldPrefix = item.fileName.substring(0, 3);
+        return {
+          ...item,
+          fileName: newPrefix + item.fileName.substring(3),
+          title: item.title.replace(/^\d{3}/, newPrefix),
+        };
+      });
+
+      const newChecklist = generateWorkflowChecklist(updatedItems);
+      const updatedReadme = updateReadmeWorkflowSection(readmeContent, newChecklist);
+      fs.writeFileSync(readmePath, updatedReadme, 'utf8');
+
+      // Reload document
+      await vscode.commands.executeCommand('workbench.action.files.revert');
+      vscode.window.showInformationMessage(`${files.length}개 워크플로 파일이 재정렬되었습니다`);
+    })
+  );
+
+  // Register reorder labnotes command
+  context.subscriptions.push(
+    vscode.commands.registerCommand('labnotev.reorderLabnotes', async () => {
+      const workspaceFolders = vscode.workspace.workspaceFolders;
+      if (!workspaceFolders) {
+        vscode.window.showErrorMessage('먼저 폴더를 열어주세요');
+        return;
+      }
+
+      const workspaceRoot = workspaceFolders[0].uri.fsPath;
+      const labnoteDir = path.join(workspaceRoot, 'labnote');
+      
+      if (!fs.existsSync(labnoteDir)) {
+        vscode.window.showErrorMessage('labnote 폴더가 없습니다');
+        return;
+      }
+
+      const folders = fs.readdirSync(labnoteDir, { withFileTypes: true })
+        .filter(entry => entry.isDirectory() && /^\d{3}_/.test(entry.name))
+        .map(entry => entry.name)
+        .sort();
+      
+      if (folders.length === 0) {
+        vscode.window.showInformationMessage('재정렬할 랩노트 폴더가 없습니다');
+        return;
+      }
+
+      // Rename folders with new sequence numbers
+      let newNumber = 1;
+      for (const folder of folders) {
+        const newPrefix = String(newNumber).padStart(3, '0');
+        const oldPrefix = folder.substring(0, 3);
+        
+        if (oldPrefix !== newPrefix) {
+          const newFolderName = newPrefix + folder.substring(3);
+          const oldPath = path.join(labnoteDir, folder);
+          const newPath = path.join(labnoteDir, newFolderName);
+          fs.renameSync(oldPath, newPath);
+        }
+        newNumber++;
+      }
+
+      vscode.window.showInformationMessage(`${folders.length}개 랩노트 폴더가 재정렬되었습니다`);
+    })
+  );
+
+  // Register generate sample ID command (for completion provider)
+  context.subscriptions.push(
+    vscode.commands.registerCommand('labnotev.generateSampleId', async (sampleType: string, documentUri: vscode.Uri) => {
+      const editor = vscode.window.activeTextEditor;
+      if (!editor) {
+        return;
+      }
+
+      const newId = generateSampleId(sampleType as SampleType);
+      
+      // Ask for alias
+      const alias = await vscode.window.showInputBox({
+        prompt: `새 ${sampleType} 샘플의 별칭을 입력하세요`,
+        placeHolder: '예: Sample-A',
+      });
+
+      // Ask for description
+      const description = await vscode.window.showInputBox({
+        prompt: '설명을 입력하세요 (선택 사항)',
+        placeHolder: '예: 실험 1에서 사용된 샘플',
+      });
+
+      // Save to resources
+      const resourcesPath = findResourcesFolder(documentUri);
+      if (resourcesPath) {
+        saveSampleToResources(
+          resourcesPath,
+          sampleType,
+          newId,
+          alias || null,
+          description || null,
+          path.basename(documentUri.fsPath)
+        );
+      } else {
+        // Create resources folder if not exists
+        const docDir = path.dirname(documentUri.fsPath);
+        const newResourcesPath = path.join(docDir, 'resources', 'labsamples');
+        ensureResourcesFolder(newResourcesPath);
+        saveSampleToResources(
+          newResourcesPath,
+          sampleType,
+          newId,
+          alias || null,
+          description || null,
+          path.basename(documentUri.fsPath)
+        );
+      }
+
+      // Insert text
+      const insertText = alias ? `${newId}|${alias}` : newId;
+      await editor.edit(editBuilder => {
+        editBuilder.insert(editor.selection.active, insertText);
+      });
+
+      vscode.window.showInformationMessage(`새 샘플이 생성되었습니다: ${newId}`);
+    })
+  );
+
+  // Register input sample info command (for completion provider)
+  context.subscriptions.push(
+    vscode.commands.registerCommand('labnotev.inputSampleInfo', async (sampleType: string, documentUri: vscode.Uri) => {
+      const editor = vscode.window.activeTextEditor;
+      if (!editor) {
+        return;
+      }
+
+      // Ask for sample ID
+      const sampleId = await vscode.window.showInputBox({
+        prompt: `${sampleType} 샘플 ID를 입력하세요`,
+        placeHolder: `예: ${sampleType}-12345`,
+      });
+
+      if (!sampleId) {
+        return;
+      }
+
+      // Ask for alias
+      const alias = await vscode.window.showInputBox({
+        prompt: '별칭을 입력하세요 (선택 사항)',
+        placeHolder: '예: Sample-A',
+      });
+
+      // Ask for description
+      const description = await vscode.window.showInputBox({
+        prompt: '설명을 입력하세요 (선택 사항)',
+        placeHolder: '예: 실험 1에서 사용된 샘플',
+      });
+
+      // Save to resources
+      const resourcesPath = findResourcesFolder(documentUri);
+      if (resourcesPath) {
+        saveSampleToResources(
+          resourcesPath,
+          sampleType,
+          sampleId,
+          alias || null,
+          description || null,
+          path.basename(documentUri.fsPath)
+        );
+      } else {
+        const docDir = path.dirname(documentUri.fsPath);
+        const newResourcesPath = path.join(docDir, 'resources', 'labsamples');
+        ensureResourcesFolder(newResourcesPath);
+        saveSampleToResources(
+          newResourcesPath,
+          sampleType,
+          sampleId,
+          alias || null,
+          description || null,
+          path.basename(documentUri.fsPath)
+        );
+      }
+
+      // Insert text
+      let insertText = sampleId;
+      if (alias && description) {
+        insertText = `${sampleId}|${alias}:${description}`;
+      } else if (alias) {
+        insertText = `${sampleId}|${alias}`;
+      }
+
+      await editor.edit(editBuilder => {
+        editBuilder.insert(editor.selection.active, insertText);
+      });
+
+      vscode.window.showInformationMessage(`샘플 정보가 저장되었습니다: ${sampleId}`);
+    })
+  );
 }
 
-export function deactivate() {}
+export async function deactivate() {
+  // Dispose MongoDB connection
+  try {
+    await disposeRemoteData();
+  } catch (error) {
+    console.error('[LabNoteV] Failed to dispose MongoDB connection:', error);
+  }
+}

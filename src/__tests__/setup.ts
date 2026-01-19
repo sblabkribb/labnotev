@@ -68,7 +68,30 @@ export const mockVscode = {
   languages: {
     registerDocumentLinkProvider: vi.fn(() => ({ dispose: vi.fn() })),
     registerHoverProvider: vi.fn(() => ({ dispose: vi.fn() })),
+    registerCompletionItemProvider: vi.fn(() => ({ dispose: vi.fn() })),
   },
+  CompletionItem: vi.fn().mockImplementation((label, kind) => ({
+    label,
+    kind,
+    insertText: undefined,
+    detail: undefined,
+    sortText: undefined,
+    command: undefined,
+    documentation: undefined,
+  })),
+  CompletionItemKind: {
+    Reference: 1,
+    Event: 2,
+    Snippet: 3,
+    Text: 0,
+    Method: 2,
+    Function: 3,
+    Constructor: 4,
+    Field: 5,
+    Variable: 6,
+    Class: 7,
+  },
+  MarkdownString: vi.fn().mockImplementation((value) => ({ value })),
   workspace: {
     workspaceFolders: [
       {
