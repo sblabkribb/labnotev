@@ -30,3 +30,6 @@ Extension Development Host 창에서:
 - [ ] 커스텀 에디터가 열렸는지 확인
 - [ ] BlockNote 에디터가 표시되는지 확인
 - [ ] 콘솔에 오류가 없는지 확인 (Help > Toggle Developer Tools)
+
+
+![](images/2026-01-20-01-09-48.png)

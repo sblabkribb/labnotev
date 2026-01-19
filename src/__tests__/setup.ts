@@ -65,6 +65,10 @@ export const mockVscode = {
     registerCommand: vi.fn(() => ({ dispose: vi.fn() })),
     executeCommand: vi.fn(),
   },
+  languages: {
+    registerDocumentLinkProvider: vi.fn(() => ({ dispose: vi.fn() })),
+    registerHoverProvider: vi.fn(() => ({ dispose: vi.fn() })),
+  },
   workspace: {
     workspaceFolders: [
       {

@@ -13,6 +13,8 @@ import { SAMPLE_TYPES, SampleType } from './lib/sampleUtils';
 import { sampleDecorations } from './lib/sampleDecorations';
 import { SampleInfoPanel } from './views/SampleInfoPanel';
 import { SampleTreeViewProvider, SampleTreeItem, SampleTreeItemType, getInsertText } from './views/SampleTreeViewProvider';
+import { ImagePreviewPanel } from './views/ImagePreviewPanel';
+import { ImageLinkProvider } from './lib/imageLinkProvider';
 import { saveSamplesFromDocument, parseSampleTracking } from './lib/sampleStorage';
 import { generateSampleId } from './lib/sampleUtils';
 import { createLabnoteStructure } from './lib/labnoteStructure';
@@ -495,6 +497,24 @@ export function activate(context: vscode.ExtensionContext) {
     vscode.commands.registerCommand('labnotev.showSampleInfo', () => {
       SampleInfoPanel.createOrShow(context.extensionUri);
     })
+  );
+
+  // Register open image preview command
+  context.subscriptions.push(
+    vscode.commands.registerCommand('labnotev.openImagePreview', (args: { imagePath: string; altText: string }) => {
+      if (args && args.imagePath) {
+        const imageUri = vscode.Uri.parse(args.imagePath);
+        ImagePreviewPanel.show(context.extensionUri, imageUri, args.altText || '');
+      }
+    })
+  );
+
+  // Register image link provider for markdown files
+  context.subscriptions.push(
+    vscode.languages.registerDocumentLinkProvider(
+      { language: 'markdown', scheme: 'file' },
+      new ImageLinkProvider()
+    )
   );
 
   // Register create labnote command

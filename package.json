@@ -2,7 +2,7 @@
   "name": "labnotev",
   "displayName": "Lab Note Editor",
   "description": "Notion-style block editor for lab notes using BlockNote",
-  "version": "0.12.0",
+  "version": "0.13.0",
   "publisher": "labnotev",
   "engines": {
     "vscode": "^1.85.0"
@@ -112,6 +112,10 @@
       {
         "command": "labnotev.openInBlocknoteMode",
         "title": "Edit in BlockNote Mode"
+      },
+      {
+        "command": "labnotev.openImagePreview",
+        "title": "Lab Note: Open Image Preview"
       }
     ],
     "menus": {
