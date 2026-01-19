@@ -2,7 +2,7 @@
   "name": "labnotev",
   "displayName": "Lab Note Editor",
   "description": "Markdown-based lab note editor with sample tracking and workflow management",
-  "version": "0.15.0",
+  "version": "0.15.1",
   "publisher": "labnotev",
   "engines": {
     "vscode": "^1.85.0"

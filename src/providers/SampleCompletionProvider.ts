@@ -103,6 +103,16 @@ export class SampleCompletionProvider implements vscode.CompletionItemProvider {
     const specificType = matchSampleType(fullPrefix);
     const typesToSearch = isSamplePrefix(fullPrefix) ? [...SAMPLE_TYPES] : (specificType ? [specificType] : []);
     
+    // Calculate the range to replace (including @type: prefix for reference)
+    // When referencing existing sample, we want to replace @dna:searchTerm with just ID|Alias
+    const prefixStartPos = position.character - fullPrefix.length - searchTerm.length;
+    const replaceRange = new vscode.Range(
+      position.line,
+      prefixStartPos,
+      position.line,
+      position.character
+    );
+    
     // Add sample ID completions
     for (const type of typesToSearch) {
       const ids = loadIdsByType(type, documentUri);
@@ -129,6 +139,7 @@ export class SampleCompletionProvider implements vscode.CompletionItemProvider {
         
         // Build insert text for reference: "ID|Alias" or just "ID" (no description)
         // Description is only included when defining a new sample, not when referencing
+        // The @type: prefix will be replaced (removed) when selecting existing sample
         let insertText = id;
         if (alias) {
           insertText = `${id}|${alias}`;
@@ -136,6 +147,7 @@ export class SampleCompletionProvider implements vscode.CompletionItemProvider {
         
         const item = new vscode.CompletionItem(label, vscode.CompletionItemKind.Reference);
         item.insertText = insertText;
+        item.range = replaceRange; // Replace @type:searchTerm with just ID|Alias
         item.detail = `${type} Sample`;
         item.sortText = `0_${id}`; // Sort samples first
         

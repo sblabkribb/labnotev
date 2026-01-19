@@ -5,6 +5,16 @@
 형식은 [Keep a Changelog](https://keepachangelog.com/ko/1.1.0/)를 기반으로 하며,
 이 프로젝트는 [유의적 버전 관리](https://semver.org/lang/ko/)를 따릅니다.
 
+## [0.15.1] - 2026-01-20
+
+### 수정
+
+- 기존 샘플 참조 시 `@type:` 접두어가 제거되도록 수정
+  - 입력: `@dna:` → 기존 샘플 선택 → 결과: `DNA-123|SampleA` (`@dna:` 삭제됨)
+- CompletionItem.range를 사용하여 접두어 포함 범위 교체
+
+---
+
 ## [0.15.0] - 2026-01-20
 
 ### 추가

@@ -18,6 +18,7 @@ vi.mock('vscode', () => ({
     sortText: undefined,
     command: undefined,
     documentation: undefined,
+    range: undefined,
   })),
   CompletionItemKind: {
     Reference: 1,
@@ -25,6 +26,10 @@ vi.mock('vscode', () => ({
     Snippet: 3,
   },
   MarkdownString: vi.fn().mockImplementation((value) => ({ value })),
+  Range: vi.fn().mockImplementation((startLine, startChar, endLine, endChar) => ({
+    start: { line: startLine, character: startChar },
+    end: { line: endLine, character: endChar },
+  })),
 }));
 
 // Mock dataLoader
