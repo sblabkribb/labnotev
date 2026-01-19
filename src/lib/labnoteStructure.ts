@@ -48,56 +48,35 @@ export function sanitizeTitle(title: string): string {
 
 /**
  * Generate README.md content for a new labnote
+ * Follows labnote-lite template format
  * @param title Experiment title
  * @param author Optional author name
  */
 export function generateReadmeContent(title: string, author?: string): string {
   const today = getSeoulDateString(new Date());
   
-  const authorLine = author ? `author: ${author}\n` : '';
+  const authorValue = author || '';
   
   return `---
 title: ${title}
-${authorLine}experiment_type: labnote
+author: ${authorValue}
+experiment_type: labnote
 sample_tracking: yes
 created_date: ${today}
 last_updated_date: ${today}
 ---
 
-# ${title}
+## 🎯 Experiment Objective
+> Briefly describe the main objective and hypothesis of this experiment.
 
-## 목표
+## 🗂️ Related Workflows
 
-실험의 목표를 기술합니다.
-
-## Related Workflows
-
-> 워크플로 파일 목록이 자동으로 추가됩니다.
-> F1 → "Lab Note: Add Workflow" 명령으로 워크플로를 추가하세요.
+> Enter the list of related workflow files between the markers below.
+> When you run the \`F1\`, \`New workflow\` command, the list will be automatically added between the markers.
+> The name entered in the author: field of the YAML block above will be automatically entered as the experimenter's name when creating workflows and unit operations.
 
 
 
-## 실험 조건
-
-- 조건 1
-- 조건 2
-
-## 실험 방법
-
-1. 단계 1
-2. 단계 2
-
-## 결과
-
-실험 결과를 기술합니다.
-
-## 결론
-
-결론 및 향후 계획을 기술합니다.
-
-## 참고 자료
-
-- 관련 문서나 링크
 `;
 }
 

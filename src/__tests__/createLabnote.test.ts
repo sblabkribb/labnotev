@@ -67,12 +67,12 @@ describe('Create Labnote Command', () => {
   });
 
   describe('generateReadmeContent', () => {
-    it('should include title in header', async () => {
+    it('should include title in YAML front matter', async () => {
       const { generateReadmeContent } = await import('../lib/labnoteStructure');
       
       const result = generateReadmeContent('My Experiment');
       
-      expect(result).toContain('# My Experiment');
+      expect(result).toContain('title: My Experiment');
     });
 
     it('should include YAML front matter', async () => {
@@ -94,15 +94,21 @@ describe('Create Labnote Command', () => {
       expect(result).toContain('author: John Doe');
     });
 
-    it('should include standard sections', async () => {
+    it('should include empty author field if not provided', async () => {
       const { generateReadmeContent } = await import('../lib/labnoteStructure');
       
       const result = generateReadmeContent('Test');
       
-      expect(result).toContain('## 목표');
-      expect(result).toContain('## 실험 조건');
-      expect(result).toContain('## 결과');
-      expect(result).toContain('## 결론');
+      expect(result).toContain('author:');
+    });
+
+    it('should include Experiment Objective section', async () => {
+      const { generateReadmeContent } = await import('../lib/labnoteStructure');
+      
+      const result = generateReadmeContent('Test');
+      
+      expect(result).toContain('## 🎯 Experiment Objective');
+      expect(result).toContain('Briefly describe the main objective');
     });
 
     it('should include Related Workflows section', async () => {
@@ -110,8 +116,8 @@ describe('Create Labnote Command', () => {
       
       const result = generateReadmeContent('Test');
       
-      expect(result).toContain('## Related Workflows');
-      expect(result).toContain('Lab Note: Add Workflow');
+      expect(result).toContain('## 🗂️ Related Workflows');
+      expect(result).toContain('New workflow');
     });
 
     it('should include experiment_type and sample_tracking in YAML', async () => {
