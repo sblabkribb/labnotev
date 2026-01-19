@@ -116,6 +116,11 @@ export class LabNoteEditorProvider implements vscode.CustomTextEditorProvider {
             success: true,
           });
           break;
+
+        case 'openInTextMode':
+          // Open the document in default text editor
+          await vscode.commands.executeCommand('vscode.openWith', document.uri, 'default');
+          break;
       }
     });
 

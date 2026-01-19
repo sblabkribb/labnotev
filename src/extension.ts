@@ -259,6 +259,25 @@ export function activate(context: vscode.ExtensionContext) {
     })
   );
 
+  // Register open in text mode command (called from BlockNote webview)
+  context.subscriptions.push(
+    vscode.commands.registerCommand('labnotev.openInTextMode', async (uri: vscode.Uri) => {
+      if (uri) {
+        await vscode.commands.executeCommand('vscode.openWith', uri, 'default');
+      }
+    })
+  );
+
+  // Register open in BlockNote mode command (called from text editor context menu)
+  context.subscriptions.push(
+    vscode.commands.registerCommand('labnotev.openInBlocknoteMode', async () => {
+      const uri = vscode.window.activeTextEditor?.document.uri;
+      if (uri) {
+        await vscode.commands.executeCommand('vscode.openWith', uri, 'labnotev.editor');
+      }
+    })
+  );
+
   // Register insert date command
   context.subscriptions.push(
     vscode.commands.registerCommand('labnotev.insertDate', async () => {

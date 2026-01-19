@@ -276,3 +276,38 @@ body.vscode-light .math-block .katex {
 .bn-suggestion-menu {
   animation: fadeIn 0.15s ease-out;
 }
+
+/* Custom Context Menu */
+.custom-context-menu {
+  background-color: var(--vscode-menu-background, var(--bn-colors-menu-background));
+  border: 1px solid var(--vscode-menu-border, var(--vscode-panel-border, #454545));
+  border-radius: 6px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+  z-index: 9999;
+  min-width: 180px;
+  padding: 4px 0;
+  animation: fadeIn 0.1s ease-out;
+}
+
+.context-menu-item {
+  display: block;
+  width: 100%;
+  padding: 8px 16px;
+  border: none;
+  background: none;
+  color: var(--vscode-menu-foreground, var(--vscode-editor-foreground, #d4d4d4));
+  text-align: left;
+  cursor: pointer;
+  font-family: var(--vscode-font-family);
+  font-size: 13px;
+}
+
+.context-menu-item:hover {
+  background-color: var(--vscode-menu-selectionBackground, var(--vscode-list-hoverBackground, #2a2d2e));
+  color: var(--vscode-menu-selectionForeground, var(--vscode-editor-foreground, #ffffff));
+}
+
+.context-menu-item:focus {
+  outline: none;
+  background-color: var(--vscode-menu-selectionBackground, var(--vscode-list-hoverBackground, #2a2d2e));
+}

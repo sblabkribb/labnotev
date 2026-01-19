@@ -5,6 +5,24 @@
 형식은 [Keep a Changelog](https://keepachangelog.com/ko/1.1.0/)를 기반으로 하며,
 이 프로젝트는 [유의적 버전 관리](https://semver.org/lang/ko/)를 따릅니다.
 
+## [0.12.0] - 2026-01-20
+
+### 추가
+
+#### 에디터 모드 전환 기능
+- **BlockNote → 텍스트 모드**: BlockNote 에디터에서 우클릭 → "Edit in Text Mode" 선택
+- **텍스트 → BlockNote 모드**: 텍스트 에디터에서 우클릭 → "Edit in BlockNote Mode" 선택
+- 커스텀 컨텍스트 메뉴 UI (BlockNote Webview)
+- 새 명령어: `labnotev.openInTextMode`, `labnotev.openInBlocknoteMode`
+
+### 테스트
+
+- Extension 테스트: 230개 (14개 파일)
+- Webview 테스트: 153개 (7개 파일)
+- 총 383개 테스트 통과
+
+---
+
 ## [0.11.2] - 2026-01-19
 
 ### 변경

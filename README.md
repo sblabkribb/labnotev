@@ -76,6 +76,11 @@ VS Code용 Notion 스타일 블록 에디터로, 실험실 노트 작성을 위�
 - **Sample Tracking 설정**: `Sample Tracking: Yes/No`로 샘플 하이라이팅 활성화/비활성화
 - **메타데이터 편집**: `created_date`, `last_updated_date` 등 YAML 필드 편집 가능
 
+### 🔄 에디터 모드 전환
+- **BlockNote → 텍스트 모드**: BlockNote 에디터에서 우클릭 → "Edit in Text Mode"
+- **텍스트 → BlockNote 모드**: 텍스트 에디터에서 우클릭 → "Edit in BlockNote Mode"
+- AI 편집, 정규식 검색/교체 등 텍스트 에디터 기능 활용 가능
+
 ### 🎨 VS Code 통합
 - **테마 지원**: VS Code 라이트/다크 테마에 자동 적응
 - **커스텀 에디터**: `.labnote.md` 파일 자동 열기

@@ -245,8 +245,40 @@ export const Editor: React.FC<EditorProps> = ({
     return () => window.removeEventListener('message', handleMessage);
   }, [editor]);
 
+  // Custom context menu state
+  const [contextMenu, setContextMenu] = useState<{ x: number; y: number } | null>(null);
+
+  // Handle right-click to show custom context menu
+  const handleContextMenu = useCallback((e: React.MouseEvent) => {
+    e.preventDefault();
+    setContextMenu({ x: e.clientX, y: e.clientY });
+  }, []);
+
+  // Handle "Edit in Text Mode" click
+  const handleOpenInTextMode = useCallback(() => {
+    vscode.postMessage({ type: 'openInTextMode' });
+    setContextMenu(null);
+  }, []);
+
+  // Close context menu when clicking elsewhere
+  useEffect(() => {
+    const handleClick = () => setContextMenu(null);
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') setContextMenu(null);
+    };
+    
+    if (contextMenu) {
+      document.addEventListener('click', handleClick);
+      document.addEventListener('keydown', handleKeyDown);
+      return () => {
+        document.removeEventListener('click', handleClick);
+        document.removeEventListener('keydown', handleKeyDown);
+      };
+    }
+  }, [contextMenu]);
+
   return (
-    <div className="editor-container">
+    <div className="editor-container" onContextMenu={handleContextMenu}>
       <BlockNoteView
         editor={editor}
         onChange={handleChange}
@@ -312,6 +344,25 @@ export const Editor: React.FC<EditorProps> = ({
         onConfirm={handleDialogConfirm}
         onCancel={handleDialogCancel}
       />
+
+      {/* Custom Context Menu */}
+      {contextMenu && (
+        <div 
+          className="custom-context-menu"
+          style={{ 
+            position: 'fixed', 
+            left: contextMenu.x, 
+            top: contextMenu.y,
+          }}
+        >
+          <button 
+            className="context-menu-item"
+            onClick={handleOpenInTextMode}
+          >
+            Edit in Text Mode
+          </button>
+        </div>
+      )}
     </div>
   );
 };
