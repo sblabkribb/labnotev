@@ -127,11 +127,10 @@ export class SampleCompletionProvider implements vscode.CompletionItemProvider {
           continue;
         }
         
-        // Build insert text: "ID|Alias:Description" or "ID|Alias" or just "ID"
+        // Build insert text for reference: "ID|Alias" or just "ID" (no description)
+        // Description is only included when defining a new sample, not when referencing
         let insertText = id;
-        if (alias && description) {
-          insertText = `${id}|${alias}:${description}`;
-        } else if (alias) {
+        if (alias) {
           insertText = `${id}|${alias}`;
         }
         
@@ -154,8 +153,9 @@ export class SampleCompletionProvider implements vscode.CompletionItemProvider {
       }
     }
     
-    // Add "Generate New ID" option
-    if (specificType && !isSamplePrefix(fullPrefix)) {
+    // Add "Generate New ID" option (not for Equip type - Equip uses existing DB/JSON IDs only)
+    const EQUIP_TYPE = 'Equip';
+    if (specificType && !isSamplePrefix(fullPrefix) && specificType !== EQUIP_TYPE) {
       const newIdItem = new vscode.CompletionItem(
         `새 ${specificType} ID 생성`,
         vscode.CompletionItemKind.Event
@@ -172,8 +172,8 @@ export class SampleCompletionProvider implements vscode.CompletionItemProvider {
       completionItems.push(newIdItem);
     }
     
-    // Add "Manual Input" option
-    if (specificType && !isSamplePrefix(fullPrefix)) {
+    // Add "Manual Input" option (not for Equip type)
+    if (specificType && !isSamplePrefix(fullPrefix) && specificType !== EQUIP_TYPE) {
       const manualItem = new vscode.CompletionItem(
         '정보 입력',
         vscode.CompletionItemKind.Snippet

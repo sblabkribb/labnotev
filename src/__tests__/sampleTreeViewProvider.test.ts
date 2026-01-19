@@ -384,6 +384,143 @@ describe('SampleTreeViewProvider', () => {
     });
   });
 
+  describe('getDefinitionText', () => {
+    it('should return @type:ID|alias:description format for regular sample with all fields', async () => {
+      const { SampleTreeItem, SampleTreeItemType, getDefinitionText } = await import('../views/SampleTreeViewProvider');
+      
+      const item = new SampleTreeItem(
+        'DNA-123 | 샘플A',
+        SampleTreeItemType.Sample,
+        { 
+          scope: 'local', 
+          sampleType: 'DNA',
+          sampleId: 'DNA-123',
+          alias: '샘플A',
+          description: '테스트 설명'
+        }
+      );
+      
+      const text = getDefinitionText(item);
+      expect(text).toBe('@dna:DNA-123|샘플A:테스트 설명');
+    });
+
+    it('should return @type:ID|alias format when no description', async () => {
+      const { SampleTreeItem, SampleTreeItemType, getDefinitionText } = await import('../views/SampleTreeViewProvider');
+      
+      const item = new SampleTreeItem(
+        'RNA-456 | SampleB',
+        SampleTreeItemType.Sample,
+        { 
+          scope: 'local', 
+          sampleType: 'RNA',
+          sampleId: 'RNA-456',
+          alias: 'SampleB',
+          description: null
+        }
+      );
+      
+      const text = getDefinitionText(item);
+      expect(text).toBe('@rna:RNA-456|SampleB');
+    });
+
+    it('should return @type:ID format when no alias or description', async () => {
+      const { SampleTreeItem, SampleTreeItemType, getDefinitionText } = await import('../views/SampleTreeViewProvider');
+      
+      const item = new SampleTreeItem(
+        'Plasmid-789',
+        SampleTreeItemType.Sample,
+        { 
+          scope: 'local', 
+          sampleType: 'Plasmid',
+          sampleId: 'Plasmid-789',
+          alias: null,
+          description: null
+        }
+      );
+      
+      const text = getDefinitionText(item);
+      expect(text).toBe('@plasmid:Plasmid-789');
+    });
+
+    it('should return @equip:|alias:description format for Equip (without ID)', async () => {
+      const { SampleTreeItem, SampleTreeItemType, getDefinitionText } = await import('../views/SampleTreeViewProvider');
+      
+      const item = new SampleTreeItem(
+        'Equip-001 | Centrifuge',
+        SampleTreeItemType.Sample,
+        { 
+          scope: 'global', 
+          sampleType: 'Equip',
+          sampleId: 'Equip-001',
+          alias: 'Centrifuge',
+          description: 'High-speed centrifuge'
+        }
+      );
+      
+      const text = getDefinitionText(item);
+      // Equip should NOT include the ID in definition
+      expect(text).toBe('@equip:|Centrifuge:High-speed centrifuge');
+    });
+
+    it('should return @equip:|alias format for Equip without description', async () => {
+      const { SampleTreeItem, SampleTreeItemType, getDefinitionText } = await import('../views/SampleTreeViewProvider');
+      
+      const item = new SampleTreeItem(
+        'Equip-002 | Incubator',
+        SampleTreeItemType.Sample,
+        { 
+          scope: 'global', 
+          sampleType: 'Equip',
+          sampleId: 'Equip-002',
+          alias: 'Incubator',
+          description: null
+        }
+      );
+      
+      const text = getDefinitionText(item);
+      expect(text).toBe('@equip:|Incubator');
+    });
+
+    it('should return @equip: format for Equip without alias or description', async () => {
+      const { SampleTreeItem, SampleTreeItemType, getDefinitionText } = await import('../views/SampleTreeViewProvider');
+      
+      const item = new SampleTreeItem(
+        'Equip-003',
+        SampleTreeItemType.Sample,
+        { 
+          scope: 'global', 
+          sampleType: 'Equip',
+          sampleId: 'Equip-003',
+          alias: null,
+          description: null
+        }
+      );
+      
+      const text = getDefinitionText(item);
+      expect(text).toBe('@equip:');
+    });
+
+    it('should handle Labware same as regular samples (with ID)', async () => {
+      const { SampleTreeItem, SampleTreeItemType, getDefinitionText } = await import('../views/SampleTreeViewProvider');
+      
+      const item = new SampleTreeItem(
+        'Labware-100 | 96-well plate',
+        SampleTreeItemType.Sample,
+        { 
+          scope: 'local', 
+          sampleType: 'Labware',
+          sampleId: 'Labware-100',
+          alias: '96-well plate',
+          description: 'Standard 96-well plate'
+        }
+      );
+      
+      const text = getDefinitionText(item);
+      // Labware should include the ID (unlike Equip)
+      expect(text).toBe('@labware:Labware-100|96-well plate:Standard 96-well plate');
+    });
+  });
+
   describe('getAllSamplesForSearch', () => {
     it('should return all samples from both local and global folders', async () => {
       const { SampleTreeViewProvider } = await import('../views/SampleTreeViewProvider');

@@ -152,6 +152,160 @@ describe('SampleCompletionProvider', () => {
       expect(result).toBeUndefined();
     });
   });
+
+  describe('insertText format', () => {
+    const createMockDocument = (lineText: string) => ({
+      lineAt: vi.fn().mockReturnValue({ text: lineText }),
+      uri: { fsPath: '/test/file.md' },
+      languageId: 'markdown',
+    });
+
+    const createMockPosition = (line: number, character: number) => ({
+      line,
+      character,
+    });
+
+    it('should exclude description from insertText when referencing existing sample', async () => {
+      // Mock sample data with alias and description
+      const { loadIdsByType, getSampleInfo } = await import('../lib/dataLoader');
+      vi.mocked(loadIdsByType).mockReturnValue(['DNA-123']);
+      vi.mocked(getSampleInfo).mockReturnValue({
+        alias: 'SampleA',
+        descriptions: ['Test description'],
+        sources: [],
+      });
+
+      const document = createMockDocument('@dna:');
+      const position = createMockPosition(0, 5);
+
+      const result = provider.provideCompletionItems(
+        document as any,
+        position as any,
+        {} as any,
+        {} as any
+      ) as any[];
+
+      // Find the sample completion item (not the "새 ID 생성" option)
+      const sampleItem = result.find((item: any) => item.sortText?.startsWith('0_'));
+      
+      expect(sampleItem).toBeDefined();
+      // insertText should be "ID|Alias" without description
+      expect(sampleItem.insertText).toBe('DNA-123|SampleA');
+      // Should NOT contain description
+      expect(sampleItem.insertText).not.toContain('Test description');
+    });
+
+    it('should include only ID when sample has no alias', async () => {
+      const { loadIdsByType, getSampleInfo } = await import('../lib/dataLoader');
+      vi.mocked(loadIdsByType).mockReturnValue(['DNA-456']);
+      vi.mocked(getSampleInfo).mockReturnValue({
+        alias: null,
+        descriptions: ['Some description'],
+        sources: [],
+      });
+
+      const document = createMockDocument('@dna:');
+      const position = createMockPosition(0, 5);
+
+      const result = provider.provideCompletionItems(
+        document as any,
+        position as any,
+        {} as any,
+        {} as any
+      ) as any[];
+
+      const sampleItem = result.find((item: any) => item.sortText?.startsWith('0_'));
+      
+      expect(sampleItem).toBeDefined();
+      expect(sampleItem.insertText).toBe('DNA-456');
+    });
+  });
+
+  describe('Generate New ID option availability', () => {
+    const createMockDocument = (lineText: string) => ({
+      lineAt: vi.fn().mockReturnValue({ text: lineText }),
+      uri: { fsPath: '/test/file.md' },
+      languageId: 'markdown',
+    });
+
+    const createMockPosition = (line: number, character: number) => ({
+      line,
+      character,
+    });
+
+    it('should NOT include "Generate New ID" option for Equip type', () => {
+      const document = createMockDocument('@equip:');
+      const position = createMockPosition(0, 7);
+
+      const result = provider.provideCompletionItems(
+        document as any,
+        position as any,
+        {} as any,
+        {} as any
+      ) as any[];
+
+      // Find the "새 ID 생성" option
+      const newIdOption = result.find((item: any) => 
+        item.label?.includes('새') && item.label?.includes('ID 생성')
+      );
+      
+      expect(newIdOption).toBeUndefined();
+    });
+
+    it('should include "Generate New ID" option for Labware type', () => {
+      const document = createMockDocument('@labware:');
+      const position = createMockPosition(0, 9);
+
+      const result = provider.provideCompletionItems(
+        document as any,
+        position as any,
+        {} as any,
+        {} as any
+      ) as any[];
+
+      const newIdOption = result.find((item: any) => 
+        item.label?.includes('새') && item.label?.includes('ID 생성')
+      );
+      
+      expect(newIdOption).toBeDefined();
+    });
+
+    it('should include "Generate New ID" option for DNA type', () => {
+      const document = createMockDocument('@dna:');
+      const position = createMockPosition(0, 5);
+
+      const result = provider.provideCompletionItems(
+        document as any,
+        position as any,
+        {} as any,
+        {} as any
+      ) as any[];
+
+      const newIdOption = result.find((item: any) => 
+        item.label?.includes('새') && item.label?.includes('ID 생성')
+      );
+      
+      expect(newIdOption).toBeDefined();
+    });
+
+    it('should NOT include "Generate New ID" option for @sample: prefix', () => {
+      const document = createMockDocument('@sample:');
+      const position = createMockPosition(0, 8);
+
+      const result = provider.provideCompletionItems(
+        document as any,
+        position as any,
+        {} as any,
+        {} as any
+      ) as any[];
+
+      const newIdOption = result.find((item: any) => 
+        item.label?.includes('새') && item.label?.includes('ID 생성')
+      );
+      
+      expect(newIdOption).toBeUndefined();
+    });
+  });
 });
 
 describe('createSampleCompletionProvider', () => {

@@ -2,7 +2,7 @@
   "name": "labnotev",
   "displayName": "Lab Note Editor",
   "description": "Markdown-based lab note editor with sample tracking and workflow management",
-  "version": "0.14.2",
+  "version": "0.15.0",
   "publisher": "labnotev",
   "engines": {
     "vscode": "^1.85.0"
@@ -88,6 +88,11 @@
         "title": "Insert to Editor"
       },
       {
+        "command": "labnotev.insertSampleDefinition",
+        "title": "Insert Definition",
+        "icon": "$(symbol-constant)"
+      },
+      {
         "command": "labnotev.addSample",
         "title": "Add Sample",
         "icon": "$(add)"
@@ -152,6 +157,11 @@
           "group": "inline"
         },
         {
+          "command": "labnotev.insertSampleDefinition",
+          "when": "view == labnotev.sampleTreeView && viewItem == sample",
+          "group": "1_modify@1"
+        },
+        {
           "command": "labnotev.addSample",
           "when": "view == labnotev.sampleTreeView && viewItem == type",
           "group": "1_modify"
@@ -159,7 +169,7 @@
         {
           "command": "labnotev.editSample",
           "when": "view == labnotev.sampleTreeView && viewItem == sample",
-          "group": "1_modify"
+          "group": "1_modify@2"
         },
         {
           "command": "labnotev.deleteSample",

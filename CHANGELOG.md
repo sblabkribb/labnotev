@@ -5,6 +5,28 @@
 형식은 [Keep a Changelog](https://keepachangelog.com/ko/1.1.0/)를 기반으로 하며,
 이 프로젝트는 [유의적 버전 관리](https://semver.org/lang/ko/)를 따릅니다.
 
+## [0.15.0] - 2026-01-20
+
+### 추가
+
+- **Insert Definition 메뉴**: 트리뷰에서 샘플 우클릭 시 "Insert Definition" 옵션
+  - 샘플 정의 형식: `@{type}:ID|별칭:설명`
+  - Equip 타입은 ID 없이: `@equip:|별칭:설명`
+- `getDefinitionText` 함수: 샘플 정의 텍스트 생성
+
+### 변경
+
+- **샘플 참조 형식 변경**: 기존 샘플 선택 시 설명 제외
+  - 변경 전: `ID|별칭:설명`
+  - 변경 후: `ID|별칭`
+- **새 샘플 생성 형식 변경**: `@type:` 접두어 추가
+  - 변경 전: `ID|별칭`
+  - 변경 후: `@{type}:ID|별칭:설명`
+- **Equip 타입**: 새 ID 생성 옵션 제거 (기존 DB/JSON에서만 사용)
+- **Labware 타입**: 일반 샘플과 동일하게 새 ID 생성 가능
+
+---
+
 ## [0.14.2] - 2026-01-20
 
 ### 변경

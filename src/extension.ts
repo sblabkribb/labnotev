@@ -12,7 +12,7 @@ import {
 import { SAMPLE_TYPES, SampleType } from './lib/sampleUtils';
 import { sampleDecorations } from './lib/sampleDecorations';
 import { SampleInfoPanel } from './views/SampleInfoPanel';
-import { SampleTreeViewProvider, SampleTreeItem, SampleTreeItemType, getInsertText } from './views/SampleTreeViewProvider';
+import { SampleTreeViewProvider, SampleTreeItem, SampleTreeItemType, getInsertText, getDefinitionText } from './views/SampleTreeViewProvider';
 import { ImagePreviewPanel } from './views/ImagePreviewPanel';
 import { ImageLinkProvider } from './lib/imageLinkProvider';
 import { saveSamplesFromDocument, parseSampleTracking } from './lib/sampleStorage';
@@ -163,13 +163,33 @@ export async function activate(context: vscode.ExtensionContext) {
     })
   );
 
-  // Register insert sample to editor command
+  // Register insert sample to editor command (reference - ID|Alias only)
   context.subscriptions.push(
     vscode.commands.registerCommand('labnotev.insertSampleToEditor', async (item: SampleTreeItem) => {
       if (item && item.itemType === SampleTreeItemType.Sample) {
         const insertText = getInsertText(item);
         
         // First try to insert into active text editor
+        const editor = vscode.window.activeTextEditor;
+        if (editor && editor.document.languageId === 'markdown') {
+          await editor.edit(editBuilder => {
+            editBuilder.insert(editor.selection.active, insertText);
+          });
+        } else {
+          // Fallback to BlockNote webview
+          provider.insertTextToActiveEditor(insertText);
+        }
+      }
+    })
+  );
+
+  // Register insert sample definition command (@type:ID|Alias:Description)
+  context.subscriptions.push(
+    vscode.commands.registerCommand('labnotev.insertSampleDefinition', async (item: SampleTreeItem) => {
+      if (item && item.itemType === SampleTreeItemType.Sample) {
+        const insertText = getDefinitionText(item);
+        
+        // Insert into active text editor
         const editor = vscode.window.activeTextEditor;
         if (editor && editor.document.languageId === 'markdown') {
           await editor.edit(editBuilder => {
@@ -1108,8 +1128,15 @@ export async function activate(context: vscode.ExtensionContext) {
         );
       }
 
-      // Insert text
-      const insertText = alias ? `${newId}|${alias}` : newId;
+      // Insert text with @type: prefix for definition
+      let insertText = `@${sampleType.toLowerCase()}:${newId}`;
+      if (alias) {
+        insertText += `|${alias}`;
+      }
+      if (description) {
+        insertText += `:${description}`;
+      }
+      
       await editor.edit(editBuilder => {
         editBuilder.insert(editor.selection.active, insertText);
       });
@@ -1173,12 +1200,13 @@ export async function activate(context: vscode.ExtensionContext) {
         );
       }
 
-      // Insert text
-      let insertText = sampleId;
-      if (alias && description) {
-        insertText = `${sampleId}|${alias}:${description}`;
-      } else if (alias) {
-        insertText = `${sampleId}|${alias}`;
+      // Insert text with @type: prefix for definition
+      let insertText = `@${sampleType.toLowerCase()}:${sampleId}`;
+      if (alias) {
+        insertText += `|${alias}`;
+      }
+      if (description) {
+        insertText += `:${description}`;
       }
 
       await editor.edit(editBuilder => {
