@@ -5,6 +5,24 @@
 형식은 [Keep a Changelog](https://keepachangelog.com/ko/1.1.0/)를 기반으로 하며,
 이 프로젝트는 [유의적 버전 관리](https://semver.org/lang/ko/)를 따릅니다.
 
+## [0.11.2] - 2026-01-19
+
+### 변경
+
+#### Sample TreeView를 Activity Bar로 이동
+- 기존 탐색기 패널에서 **별도 Activity Bar 아이콘**으로 이동
+- 플라스크(Erlenmeyer Flask) 아이콘으로 Lab Samples 표시
+- 독립적인 샘플 관리 패널 제공
+- `resources/icons/flask.svg` 아이콘 파일 추가
+
+### 테스트
+
+- Extension 테스트: 230개 (14개 파일)
+- Webview 테스트: 153개 (7개 파일)
+- 총 383개 테스트 통과
+
+---
+
 ## [0.11.1] - 2026-01-19
 
 ### 추가

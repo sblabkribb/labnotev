@@ -2,7 +2,7 @@
   "name": "labnotev",
   "displayName": "Lab Note Editor",
   "description": "Notion-style block editor for lab notes using BlockNote",
-  "version": "0.11.1",
+  "version": "0.11.2",
   "publisher": "labnotev",
   "engines": {
     "vscode": "^1.85.0"
@@ -25,8 +25,17 @@
         "priority": "default"
       }
     ],
+    "viewsContainers": {
+      "activitybar": [
+        {
+          "id": "labnotev-samples",
+          "title": "Lab Samples",
+          "icon": "resources/icons/flask.svg"
+        }
+      ]
+    },
     "views": {
-      "explorer": [
+      "labnotev-samples": [
         {
           "id": "labnotev.sampleTreeView",
           "name": "Samples",
@@ -139,7 +148,7 @@
         "labnotev.sampleTracking": {
           "type": "boolean",
           "default": true,
-          "description": "Enable Sample TreeView in Explorer panel"
+          "description": "Enable Sample TreeView in Activity Bar"
         }
       }
     },

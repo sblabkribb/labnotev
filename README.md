@@ -42,8 +42,8 @@ VS Code용 Notion 스타일 블록 에디터로, 실험실 노트 작성을 위�
   - `resources/labsamples/{TYPE}.json`에 저장
   - 형식: `ID|별칭:설명`, `ID|별칭`, `ID: 설명`
 
-### 🌲 Sample TreeView (탐색기 패널)
-- **트리뷰 표시**: VS Code 탐색기 패널에 샘플 목록 표시
+### 🌲 Sample TreeView (Activity Bar)
+- **트리뷰 표시**: VS Code Activity Bar에 플라스크 아이콘으로 샘플 패널 표시
 - **Local/Global 구분**: 문서 폴더와 워크스페이스 루트의 샘플 분리 표시
 - **계층 구조**:
   - `Samples (Local)` / `Samples (Global)`: 루트 노드 (언폴딩)
