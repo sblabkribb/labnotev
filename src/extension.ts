@@ -263,6 +263,8 @@ export function activate(context: vscode.ExtensionContext) {
   context.subscriptions.push(
     vscode.commands.registerCommand('labnotev.openInTextMode', async (uri: vscode.Uri) => {
       if (uri) {
+        // Close current editor and open in text mode
+        await vscode.commands.executeCommand('workbench.action.closeActiveEditor');
         await vscode.commands.executeCommand('vscode.openWith', uri, 'default');
       }
     })
@@ -271,8 +273,14 @@ export function activate(context: vscode.ExtensionContext) {
   // Register open in BlockNote mode command (called from text editor context menu)
   context.subscriptions.push(
     vscode.commands.registerCommand('labnotev.openInBlocknoteMode', async () => {
-      const uri = vscode.window.activeTextEditor?.document.uri;
-      if (uri) {
+      const editor = vscode.window.activeTextEditor;
+      if (editor) {
+        const uri = editor.document.uri;
+        // Save document before switching
+        await editor.document.save();
+        // Close current editor
+        await vscode.commands.executeCommand('workbench.action.closeActiveEditor');
+        // Open in BlockNote mode
         await vscode.commands.executeCommand('vscode.openWith', uri, 'labnotev.editor');
       }
     })

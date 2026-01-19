@@ -118,8 +118,9 @@ export class LabNoteEditorProvider implements vscode.CustomTextEditorProvider {
           break;
 
         case 'openInTextMode':
-          // Open the document in default text editor
-          await vscode.commands.executeCommand('vscode.openWith', document.uri, 'default');
+          // Save document before switching (BlockNote auto-saves, but ensure latest)
+          // Close current editor and open in text mode
+          await vscode.commands.executeCommand('labnotev.openInTextMode', document.uri);
           break;
       }
     });
