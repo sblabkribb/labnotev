@@ -383,4 +383,79 @@ describe('SampleTreeViewProvider', () => {
       expect(text).toBe('DNA-123');
     });
   });
+
+  describe('getAllSamplesForSearch', () => {
+    it('should return all samples from both local and global folders', async () => {
+      const { SampleTreeViewProvider } = await import('../views/SampleTreeViewProvider');
+      const fs = await import('fs');
+      
+      const mockContext = {
+        subscriptions: [],
+        extensionUri: { fsPath: '/test/extension' },
+      };
+      
+      // Mock DNA samples in local and global
+      vi.mocked(fs.existsSync).mockReturnValue(true);
+      vi.mocked(fs.readFileSync).mockImplementation((filePath: any) => {
+        if (filePath.includes('local') || filePath.includes('document')) {
+          return JSON.stringify({
+            'DNA-111': { type: 'DNA', alias: '로컬샘플', descriptions: ['로컬 설명'], sources: [] }
+          });
+        }
+        return JSON.stringify({
+          'DNA-222': { type: 'DNA', alias: '글로벌샘플', descriptions: ['글로벌 설명'], sources: [] }
+        });
+      });
+      
+      const provider = new SampleTreeViewProvider(mockContext as any, '/test/workspace', '/test/document/folder');
+      const samples = provider.getAllSamplesForSearch();
+      
+      expect(samples.length).toBeGreaterThanOrEqual(2);
+      expect(samples.some(s => s.sampleId === 'DNA-111')).toBe(true);
+      expect(samples.some(s => s.sampleId === 'DNA-222')).toBe(true);
+    });
+
+    it('should include scope information in results', async () => {
+      const { SampleTreeViewProvider } = await import('../views/SampleTreeViewProvider');
+      const fs = await import('fs');
+      
+      const mockContext = {
+        subscriptions: [],
+        extensionUri: { fsPath: '/test/extension' },
+      };
+      
+      vi.mocked(fs.existsSync).mockReturnValue(true);
+      vi.mocked(fs.readFileSync).mockImplementation((filePath: any) => {
+        if (filePath.includes('local') || filePath.includes('document')) {
+          return JSON.stringify({
+            'DNA-111': { type: 'DNA', alias: '로컬', descriptions: [], sources: [] }
+          });
+        }
+        return JSON.stringify({});
+      });
+      
+      const provider = new SampleTreeViewProvider(mockContext as any, '/test/workspace', '/test/document/folder');
+      const samples = provider.getAllSamplesForSearch();
+      
+      const localSample = samples.find(s => s.sampleId === 'DNA-111');
+      expect(localSample?.scope).toBe('local');
+    });
+
+    it('should return empty array when no samples exist', async () => {
+      const { SampleTreeViewProvider } = await import('../views/SampleTreeViewProvider');
+      const fs = await import('fs');
+      
+      const mockContext = {
+        subscriptions: [],
+        extensionUri: { fsPath: '/test/extension' },
+      };
+      
+      vi.mocked(fs.existsSync).mockReturnValue(false);
+      
+      const provider = new SampleTreeViewProvider(mockContext as any, '/test/workspace', '/test/document/folder');
+      const samples = provider.getAllSamplesForSearch();
+      
+      expect(samples).toEqual([]);
+    });
+  });
 });

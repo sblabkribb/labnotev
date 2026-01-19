@@ -2,7 +2,7 @@
   "name": "labnotev",
   "displayName": "Lab Note Editor",
   "description": "Notion-style block editor for lab notes using BlockNote",
-  "version": "0.11.0",
+  "version": "0.11.1",
   "publisher": "labnotev",
   "engines": {
     "vscode": "^1.85.0"
@@ -90,14 +90,24 @@
         "command": "labnotev.editSample",
         "title": "Edit Sample",
         "icon": "$(edit)"
+      },
+      {
+        "command": "labnotev.searchSample",
+        "title": "Lab Note: Search Sample",
+        "icon": "$(search)"
       }
     ],
     "menus": {
       "view/title": [
         {
+          "command": "labnotev.searchSample",
+          "when": "view == labnotev.sampleTreeView",
+          "group": "navigation@1"
+        },
+        {
           "command": "labnotev.refreshSampleTree",
           "when": "view == labnotev.sampleTreeView",
-          "group": "navigation"
+          "group": "navigation@2"
         }
       ],
       "view/item/context": [

@@ -5,6 +5,26 @@
 형식은 [Keep a Changelog](https://keepachangelog.com/ko/1.1.0/)를 기반으로 하며,
 이 프로젝트는 [유의적 버전 관리](https://semver.org/lang/ko/)를 따릅니다.
 
+## [0.11.1] - 2026-01-19
+
+### 추가
+
+#### 샘플 검색 기능
+- **Search Sample** 명령어 (`labnotev.searchSample`)
+- 트리뷰 제목 바에 검색 아이콘 추가
+- QuickPick을 통한 빠른 샘플 검색
+  - ID, 별칭, 설명으로 검색 가능
+  - Local/Global 구분 표시
+  - 선택 시 BlockNote에 `ID|별칭` 삽입
+
+### 테스트
+
+- Extension 테스트: 230개 (14개 파일) - 3개 추가
+- Webview 테스트: 153개 (7개 파일)
+- 총 383개 테스트 통과
+
+---
+
 ## [0.11.0] - 2026-01-19
 
 ### 추가

@@ -217,6 +217,48 @@ export function activate(context: vscode.ExtensionContext) {
     })
   );
 
+  // Register search sample command (QuickPick)
+  context.subscriptions.push(
+    vscode.commands.registerCommand('labnotev.searchSample', async () => {
+      const allSamples = sampleTreeProvider.getAllSamplesForSearch();
+
+      if (allSamples.length === 0) {
+        vscode.window.showInformationMessage('검색할 샘플이 없습니다');
+        return;
+      }
+
+      // Convert to QuickPickItems
+      const quickPickItems: (vscode.QuickPickItem & { 
+        sampleId: string; 
+        alias: string | null;
+        scope: 'local' | 'global';
+      })[] = allSamples.map(sample => ({
+        label: sample.alias 
+          ? `${sample.sampleId} | ${sample.alias}` 
+          : sample.sampleId,
+        description: `(${sample.scope === 'local' ? 'Local' : 'Global'}) ${sample.sampleType}`,
+        detail: sample.description || undefined,
+        sampleId: sample.sampleId,
+        alias: sample.alias,
+        scope: sample.scope,
+      }));
+
+      const selected = await vscode.window.showQuickPick(quickPickItems, {
+        placeHolder: '샘플 검색... (ID, 별칭, 설명으로 검색)',
+        matchOnDescription: true,
+        matchOnDetail: true,
+      });
+
+      if (selected) {
+        // Insert selected sample to editor
+        const insertText = selected.alias 
+          ? `${selected.sampleId}|${selected.alias}`
+          : selected.sampleId;
+        provider.insertTextToActiveEditor(insertText);
+      }
+    })
+  );
+
   // Register insert date command
   context.subscriptions.push(
     vscode.commands.registerCommand('labnotev.insertDate', async () => {

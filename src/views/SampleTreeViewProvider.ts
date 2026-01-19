@@ -358,4 +358,46 @@ export class SampleTreeViewProvider implements vscode.TreeDataProvider<SampleTre
       this.refresh();
     }
   }
+
+  /**
+   * Get all samples for search (QuickPick)
+   * Returns flat list of all samples from both local and global folders
+   */
+  public getAllSamplesForSearch(): Array<{
+    sampleId: string;
+    sampleType: string;
+    alias: string | null;
+    description: string | null;
+    scope: 'local' | 'global';
+  }> {
+    const results: Array<{
+      sampleId: string;
+      sampleType: string;
+      alias: string | null;
+      description: string | null;
+      scope: 'local' | 'global';
+    }> = [];
+
+    const scopes: Array<{ scope: 'local' | 'global'; folder: string }> = [
+      { scope: 'local', folder: this.localFolder },
+      { scope: 'global', folder: this.globalFolder },
+    ];
+
+    for (const { scope, folder } of scopes) {
+      for (const type of SAMPLE_TYPES) {
+        const samples = this.loadSamples(folder, type);
+        for (const [id, record] of Object.entries(samples)) {
+          results.push({
+            sampleId: id,
+            sampleType: type,
+            alias: record.alias,
+            description: record.descriptions?.[0] || null,
+            scope,
+          });
+        }
+      }
+    }
+
+    return results;
+  }
 }

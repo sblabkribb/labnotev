@@ -53,6 +53,9 @@ VS Code용 Notion 스타일 블록 에디터로, 실험실 노트 작성을 위�
   - 샘플 더블클릭: BlockNote에 `ID|별칭` 삽입
   - 타입 우클릭: 새 샘플 추가
   - 샘플 우클릭: 편집 / 삭제
+- **샘플 검색**: 트리뷰 제목 바의 🔍 아이콘 또는 `Lab Note: Search Sample` 명령어
+  - QuickPick으로 ID, 별칭, 설명 검색
+  - 선택 시 BlockNote에 자동 삽입
 - **설정**: `labnotev.sampleTracking`으로 트리뷰 표시 제어
 
 ### 📁 실험 노트 폴더 구조
@@ -264,7 +267,7 @@ npm run test:all
 
 프로젝트에는 포괄적인 테스트 커버리지가 포함되어 있습니다:
 
-- **Extension 테스트**: 227개 (14개 파일)
+- **Extension 테스트**: 230개 (14개 파일)
 - **Webview 테스트**: 153개 (7개 파일)
 - **테스트 프레임워크**: Vitest
 
