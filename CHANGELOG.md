@@ -5,6 +5,39 @@
 형식은 [Keep a Changelog](https://keepachangelog.com/ko/1.1.0/)를 기반으로 하며,
 이 프로젝트는 [유의적 버전 관리](https://semver.org/lang/ko/)를 따릅니다.
 
+## [0.11.0] - 2026-01-19
+
+### 추가
+
+#### Sample TreeView 기능
+- VS Code 탐색기 패널에 **Samples** 트리뷰 추가
+- Local/Global 샘플 폴더 구분 표시
+- 트리 계층 구조:
+  - `Samples (Local)` / `Samples (Global)`: 루트 노드
+  - `DNA`, `RNA`, `Protein` 등: 샘플 타입 노드
+  - `DNA-123 | 별칭`: 개별 샘플 노드 (클릭하여 상세 정보 표시)
+- 기본 폴딩 상태:
+  - Local/Global, 타입: 언폴딩 (열림)
+  - 개별 샘플: 폴딩 (닫힘)
+
+#### 샘플 관리 명령어
+- **Insert to Editor**: 샘플 더블클릭 시 BlockNote에 `ID|별칭` 형식으로 삽입
+- **Add Sample**: 타입 노드에서 우클릭하여 새 샘플 추가
+- **Edit Sample**: 샘플 노드에서 우클릭하여 별칭/설명 수정
+- **Delete Sample**: 샘플 노드에서 우클릭하여 삭제 (확인 다이얼로그)
+- **Refresh Sample Tree**: 트리 새로고침 명령
+
+#### VS Code 설정
+- `labnotev.sampleTracking`: 샘플 트리뷰 표시 여부 (기본값: true)
+
+### 테스트
+
+- Extension 테스트: 227개 (14개 파일) - 22개 추가
+- Webview 테스트: 153개 (7개 파일)
+- 총 380개 테스트 통과
+
+---
+
 ## [0.10.3] - 2026-01-19
 
 ### 수정

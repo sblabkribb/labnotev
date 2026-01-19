@@ -2,7 +2,7 @@
   "name": "labnotev",
   "displayName": "Lab Note Editor",
   "description": "Notion-style block editor for lab notes using BlockNote",
-  "version": "0.10.3",
+  "version": "0.11.0",
   "publisher": "labnotev",
   "engines": {
     "vscode": "^1.85.0"
@@ -25,6 +25,15 @@
         "priority": "default"
       }
     ],
+    "views": {
+      "explorer": [
+        {
+          "id": "labnotev.sampleTreeView",
+          "name": "Samples",
+          "when": "labnotev.sampleTrackingEnabled"
+        }
+      ]
+    },
     "commands": [
       {
         "command": "labnotev.createLabnote",
@@ -57,8 +66,73 @@
       {
         "command": "labnotev.addUnitOperation",
         "title": "Lab Note: Add Unit Operation"
+      },
+      {
+        "command": "labnotev.refreshSampleTree",
+        "title": "Lab Note: Refresh Sample Tree",
+        "icon": "$(refresh)"
+      },
+      {
+        "command": "labnotev.insertSampleToEditor",
+        "title": "Insert to Editor"
+      },
+      {
+        "command": "labnotev.addSample",
+        "title": "Add Sample",
+        "icon": "$(add)"
+      },
+      {
+        "command": "labnotev.deleteSample",
+        "title": "Delete Sample",
+        "icon": "$(trash)"
+      },
+      {
+        "command": "labnotev.editSample",
+        "title": "Edit Sample",
+        "icon": "$(edit)"
       }
     ],
+    "menus": {
+      "view/title": [
+        {
+          "command": "labnotev.refreshSampleTree",
+          "when": "view == labnotev.sampleTreeView",
+          "group": "navigation"
+        }
+      ],
+      "view/item/context": [
+        {
+          "command": "labnotev.insertSampleToEditor",
+          "when": "view == labnotev.sampleTreeView && viewItem == sample",
+          "group": "inline"
+        },
+        {
+          "command": "labnotev.addSample",
+          "when": "view == labnotev.sampleTreeView && viewItem == type",
+          "group": "1_modify"
+        },
+        {
+          "command": "labnotev.editSample",
+          "when": "view == labnotev.sampleTreeView && viewItem == sample",
+          "group": "1_modify"
+        },
+        {
+          "command": "labnotev.deleteSample",
+          "when": "view == labnotev.sampleTreeView && viewItem == sample",
+          "group": "2_delete"
+        }
+      ]
+    },
+    "configuration": {
+      "title": "Lab Note Editor",
+      "properties": {
+        "labnotev.sampleTracking": {
+          "type": "boolean",
+          "default": true,
+          "description": "Enable Sample TreeView in Explorer panel"
+        }
+      }
+    },
     "keybindings": [
       {
         "command": "labnotev.insertDateTime",

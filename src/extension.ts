@@ -12,7 +12,9 @@ import {
 import { SAMPLE_TYPES, SampleType } from './lib/sampleUtils';
 import { sampleDecorations } from './lib/sampleDecorations';
 import { SampleInfoPanel } from './views/SampleInfoPanel';
+import { SampleTreeViewProvider, SampleTreeItem, SampleTreeItemType, getInsertText } from './views/SampleTreeViewProvider';
 import { saveSamplesFromDocument, parseSampleTracking } from './lib/sampleStorage';
+import { generateSampleId } from './lib/sampleUtils';
 import { createLabnoteStructure } from './lib/labnoteStructure';
 import {
   isValidReadmePath,
@@ -46,6 +48,173 @@ export function activate(context: vscode.ExtensionContext) {
         supportsMultipleEditorsPerDocument: false,
       }
     )
+  );
+
+  // Sample TreeView setup
+  const workspaceFoldersForTree = vscode.workspace.workspaceFolders;
+  const workspaceRoot = workspaceFoldersForTree?.[0]?.uri.fsPath || '';
+  
+  // Get initial document folder from active editor
+  let documentFolder = workspaceRoot;
+  if (vscode.window.activeTextEditor?.document?.uri?.fsPath) {
+    documentFolder = path.dirname(vscode.window.activeTextEditor.document.uri.fsPath);
+  }
+
+  // Create Sample TreeView Provider
+  const sampleTreeProvider = new SampleTreeViewProvider(context, workspaceRoot, documentFolder);
+
+  // Check if sampleTracking is enabled in settings
+  const config = vscode.workspace.getConfiguration('labnotev');
+  const sampleTrackingEnabled = config.get<boolean>('sampleTracking', true);
+  
+  // Set context for "when" clause in package.json
+  vscode.commands.executeCommand('setContext', 'labnotev.sampleTrackingEnabled', sampleTrackingEnabled);
+
+  // Listen for configuration changes
+  context.subscriptions.push(
+    vscode.workspace.onDidChangeConfiguration(e => {
+      if (e.affectsConfiguration('labnotev.sampleTracking')) {
+        const newValue = vscode.workspace.getConfiguration('labnotev').get<boolean>('sampleTracking', true);
+        vscode.commands.executeCommand('setContext', 'labnotev.sampleTrackingEnabled', newValue);
+      }
+    })
+  );
+
+  // Register tree view
+  const treeView = vscode.window.createTreeView('labnotev.sampleTreeView', {
+    treeDataProvider: sampleTreeProvider,
+    showCollapseAll: true,
+  });
+  context.subscriptions.push(treeView);
+
+  // Update document folder when active editor changes
+  context.subscriptions.push(
+    vscode.window.onDidChangeActiveTextEditor(editor => {
+      if (editor) {
+        const newFolder = path.dirname(editor.document.uri.fsPath);
+        sampleTreeProvider.updateDocumentFolder(newFolder);
+      }
+    })
+  );
+
+  // Register refresh sample tree command
+  context.subscriptions.push(
+    vscode.commands.registerCommand('labnotev.refreshSampleTree', () => {
+      sampleTreeProvider.refresh();
+    })
+  );
+
+  // Register insert sample to editor command
+  context.subscriptions.push(
+    vscode.commands.registerCommand('labnotev.insertSampleToEditor', (item: SampleTreeItem) => {
+      if (item && item.itemType === SampleTreeItemType.Sample) {
+        const insertText = getInsertText(item);
+        // Send message to active webview (BlockNote editor)
+        provider.insertTextToActiveEditor(insertText);
+      }
+    })
+  );
+
+  // Register add sample command
+  context.subscriptions.push(
+    vscode.commands.registerCommand('labnotev.addSample', async (item: SampleTreeItem) => {
+      if (!item || item.itemType !== SampleTreeItemType.Type) {
+        return;
+      }
+
+      const sampleType = item.sampleType as SampleType;
+      const scope = item.scope;
+
+      // Generate new sample ID
+      const newSampleId = generateSampleId(sampleType);
+
+      // Ask for alias
+      const alias = await vscode.window.showInputBox({
+        prompt: `새 ${sampleType} 샘플의 별칭을 입력하세요`,
+        placeHolder: '예: Sample-A',
+      });
+
+      // Ask for description
+      const description = await vscode.window.showInputBox({
+        prompt: '설명을 입력하세요 (선택 사항)',
+        placeHolder: '예: 실험 1에서 사용된 샘플',
+      });
+
+      await sampleTreeProvider.addSample(
+        scope,
+        sampleType,
+        newSampleId,
+        alias || null,
+        description || null
+      );
+
+      vscode.window.showInformationMessage(`샘플이 추가되었습니다: ${newSampleId}`);
+    })
+  );
+
+  // Register delete sample command
+  context.subscriptions.push(
+    vscode.commands.registerCommand('labnotev.deleteSample', async (item: SampleTreeItem) => {
+      if (!item || item.itemType !== SampleTreeItemType.Sample) {
+        return;
+      }
+
+      const confirm = await vscode.window.showWarningMessage(
+        `정말로 ${item.sampleId}을(를) 삭제하시겠습니까?`,
+        { modal: true },
+        '삭제'
+      );
+
+      if (confirm === '삭제') {
+        await sampleTreeProvider.deleteSample(
+          item.scope,
+          item.sampleType!,
+          item.sampleId!
+        );
+        vscode.window.showInformationMessage(`샘플이 삭제되었습니다: ${item.sampleId}`);
+      }
+    })
+  );
+
+  // Register edit sample command
+  context.subscriptions.push(
+    vscode.commands.registerCommand('labnotev.editSample', async (item: SampleTreeItem) => {
+      if (!item || item.itemType !== SampleTreeItemType.Sample) {
+        return;
+      }
+
+      // Ask for new alias
+      const newAlias = await vscode.window.showInputBox({
+        prompt: '새 별칭을 입력하세요',
+        value: item.alias || '',
+        placeHolder: '예: Sample-A',
+      });
+
+      if (newAlias === undefined) {
+        return; // User cancelled
+      }
+
+      // Ask for new description
+      const newDescription = await vscode.window.showInputBox({
+        prompt: '새 설명을 입력하세요',
+        value: item.description || '',
+        placeHolder: '예: 실험 1에서 사용된 샘플',
+      });
+
+      if (newDescription === undefined) {
+        return; // User cancelled
+      }
+
+      await sampleTreeProvider.editSample(
+        item.scope,
+        item.sampleType!,
+        item.sampleId!,
+        newAlias || null,
+        newDescription || null
+      );
+
+      vscode.window.showInformationMessage(`샘플이 수정되었습니다: ${item.sampleId}`);
+    })
   );
 
   // Register insert date command

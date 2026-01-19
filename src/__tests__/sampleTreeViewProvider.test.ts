@@ -1,0 +1,386 @@
+import { describe, it, expect, vi, beforeEach } from 'vitest';
+import './setup';
+
+// Mock fs module
+vi.mock('fs', () => ({
+  existsSync: vi.fn(),
+  readdirSync: vi.fn(),
+  readFileSync: vi.fn(),
+  writeFileSync: vi.fn(),
+  mkdirSync: vi.fn(),
+}));
+
+describe('SampleTreeViewProvider', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  describe('SampleTreeItem', () => {
+    it('should create root item for Local scope', async () => {
+      const { SampleTreeItem, SampleTreeItemType } = await import('../views/SampleTreeViewProvider');
+      
+      const item = new SampleTreeItem(
+        'Samples (Local)',
+        SampleTreeItemType.Root,
+        { scope: 'local' }
+      );
+      
+      expect(item.label).toBe('Samples (Local)');
+      expect(item.itemType).toBe(SampleTreeItemType.Root);
+      expect(item.scope).toBe('local');
+    });
+
+    it('should create root item for Global scope', async () => {
+      const { SampleTreeItem, SampleTreeItemType } = await import('../views/SampleTreeViewProvider');
+      
+      const item = new SampleTreeItem(
+        'Samples (Global)',
+        SampleTreeItemType.Root,
+        { scope: 'global' }
+      );
+      
+      expect(item.label).toBe('Samples (Global)');
+      expect(item.scope).toBe('global');
+    });
+
+    it('should create type item with sample count', async () => {
+      const { SampleTreeItem, SampleTreeItemType } = await import('../views/SampleTreeViewProvider');
+      
+      const item = new SampleTreeItem(
+        'DNA [3]',
+        SampleTreeItemType.Type,
+        { scope: 'local', sampleType: 'DNA' }
+      );
+      
+      expect(item.label).toBe('DNA [3]');
+      expect(item.itemType).toBe(SampleTreeItemType.Type);
+      expect(item.sampleType).toBe('DNA');
+    });
+
+    it('should create sample item with ID and alias', async () => {
+      const { SampleTreeItem, SampleTreeItemType } = await import('../views/SampleTreeViewProvider');
+      
+      const item = new SampleTreeItem(
+        'DNA-1737123456789 | 샘플A',
+        SampleTreeItemType.Sample,
+        { 
+          scope: 'local', 
+          sampleType: 'DNA',
+          sampleId: 'DNA-1737123456789',
+          alias: '샘플A',
+          description: '테스트 설명'
+        }
+      );
+      
+      expect(item.label).toBe('DNA-1737123456789 | 샘플A');
+      expect(item.itemType).toBe(SampleTreeItemType.Sample);
+      expect(item.sampleId).toBe('DNA-1737123456789');
+      expect(item.alias).toBe('샘플A');
+      expect(item.description).toBe('테스트 설명');
+    });
+
+    it('should create sample item without alias', async () => {
+      const { SampleTreeItem, SampleTreeItemType } = await import('../views/SampleTreeViewProvider');
+      
+      const item = new SampleTreeItem(
+        'DNA-1737123456789',
+        SampleTreeItemType.Sample,
+        { 
+          scope: 'local', 
+          sampleType: 'DNA',
+          sampleId: 'DNA-1737123456789',
+          alias: null,
+          description: null
+        }
+      );
+      
+      expect(item.label).toBe('DNA-1737123456789');
+    });
+  });
+
+  describe('Collapsible State', () => {
+    it('should have Root items expanded by default', async () => {
+      const { SampleTreeItem, SampleTreeItemType, getCollapsibleState } = await import('../views/SampleTreeViewProvider');
+      const vscode = await import('vscode');
+      
+      const state = getCollapsibleState(SampleTreeItemType.Root);
+      expect(state).toBe(vscode.TreeItemCollapsibleState.Expanded);
+    });
+
+    it('should have Type items expanded by default', async () => {
+      const { SampleTreeItemType, getCollapsibleState } = await import('../views/SampleTreeViewProvider');
+      const vscode = await import('vscode');
+      
+      const state = getCollapsibleState(SampleTreeItemType.Type);
+      expect(state).toBe(vscode.TreeItemCollapsibleState.Expanded);
+    });
+
+    it('should have Sample items collapsed by default', async () => {
+      const { SampleTreeItemType, getCollapsibleState } = await import('../views/SampleTreeViewProvider');
+      const vscode = await import('vscode');
+      
+      const state = getCollapsibleState(SampleTreeItemType.Sample);
+      expect(state).toBe(vscode.TreeItemCollapsibleState.Collapsed);
+    });
+
+    it('should have Detail items as None (leaf node)', async () => {
+      const { SampleTreeItemType, getCollapsibleState } = await import('../views/SampleTreeViewProvider');
+      const vscode = await import('vscode');
+      
+      const state = getCollapsibleState(SampleTreeItemType.Detail);
+      expect(state).toBe(vscode.TreeItemCollapsibleState.None);
+    });
+  });
+
+  describe('getChildren', () => {
+    it('should return Local and Global root items when called without element', async () => {
+      const { SampleTreeViewProvider } = await import('../views/SampleTreeViewProvider');
+      const fs = await import('fs');
+      
+      // Mock workspace folders
+      const mockContext = {
+        subscriptions: [],
+        extensionUri: { fsPath: '/test/extension' },
+      };
+      
+      // Mock fs to return empty for both local and global
+      vi.mocked(fs.existsSync).mockReturnValue(false);
+      
+      const provider = new SampleTreeViewProvider(mockContext as any, '/test/workspace', '/test/document/folder');
+      const children = await provider.getChildren();
+      
+      expect(children).toHaveLength(2);
+      expect(children[0].label).toBe('Samples (Local)');
+      expect(children[1].label).toBe('Samples (Global)');
+    });
+
+    it('should return type items for root element', async () => {
+      const { SampleTreeViewProvider, SampleTreeItem, SampleTreeItemType } = await import('../views/SampleTreeViewProvider');
+      const fs = await import('fs');
+      
+      const mockContext = {
+        subscriptions: [],
+        extensionUri: { fsPath: '/test/extension' },
+      };
+      
+      // Mock local folder with DNA.json
+      vi.mocked(fs.existsSync).mockImplementation((p: any) => {
+        if (p.includes('local') || p.includes('document')) return true;
+        return false;
+      });
+      vi.mocked(fs.readdirSync).mockReturnValue(['DNA.json'] as any);
+      vi.mocked(fs.readFileSync).mockReturnValue(JSON.stringify({
+        'DNA-123': { type: 'DNA', alias: '샘플A', descriptions: [], sources: [] }
+      }));
+      
+      const provider = new SampleTreeViewProvider(mockContext as any, '/test/workspace', '/test/document/folder');
+      
+      const rootItem = new SampleTreeItem('Samples (Local)', SampleTreeItemType.Root, { scope: 'local' });
+      const children = await provider.getChildren(rootItem);
+      
+      // Should return all SAMPLE_TYPES (DNA, RNA, etc.)
+      expect(children.length).toBeGreaterThan(0);
+      expect(children.some(c => c.label?.toString().startsWith('DNA'))).toBe(true);
+    });
+
+    it('should return sample items for type element', async () => {
+      const { SampleTreeViewProvider, SampleTreeItem, SampleTreeItemType } = await import('../views/SampleTreeViewProvider');
+      const fs = await import('fs');
+      
+      const mockContext = {
+        subscriptions: [],
+        extensionUri: { fsPath: '/test/extension' },
+      };
+      
+      // Mock DNA.json with samples
+      vi.mocked(fs.existsSync).mockReturnValue(true);
+      vi.mocked(fs.readFileSync).mockReturnValue(JSON.stringify({
+        'DNA-123': { type: 'DNA', alias: '샘플A', descriptions: ['설명1'], sources: ['test.md'] },
+        'DNA-456': { type: 'DNA', alias: null, descriptions: [], sources: [] }
+      }));
+      
+      const provider = new SampleTreeViewProvider(mockContext as any, '/test/workspace', '/test/document/folder');
+      
+      const typeItem = new SampleTreeItem('DNA [2]', SampleTreeItemType.Type, { scope: 'local', sampleType: 'DNA' });
+      const children = await provider.getChildren(typeItem);
+      
+      expect(children).toHaveLength(2);
+      expect(children[0].label).toBe('DNA-123 | 샘플A');
+      expect(children[1].label).toBe('DNA-456');
+    });
+
+    it('should return detail items for sample element', async () => {
+      const { SampleTreeViewProvider, SampleTreeItem, SampleTreeItemType } = await import('../views/SampleTreeViewProvider');
+      
+      const mockContext = {
+        subscriptions: [],
+        extensionUri: { fsPath: '/test/extension' },
+      };
+      
+      const provider = new SampleTreeViewProvider(mockContext as any, '/test/workspace', '/test/document/folder');
+      
+      const sampleItem = new SampleTreeItem(
+        'DNA-123 | 샘플A',
+        SampleTreeItemType.Sample,
+        { 
+          scope: 'local', 
+          sampleType: 'DNA',
+          sampleId: 'DNA-123',
+          alias: '샘플A',
+          description: '테스트 설명'
+        }
+      );
+      const children = await provider.getChildren(sampleItem);
+      
+      // Should return alias and description as detail items
+      expect(children.length).toBeGreaterThanOrEqual(1);
+      expect(children.some(c => c.label?.toString().includes('alias'))).toBe(true);
+    });
+  });
+
+  describe('formatSampleLabel', () => {
+    it('should format label with ID and alias', async () => {
+      const { formatSampleLabel } = await import('../views/SampleTreeViewProvider');
+      
+      const label = formatSampleLabel('DNA-123', '샘플A');
+      expect(label).toBe('DNA-123 | 샘플A');
+    });
+
+    it('should format label with ID only when no alias', async () => {
+      const { formatSampleLabel } = await import('../views/SampleTreeViewProvider');
+      
+      const label = formatSampleLabel('DNA-123', null);
+      expect(label).toBe('DNA-123');
+    });
+
+    it('should format label with ID only when alias is empty', async () => {
+      const { formatSampleLabel } = await import('../views/SampleTreeViewProvider');
+      
+      const label = formatSampleLabel('DNA-123', '');
+      expect(label).toBe('DNA-123');
+    });
+  });
+
+  describe('Tree Order', () => {
+    it('should display Local before Global in root', async () => {
+      const { SampleTreeViewProvider } = await import('../views/SampleTreeViewProvider');
+      const fs = await import('fs');
+      
+      vi.mocked(fs.existsSync).mockReturnValue(false);
+      
+      const mockContext = {
+        subscriptions: [],
+        extensionUri: { fsPath: '/test/extension' },
+      };
+      
+      const provider = new SampleTreeViewProvider(mockContext as any, '/test/workspace', '/test/document/folder');
+      const children = await provider.getChildren();
+      
+      expect(children[0].scope).toBe('local');
+      expect(children[1].scope).toBe('global');
+    });
+  });
+
+  describe('Sample CRUD', () => {
+    it('should add a new sample', async () => {
+      const { SampleTreeViewProvider } = await import('../views/SampleTreeViewProvider');
+      const fs = await import('fs');
+      
+      vi.mocked(fs.existsSync).mockReturnValue(true);
+      vi.mocked(fs.readFileSync).mockReturnValue(JSON.stringify({}));
+      
+      const mockContext = {
+        subscriptions: [],
+        extensionUri: { fsPath: '/test/extension' },
+      };
+      
+      const provider = new SampleTreeViewProvider(mockContext as any, '/test/workspace', '/test/document/folder');
+      
+      await provider.addSample('local', 'DNA', 'DNA-999', '새샘플', '새로운 설명');
+      
+      expect(fs.writeFileSync).toHaveBeenCalled();
+    });
+
+    it('should delete a sample', async () => {
+      const { SampleTreeViewProvider } = await import('../views/SampleTreeViewProvider');
+      const fs = await import('fs');
+      
+      vi.mocked(fs.existsSync).mockReturnValue(true);
+      vi.mocked(fs.readFileSync).mockReturnValue(JSON.stringify({
+        'DNA-123': { type: 'DNA', alias: '샘플A', descriptions: [], sources: [] }
+      }));
+      
+      const mockContext = {
+        subscriptions: [],
+        extensionUri: { fsPath: '/test/extension' },
+      };
+      
+      const provider = new SampleTreeViewProvider(mockContext as any, '/test/workspace', '/test/document/folder');
+      
+      await provider.deleteSample('local', 'DNA', 'DNA-123');
+      
+      expect(fs.writeFileSync).toHaveBeenCalled();
+    });
+
+    it('should edit a sample', async () => {
+      const { SampleTreeViewProvider } = await import('../views/SampleTreeViewProvider');
+      const fs = await import('fs');
+      
+      vi.mocked(fs.existsSync).mockReturnValue(true);
+      vi.mocked(fs.readFileSync).mockReturnValue(JSON.stringify({
+        'DNA-123': { type: 'DNA', alias: '샘플A', descriptions: ['기존설명'], sources: [] }
+      }));
+      
+      const mockContext = {
+        subscriptions: [],
+        extensionUri: { fsPath: '/test/extension' },
+      };
+      
+      const provider = new SampleTreeViewProvider(mockContext as any, '/test/workspace', '/test/document/folder');
+      
+      await provider.editSample('local', 'DNA', 'DNA-123', '새별칭', '새설명');
+      
+      expect(fs.writeFileSync).toHaveBeenCalled();
+    });
+  });
+
+  describe('getInsertText', () => {
+    it('should return ID|alias format when alias exists', async () => {
+      const { SampleTreeItem, SampleTreeItemType, getInsertText } = await import('../views/SampleTreeViewProvider');
+      
+      const item = new SampleTreeItem(
+        'DNA-123 | 샘플A',
+        SampleTreeItemType.Sample,
+        { 
+          scope: 'local', 
+          sampleType: 'DNA',
+          sampleId: 'DNA-123',
+          alias: '샘플A',
+          description: null
+        }
+      );
+      
+      const text = getInsertText(item);
+      expect(text).toBe('DNA-123|샘플A');
+    });
+
+    it('should return ID only when no alias', async () => {
+      const { SampleTreeItem, SampleTreeItemType, getInsertText } = await import('../views/SampleTreeViewProvider');
+      
+      const item = new SampleTreeItem(
+        'DNA-123',
+        SampleTreeItemType.Sample,
+        { 
+          scope: 'local', 
+          sampleType: 'DNA',
+          sampleId: 'DNA-123',
+          alias: null,
+          description: null
+        }
+      );
+      
+      const text = getInsertText(item);
+      expect(text).toBe('DNA-123');
+    });
+  });
+});

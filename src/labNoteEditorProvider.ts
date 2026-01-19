@@ -10,7 +10,23 @@ import {
 export class LabNoteEditorProvider implements vscode.CustomTextEditorProvider {
   public static readonly viewType = 'labnotev.editor';
 
+  private activeWebviewPanel: vscode.WebviewPanel | undefined;
+
   constructor(private readonly context: vscode.ExtensionContext) {}
+
+  /**
+   * Insert text to the active BlockNote editor
+   */
+  public insertTextToActiveEditor(text: string): void {
+    if (this.activeWebviewPanel) {
+      this.activeWebviewPanel.webview.postMessage({
+        type: 'insertText',
+        text,
+      });
+    } else {
+      vscode.window.showWarningMessage('BlockNote 에디터가 열려있지 않습니다');
+    }
+  }
 
   public async resolveCustomTextEditor(
     document: vscode.TextDocument,
@@ -103,9 +119,22 @@ export class LabNoteEditorProvider implements vscode.CustomTextEditorProvider {
       }
     });
 
+    // Track active webview panel
+    this.activeWebviewPanel = webviewPanel;
+
+    // Update active panel when view state changes
+    webviewPanel.onDidChangeViewState(e => {
+      if (e.webviewPanel.active) {
+        this.activeWebviewPanel = e.webviewPanel;
+      }
+    });
+
     // Cleanup
     webviewPanel.onDidDispose(() => {
       changeDocumentSubscription.dispose();
+      if (this.activeWebviewPanel === webviewPanel) {
+        this.activeWebviewPanel = undefined;
+      }
     });
   }
 

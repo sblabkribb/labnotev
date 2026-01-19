@@ -74,6 +74,8 @@ describe('LabNoteEditorProvider', () => {
           cspSource: 'vscode-webview:',
         },
         onDidDispose: vi.fn(() => ({ dispose: vi.fn() })),
+        onDidChangeViewState: vi.fn(() => ({ dispose: vi.fn() })),
+        active: true,
       };
     });
 

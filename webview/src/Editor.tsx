@@ -229,6 +229,22 @@ export const Editor: React.FC<EditorProps> = ({
     };
   }, []);
 
+  // Listen for insertText messages from extension (Sample TreeView)
+  useEffect(() => {
+    const handleMessage = (event: MessageEvent) => {
+      const message = event.data;
+      if (message.type === 'insertText' && message.text) {
+        // Insert text at current cursor position
+        editor.insertInlineContent([
+          { type: 'text', text: message.text, styles: {} }
+        ]);
+      }
+    };
+
+    window.addEventListener('message', handleMessage);
+    return () => window.removeEventListener('message', handleMessage);
+  }, [editor]);
+
   return (
     <div className="editor-container">
       <BlockNoteView

@@ -4,6 +4,14 @@ import { vi } from 'vitest';
 export const mockVscode = {
   window: {
     registerCustomEditorProvider: vi.fn(() => ({ dispose: vi.fn() })),
+    registerTreeDataProvider: vi.fn(() => ({ dispose: vi.fn() })),
+    createTreeView: vi.fn(() => ({
+      dispose: vi.fn(),
+      reveal: vi.fn(),
+      onDidChangeSelection: vi.fn(() => ({ dispose: vi.fn() })),
+      onDidExpandElement: vi.fn(() => ({ dispose: vi.fn() })),
+      onDidCollapseElement: vi.fn(() => ({ dispose: vi.fn() })),
+    })),
     showErrorMessage: vi.fn(),
     showWarningMessage: vi.fn(),
     showInformationMessage: vi.fn(),
@@ -15,6 +23,37 @@ export const mockVscode = {
     createTextEditorDecorationType: vi.fn(() => ({
       dispose: vi.fn(),
     })),
+  },
+  TreeItemCollapsibleState: {
+    None: 0,
+    Collapsed: 1,
+    Expanded: 2,
+  },
+  TreeItem: class MockTreeItem {
+    label: string | undefined;
+    collapsibleState: number | undefined;
+    contextValue?: string;
+    iconPath?: unknown;
+    command?: unknown;
+    tooltip?: string;
+    description?: string;
+    constructor(label: string, collapsibleState?: number) {
+      this.label = label;
+      this.collapsibleState = collapsibleState;
+    }
+  },
+  EventEmitter: class MockEventEmitter {
+    event = vi.fn();
+    fire = vi.fn();
+    dispose = vi.fn();
+  },
+  ThemeIcon: class MockThemeIcon {
+    id: string;
+    color?: string;
+    constructor(id: string, color?: string) {
+      this.id = id;
+      this.color = color;
+    }
   },
   DecorationRangeBehavior: {
     ClosedClosed: 1,
@@ -43,7 +82,14 @@ export const mockVscode = {
     },
     onDidChangeTextDocument: vi.fn(() => ({ dispose: vi.fn() })),
     onDidSaveTextDocument: vi.fn(() => ({ dispose: vi.fn() })),
+    onDidChangeConfiguration: vi.fn(() => ({ dispose: vi.fn() })),
     applyEdit: vi.fn(),
+    getConfiguration: vi.fn(() => ({
+      get: vi.fn((key: string, defaultValue?: unknown) => defaultValue),
+      has: vi.fn(() => false),
+      inspect: vi.fn(),
+      update: vi.fn(),
+    })),
   },
   Uri: {
     file: vi.fn((path: string) => ({
