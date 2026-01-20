@@ -9,6 +9,7 @@ describe('Extension', () => {
   let mockContext: {
     subscriptions: Array<{ dispose: () => void }>;
     extensionUri: { fsPath: string };
+    extensionPath: string;
   };
 
   beforeEach(() => {
@@ -17,12 +18,13 @@ describe('Extension', () => {
       extensionUri: {
         fsPath: '/test/extension',
       },
+      extensionPath: '/test/extension',
     };
   });
 
   describe('activate', () => {
-    it('should register custom editor provider', () => {
-      activate(mockContext as unknown as Parameters<typeof activate>[0]);
+    it('should register custom editor provider', async () => {
+      await activate(mockContext as unknown as Parameters<typeof activate>[0]);
 
       expect(mockVscode.window.registerCustomEditorProvider).toHaveBeenCalledWith(
         LabNoteEditorProvider.viewType,
@@ -36,8 +38,8 @@ describe('Extension', () => {
       );
     });
 
-    it('should register createLabnote command', () => {
-      activate(mockContext as unknown as Parameters<typeof activate>[0]);
+    it('should register createLabnote command', async () => {
+      await activate(mockContext as unknown as Parameters<typeof activate>[0]);
 
       expect(mockVscode.commands.registerCommand).toHaveBeenCalledWith(
         'labnotev.createLabnote',
@@ -45,8 +47,8 @@ describe('Extension', () => {
       );
     });
 
-    it('should add subscriptions to context', () => {
-      activate(mockContext as unknown as Parameters<typeof activate>[0]);
+    it('should add subscriptions to context', async () => {
+      await activate(mockContext as unknown as Parameters<typeof activate>[0]);
 
       expect(mockContext.subscriptions.length).toBeGreaterThan(0);
     });

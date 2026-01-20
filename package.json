@@ -2,7 +2,7 @@
   "name": "labnotev",
   "displayName": "Lab Note Editor",
   "description": "Markdown-based lab note editor with sample tracking and workflow management",
-  "version": "0.15.1",
+  "version": "0.16.0",
   "publisher": "labnotev",
   "engines": {
     "vscode": "^1.85.0"
@@ -42,6 +42,10 @@
           "id": "labnotev.sampleTreeView",
           "name": "Samples",
           "when": "labnotev.sampleTrackingEnabled"
+        },
+        {
+          "id": "labnotev.workflowTreeView",
+          "name": "Workflows"
         }
       ]
     },
@@ -135,6 +139,56 @@
       {
         "command": "labnotev.reorderLabnotes",
         "title": "Lab Note: Reorder Labnotes"
+      },
+      {
+        "command": "labnotev.refreshWorkflowTree",
+        "title": "Lab Note: Refresh Workflow Tree",
+        "icon": "$(refresh)"
+      },
+      {
+        "command": "labnotev.searchWorkflow",
+        "title": "Lab Note: Search Workflow",
+        "icon": "$(search)"
+      },
+      {
+        "command": "labnotev.createWorkflowFromTree",
+        "title": "Create Workflow",
+        "icon": "$(new-file)"
+      },
+      {
+        "command": "labnotev.editWorkflowItem",
+        "title": "Edit Workflow",
+        "icon": "$(edit)"
+      },
+      {
+        "command": "labnotev.deleteWorkflowItem",
+        "title": "Delete Workflow",
+        "icon": "$(trash)"
+      },
+      {
+        "command": "labnotev.addWorkflowItem",
+        "title": "Add Workflow",
+        "icon": "$(add)"
+      },
+      {
+        "command": "labnotev.insertUnitOperation",
+        "title": "Insert Unit Operation",
+        "icon": "$(insert)"
+      },
+      {
+        "command": "labnotev.editUnitOperation",
+        "title": "Edit Unit Operation",
+        "icon": "$(edit)"
+      },
+      {
+        "command": "labnotev.deleteUnitOperation",
+        "title": "Delete Unit Operation",
+        "icon": "$(trash)"
+      },
+      {
+        "command": "labnotev.addUnitOperationItem",
+        "title": "Add Unit Operation",
+        "icon": "$(add)"
       }
     ],
     "menus": {
@@ -147,6 +201,16 @@
         {
           "command": "labnotev.refreshSampleTree",
           "when": "view == labnotev.sampleTreeView",
+          "group": "navigation@2"
+        },
+        {
+          "command": "labnotev.searchWorkflow",
+          "when": "view == labnotev.workflowTreeView",
+          "group": "navigation@1"
+        },
+        {
+          "command": "labnotev.refreshWorkflowTree",
+          "when": "view == labnotev.workflowTreeView",
           "group": "navigation@2"
         }
       ],
@@ -175,6 +239,46 @@
           "command": "labnotev.deleteSample",
           "when": "view == labnotev.sampleTreeView && viewItem == sample",
           "group": "2_delete"
+        },
+        {
+          "command": "labnotev.createWorkflowFromTree",
+          "when": "view == labnotev.workflowTreeView && viewItem == workflow",
+          "group": "inline"
+        },
+        {
+          "command": "labnotev.editWorkflowItem",
+          "when": "view == labnotev.workflowTreeView && viewItem == workflow",
+          "group": "1_modify@1"
+        },
+        {
+          "command": "labnotev.deleteWorkflowItem",
+          "when": "view == labnotev.workflowTreeView && viewItem == workflow",
+          "group": "2_delete"
+        },
+        {
+          "command": "labnotev.addWorkflowItem",
+          "when": "view == labnotev.workflowTreeView && viewItem == category",
+          "group": "1_modify"
+        },
+        {
+          "command": "labnotev.insertUnitOperation",
+          "when": "view == labnotev.workflowTreeView && viewItem == unitOperation",
+          "group": "inline"
+        },
+        {
+          "command": "labnotev.editUnitOperation",
+          "when": "view == labnotev.workflowTreeView && viewItem == unitOperation",
+          "group": "1_modify@1"
+        },
+        {
+          "command": "labnotev.deleteUnitOperation",
+          "when": "view == labnotev.workflowTreeView && viewItem == unitOperation",
+          "group": "2_delete"
+        },
+        {
+          "command": "labnotev.addUnitOperationItem",
+          "when": "view == labnotev.workflowTreeView && viewItem == unitOpRoot",
+          "group": "1_modify"
         }
       ],
       "editor/context": [

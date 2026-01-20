@@ -43,16 +43,16 @@ describe('Sample ID Highlighting', () => {
   });
 
   describe('Extension activation with highlighting', () => {
-    it('should register onDidChangeActiveTextEditor handler', () => {
-      activate(mockContext as unknown as Parameters<typeof activate>[0]);
+    it('should register onDidChangeActiveTextEditor handler', async () => {
+      await activate(mockContext as unknown as Parameters<typeof activate>[0]);
 
       expect(mockVscode.window.onDidChangeActiveTextEditor).toHaveBeenCalled();
     });
 
-    it('should add highlight subscription to context', () => {
+    it('should add highlight subscription to context', async () => {
       const initialLength = mockContext.subscriptions.length;
       
-      activate(mockContext as unknown as Parameters<typeof activate>[0]);
+      await activate(mockContext as unknown as Parameters<typeof activate>[0]);
 
       // Should have multiple subscriptions including highlight handlers
       expect(mockContext.subscriptions.length).toBeGreaterThan(initialLength);

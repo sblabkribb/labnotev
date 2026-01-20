@@ -69,6 +69,32 @@ VS Code용 마크다운 기반 실험실 노트 에디터입니다. 샘플 ID �
   - 선택 시 에디터에 자동 삽입
 - **설정**: `labnotev.sampleTracking`으로 트리뷰 표시 제어
 
+### 🔬 Workflow TreeView (Activity Bar)
+- **워크플로 트리뷰**: Activity Bar의 Lab Samples 패널에 "Workflows" 세션
+- **계층 구조**:
+  - `Workflows [68]`: 루트 노드
+    - `Design [13]`: 설계 워크플로 카테고리
+    - `Build [18]`: 구축 워크플로 카테고리
+    - `Test [19]`: 테스트 워크플로 카테고리
+    - `Learn [12]`: 학습 워크플로 카테고리
+    - 개별 워크플로: `WD010: General Design of Experiment`
+  - `HW Unit Operations [50]`: 하드웨어 유닛 오퍼레이션
+    - `UHW010: Liquid Handling`, `UHW020: 96 Channel Liquid Handling` 등
+  - `SW Unit Operations [40]`: 소프트웨어 유닛 오퍼레이션
+    - `USW010: DNA Oligomer Pool Design`, `USW020: Primer Design` 등
+- **워크플로 명령어**:
+  - 워크플로 항목 `[Create]` 버튼: README.md에서 워크플로 파일 생성
+  - 워크플로 우클릭 → Edit, Delete: JSON 수정/삭제
+  - 카테고리 우클릭 → Add Workflow: 새 워크플로 추가
+- **유닛 오퍼레이션 명령어**:
+  - 유닛 오퍼레이션 `[Insert]` 버튼: 현재 커서 위치에 템플릿 삽입
+  - 유닛 오퍼레이션 우클릭 → Edit, Delete: JSON 수정/삭제
+  - 루트 우클릭 → Add Unit Operation: 새 유닛 오퍼레이션 추가
+- **검색 기능**: 트리뷰 제목 바의 🔍 아이콘으로 워크플로/유닛 오퍼레이션 검색
+  - 선택 시 해당 작업 수행 (워크플로: Create, 유닛오퍼레이션: Insert)
+- **리소스 자동 복사**: 처음 실행 시 확장의 JSON 파일이 워크스페이스로 복사
+  - 사용자가 자유롭게 편집 가능
+
 ### 📁 실험 노트 폴더 구조
 - **자동 폴더 생성**: 명령으로 표준화된 폴더 구조 생성
   - `labnote/{번호}_{제목}/`

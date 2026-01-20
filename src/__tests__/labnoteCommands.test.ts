@@ -26,8 +26,8 @@ describe('Labnote Commands', () => {
   });
 
   describe('labnotev.insertDate command', () => {
-    it('should be registered', () => {
-      activate(mockContext as unknown as Parameters<typeof activate>[0]);
+    it('should be registered', async () => {
+      await activate(mockContext as unknown as Parameters<typeof activate>[0]);
 
       expect(mockVscode.commands.registerCommand).toHaveBeenCalledWith(
         'labnotev.insertDate',
@@ -39,7 +39,7 @@ describe('Labnote Commands', () => {
       const originalActiveEditor = mockVscode.window.activeTextEditor;
       mockVscode.window.activeTextEditor = undefined;
 
-      activate(mockContext as unknown as Parameters<typeof activate>[0]);
+      await activate(mockContext as unknown as Parameters<typeof activate>[0]);
 
       const commandCall = mockVscode.commands.registerCommand.mock.calls.find(
         (call) => call[0] === 'labnotev.insertDate'
@@ -71,7 +71,7 @@ describe('Labnote Commands', () => {
       };
       mockVscode.window.activeTextEditor = mockEditor;
 
-      activate(mockContext as unknown as Parameters<typeof activate>[0]);
+      await activate(mockContext as unknown as Parameters<typeof activate>[0]);
 
       const commandCall = mockVscode.commands.registerCommand.mock.calls.find(
         (call) => call[0] === 'labnotev.insertDate'
@@ -85,8 +85,8 @@ describe('Labnote Commands', () => {
   });
 
   describe('labnotev.insertDateTime command', () => {
-    it('should be registered', () => {
-      activate(mockContext as unknown as Parameters<typeof activate>[0]);
+    it('should be registered', async () => {
+      await activate(mockContext as unknown as Parameters<typeof activate>[0]);
 
       expect(mockVscode.commands.registerCommand).toHaveBeenCalledWith(
         'labnotev.insertDateTime',
@@ -98,7 +98,7 @@ describe('Labnote Commands', () => {
       const originalActiveEditor = mockVscode.window.activeTextEditor;
       mockVscode.window.activeTextEditor = undefined;
 
-      activate(mockContext as unknown as Parameters<typeof activate>[0]);
+      await activate(mockContext as unknown as Parameters<typeof activate>[0]);
 
       const commandCall = mockVscode.commands.registerCommand.mock.calls.find(
         (call) => call[0] === 'labnotev.insertDateTime'
@@ -130,7 +130,7 @@ describe('Labnote Commands', () => {
       };
       mockVscode.window.activeTextEditor = mockEditor;
 
-      activate(mockContext as unknown as Parameters<typeof activate>[0]);
+      await activate(mockContext as unknown as Parameters<typeof activate>[0]);
 
       const commandCall = mockVscode.commands.registerCommand.mock.calls.find(
         (call) => call[0] === 'labnotev.insertDateTime'
@@ -144,8 +144,8 @@ describe('Labnote Commands', () => {
   });
 
   describe('labnotev.updateDateField command', () => {
-    it('should be registered', () => {
-      activate(mockContext as unknown as Parameters<typeof activate>[0]);
+    it('should be registered', async () => {
+      await activate(mockContext as unknown as Parameters<typeof activate>[0]);
 
       expect(mockVscode.commands.registerCommand).toHaveBeenCalledWith(
         'labnotev.updateDateField',
@@ -157,7 +157,7 @@ describe('Labnote Commands', () => {
       const originalActiveEditor = mockVscode.window.activeTextEditor;
       mockVscode.window.activeTextEditor = undefined;
 
-      activate(mockContext as unknown as Parameters<typeof activate>[0]);
+      await activate(mockContext as unknown as Parameters<typeof activate>[0]);
 
       const commandCall = mockVscode.commands.registerCommand.mock.calls.find(
         (call) => call[0] === 'labnotev.updateDateField'
@@ -194,7 +194,7 @@ describe('Labnote Commands', () => {
       };
       mockVscode.window.activeTextEditor = mockEditor;
 
-      activate(mockContext as unknown as Parameters<typeof activate>[0]);
+      await activate(mockContext as unknown as Parameters<typeof activate>[0]);
 
       const commandCall = mockVscode.commands.registerCommand.mock.calls.find(
         (call) => call[0] === 'labnotev.updateDateField'
@@ -227,7 +227,7 @@ describe('Labnote Commands', () => {
       };
       mockVscode.window.activeTextEditor = mockEditor;
 
-      activate(mockContext as unknown as Parameters<typeof activate>[0]);
+      await activate(mockContext as unknown as Parameters<typeof activate>[0]);
 
       const commandCall = mockVscode.commands.registerCommand.mock.calls.find(
         (call) => call[0] === 'labnotev.updateDateField'
@@ -243,8 +243,8 @@ describe('Labnote Commands', () => {
   });
 
   describe('labnotev.updateAllDateFields command', () => {
-    it('should be registered', () => {
-      activate(mockContext as unknown as Parameters<typeof activate>[0]);
+    it('should be registered', async () => {
+      await activate(mockContext as unknown as Parameters<typeof activate>[0]);
 
       expect(mockVscode.commands.registerCommand).toHaveBeenCalledWith(
         'labnotev.updateAllDateFields',

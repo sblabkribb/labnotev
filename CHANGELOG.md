@@ -5,6 +5,49 @@
 형식은 [Keep a Changelog](https://keepachangelog.com/ko/1.1.0/)를 기반으로 하며,
 이 프로젝트는 [유의적 버전 관리](https://semver.org/lang/ko/)를 따릅니다.
 
+## [0.16.0] - 2026-01-20
+
+### 추가
+
+#### Workflow TreeView (Activity Bar)
+- **워크플로 트리뷰**: Lab Samples Activity Bar에 "Workflows" 세션 추가
+- **3단 계층 구조**:
+  - `Workflows [68]`: 루트 노드
+  - `Design`, `Build`, `Test`, `Learn`: 카테고리별 분류
+  - 개별 워크플로 항목
+  - `HW Unit Operations [50]`: 하드웨어 유닛 오퍼레이션
+  - `SW Unit Operations [40]`: 소프트웨어 유닛 오퍼레이션
+- **워크플로 명령어**:
+  - `Create Workflow`: README.md에서 워크플로 파일 생성 (인라인 버튼)
+  - `Edit Workflow`: JSON에서 워크플로 수정 (우클릭)
+  - `Delete Workflow`: JSON에서 워크플로 삭제 (우클릭)
+  - `Add Workflow`: 새 워크플로 추가 (카테고리 우클릭)
+- **유닛 오퍼레이션 명령어**:
+  - `Insert Unit Operation`: 현재 커서에 템플릿 삽입 (인라인 버튼)
+  - `Edit Unit Operation`: JSON에서 수정 (우클릭)
+  - `Delete Unit Operation`: JSON에서 삭제 (우클릭)
+  - `Add Unit Operation`: 새 유닛 오퍼레이션 추가 (루트 우클릭)
+- **검색 기능**: QuickPick으로 워크플로/유닛 오퍼레이션 검색
+  - ID, 이름, 설명으로 검색
+  - 선택 시 해당 작업 수행 (워크플로: Create, 유닛오퍼레이션: Insert)
+- **리소스 자동 복사**: 확장 리소스에서 워크스페이스로 JSON 파일 자동 복사
+  - `resources/workflows/workflows_en.json`
+  - `resources/workflows/unitoperations_hw_en.json`
+  - `resources/workflows/unitoperations_sw_en.json`
+
+### 새 파일
+- `src/lib/workflowDataLoader.ts` - JSON 로드/저장/복사 유틸리티
+- `src/views/WorkflowTreeViewProvider.ts` - 워크플로 TreeView Provider
+- `src/__tests__/workflowDataLoader.test.ts` - 28개 테스트
+- `src/__tests__/WorkflowTreeViewProvider.test.ts` - 17개 테스트
+
+### 테스트
+
+- Extension 테스트: 320개 (19개 파일) - 45개 추가
+- 총 320개 테스트 통과
+
+---
+
 ## [0.15.1] - 2026-01-20
 
 ### 수정
