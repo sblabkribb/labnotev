@@ -9,8 +9,6 @@ VS Code용 마크다운 기반 실험실 노트 에디터입니다. 샘플 ID �
 - **@ 기반 자동완성**: `@dna:`, `@rna:`, `@sample:` 등으로 샘플 ID 자동완성
 - **AI 편집 지원**: Cursor, Copilot 등 AI 도구와 완벽한 호환
 
-### 🎨 BlockNote 에디터 (사용 안함, 작동 불안)
-
 ### 🖼️ 이미지 처리
 - **클립보드 이미지 붙여넣기** (Ctrl+V)
 - **이미지 미리보기 패널**: 이미지 링크 클릭 시 별도 패널에서 이미지 열기
@@ -135,6 +133,13 @@ mongodb://username:password@host:port/?authMechanism=SCRAM-SHA-256&authSource=SB
 ```
 
 ## 설치
+
+### GitHub Releases에서 설치 (권장)
+
+1. [Releases](../../releases) 페이지에서 최신 `.vsix` 파일 다운로드
+2. VS Code에서 설치:
+   - **방법 A**: 명령줄에서 `code --install-extension labnotev-x.x.x.vsix`
+   - **방법 B**: VS Code → `Ctrl+Shift+P` → "Extensions: Install from VSIX..." → 파일 선택
 
 ### 소스에서 설치
 
