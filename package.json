@@ -2,7 +2,7 @@
   "name": "labnotev",
   "displayName": "Lab Note Editor",
   "description": "Markdown-based lab note editor with sample tracking and workflow management",
-  "version": "0.16.1",
+  "version": "0.16.2",
   "publisher": "labnotev",
   "repository": {
     "type": "git",

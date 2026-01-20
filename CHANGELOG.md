@@ -5,6 +5,22 @@
 형식은 [Keep a Changelog](https://keepachangelog.com/ko/1.1.0/)를 기반으로 하며,
 이 프로젝트는 [유의적 버전 관리](https://semver.org/lang/ko/)를 따릅니다.
 
+## [0.16.2] - 2026-01-20
+
+### 추가
+
+#### GitHub Actions 자동 배포
+- 태그 푸시 시 자동으로 VSIX 패키징 및 GitHub Release 생성
+- `.github/workflows/release.yml` 워크플로 파일 추가
+- Release Notes에 설치 안내 자동 포함
+
+### 변경
+
+- `package.json`에 repository, homepage, bugs 필드 추가
+- README에 GitHub Releases 설치 방법 추가
+
+---
+
 ## [0.16.1] - 2026-01-20
 
 ### 추가
