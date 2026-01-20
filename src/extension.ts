@@ -331,6 +331,26 @@ export async function activate(context: vscode.ExtensionContext) {
     })
   );
 
+  // Register move to global command
+  context.subscriptions.push(
+    vscode.commands.registerCommand('labnotev.moveSampleToGlobal', async (item: SampleTreeItem) => {
+      if (item?.sampleType && item?.sampleId) {
+        await sampleTreeProvider.moveSampleToGlobal(item.sampleType, item.sampleId);
+        vscode.window.showInformationMessage(`${item.sampleId}을(를) Global로 이동했습니다`);
+      }
+    })
+  );
+
+  // Register move to local command
+  context.subscriptions.push(
+    vscode.commands.registerCommand('labnotev.moveSampleToLocal', async (item: SampleTreeItem) => {
+      if (item?.sampleType && item?.sampleId) {
+        await sampleTreeProvider.moveSampleToLocal(item.sampleType, item.sampleId);
+        vscode.window.showInformationMessage(`${item.sampleId}을(를) Local로 이동했습니다`);
+      }
+    })
+  );
+
   // ========================================
   // Workflow TreeView Setup
   // ========================================

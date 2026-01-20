@@ -64,6 +64,8 @@ VS Code용 마크다운 기반 실험실 노트 에디터입니다. 샘플 ID �
   - 샘플 우클릭 → Insert Definition: `@{type}:ID|별칭:설명` 삽입 (정의)
   - 타입 우클릭: 새 샘플 추가
   - 샘플 우클릭: 편집 / 삭제
+  - Local 샘플 우클릭 → Move to Global: 샘플을 Global로 이동
+  - Global 샘플 우클릭 → Move to Local: 샘플을 Local로 이동
 - **샘플 검색**: 트리뷰 제목 바의 🔍 아이콘 또는 `Lab Note: Search Sample` 명령어
   - QuickPick으로 ID, 별칭, 설명 검색
   - 선택 시 에디터에 자동 삽입
@@ -249,7 +251,7 @@ npm run test:all
 
 프로젝트에는 포괄적인 테스트 커버리지가 포함되어 있습니다:
 
-- **Extension 테스트**: 244개 (15개 파일)
+- **Extension 테스트**: 328개 (19개 파일)
 - **Webview 테스트**: 153개 (7개 파일)
 - **테스트 프레임워크**: Vitest
 

@@ -7,7 +7,7 @@ import * as vscode from 'vscode';
 import * as fs from 'fs';
 import * as path from 'path';
 import { SAMPLE_TYPES, SampleType } from '../lib/sampleUtils';
-import { SampleRecord, loadSamplesByType, saveSamplesByType } from '../lib/sampleStorage';
+import { SampleRecord, loadSamplesByType, saveSamplesByType, moveSampleToGlobal as moveSampleToGlobalFn, moveSampleToLocal as moveSampleToLocalFn } from '../lib/sampleStorage';
 
 /**
  * Tree item types
@@ -128,7 +128,12 @@ export class SampleTreeItem extends vscode.TreeItem {
     this.description = options.description;
 
     // Set context value for menu contributions
-    this.contextValue = itemType;
+    // For Sample items, include scope to enable different context menus
+    if (itemType === SampleTreeItemType.Sample) {
+      this.contextValue = `sample_${options.scope}`;  // sample_local or sample_global
+    } else {
+      this.contextValue = itemType;
+    }
 
     // Set icon based on item type
     this.setIcon();
@@ -388,6 +393,44 @@ export class SampleTreeViewProvider implements vscode.TreeDataProvider<SampleTre
       this.saveSamples(folder, sampleType, samples);
       this.refresh();
     }
+  }
+
+  /**
+   * Move a sample from local to global folder
+   */
+  public async moveSampleToGlobal(sampleType: string, sampleId: string): Promise<void> {
+    const localSamples = this.loadSamples(this.localFolder, sampleType);
+    const globalSamples = this.loadSamples(this.globalFolder, sampleType);
+    
+    const { newLocalDb, newGlobalDb } = moveSampleToGlobalFn(
+      sampleId, 
+      sampleType, 
+      { [sampleType]: localSamples },
+      { [sampleType]: globalSamples }
+    );
+    
+    this.saveSamples(this.localFolder, sampleType, newLocalDb[sampleType] || {});
+    this.saveSamples(this.globalFolder, sampleType, newGlobalDb[sampleType] || {});
+    this.refresh();
+  }
+
+  /**
+   * Move a sample from global to local folder
+   */
+  public async moveSampleToLocal(sampleType: string, sampleId: string): Promise<void> {
+    const localSamples = this.loadSamples(this.localFolder, sampleType);
+    const globalSamples = this.loadSamples(this.globalFolder, sampleType);
+    
+    const { newLocalDb, newGlobalDb } = moveSampleToLocalFn(
+      sampleId, 
+      sampleType, 
+      { [sampleType]: localSamples },
+      { [sampleType]: globalSamples }
+    );
+    
+    this.saveSamples(this.localFolder, sampleType, newLocalDb[sampleType] || {});
+    this.saveSamples(this.globalFolder, sampleType, newGlobalDb[sampleType] || {});
+    this.refresh();
   }
 
   /**

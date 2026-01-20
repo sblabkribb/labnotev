@@ -2,7 +2,7 @@
   "name": "labnotev",
   "displayName": "Lab Note Editor",
   "description": "Markdown-based lab note editor with sample tracking and workflow management",
-  "version": "0.16.0",
+  "version": "0.16.1",
   "publisher": "labnotev",
   "engines": {
     "vscode": "^1.85.0"
@@ -189,6 +189,16 @@
         "command": "labnotev.addUnitOperationItem",
         "title": "Add Unit Operation",
         "icon": "$(add)"
+      },
+      {
+        "command": "labnotev.moveSampleToGlobal",
+        "title": "Move to Global",
+        "icon": "$(globe)"
+      },
+      {
+        "command": "labnotev.moveSampleToLocal",
+        "title": "Move to Local",
+        "icon": "$(folder)"
       }
     ],
     "menus": {
@@ -217,12 +227,12 @@
       "view/item/context": [
         {
           "command": "labnotev.insertSampleToEditor",
-          "when": "view == labnotev.sampleTreeView && viewItem == sample",
+          "when": "view == labnotev.sampleTreeView && viewItem =~ /^sample_/",
           "group": "inline"
         },
         {
           "command": "labnotev.insertSampleDefinition",
-          "when": "view == labnotev.sampleTreeView && viewItem == sample",
+          "when": "view == labnotev.sampleTreeView && viewItem =~ /^sample_/",
           "group": "1_modify@1"
         },
         {
@@ -232,13 +242,23 @@
         },
         {
           "command": "labnotev.editSample",
-          "when": "view == labnotev.sampleTreeView && viewItem == sample",
+          "when": "view == labnotev.sampleTreeView && viewItem =~ /^sample_/",
           "group": "1_modify@2"
         },
         {
           "command": "labnotev.deleteSample",
-          "when": "view == labnotev.sampleTreeView && viewItem == sample",
+          "when": "view == labnotev.sampleTreeView && viewItem =~ /^sample_/",
           "group": "2_delete"
+        },
+        {
+          "command": "labnotev.moveSampleToGlobal",
+          "when": "view == labnotev.sampleTreeView && viewItem == sample_local",
+          "group": "3_move"
+        },
+        {
+          "command": "labnotev.moveSampleToLocal",
+          "when": "view == labnotev.sampleTreeView && viewItem == sample_global",
+          "group": "3_move"
         },
         {
           "command": "labnotev.createWorkflowFromTree",

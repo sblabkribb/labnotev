@@ -521,6 +521,172 @@ describe('SampleTreeViewProvider', () => {
     });
   });
 
+  describe('contextValue with scope', () => {
+    it('should set contextValue to sample_local for local samples', async () => {
+      const { SampleTreeItem, SampleTreeItemType } = await import('../views/SampleTreeViewProvider');
+      
+      const item = new SampleTreeItem(
+        'DNA-123 | 샘플A',
+        SampleTreeItemType.Sample,
+        { 
+          scope: 'local', 
+          sampleType: 'DNA',
+          sampleId: 'DNA-123',
+          alias: '샘플A',
+          description: null
+        }
+      );
+      
+      expect(item.contextValue).toBe('sample_local');
+    });
+
+    it('should set contextValue to sample_global for global samples', async () => {
+      const { SampleTreeItem, SampleTreeItemType } = await import('../views/SampleTreeViewProvider');
+      
+      const item = new SampleTreeItem(
+        'DNA-456 | 글로벌샘플',
+        SampleTreeItemType.Sample,
+        { 
+          scope: 'global', 
+          sampleType: 'DNA',
+          sampleId: 'DNA-456',
+          alias: '글로벌샘플',
+          description: null
+        }
+      );
+      
+      expect(item.contextValue).toBe('sample_global');
+    });
+
+    it('should keep contextValue as root for Root items', async () => {
+      const { SampleTreeItem, SampleTreeItemType } = await import('../views/SampleTreeViewProvider');
+      
+      const item = new SampleTreeItem(
+        'Samples (Local)',
+        SampleTreeItemType.Root,
+        { scope: 'local' }
+      );
+      
+      expect(item.contextValue).toBe('root');
+    });
+
+    it('should keep contextValue as type for Type items', async () => {
+      const { SampleTreeItem, SampleTreeItemType } = await import('../views/SampleTreeViewProvider');
+      
+      const item = new SampleTreeItem(
+        'DNA [5]',
+        SampleTreeItemType.Type,
+        { scope: 'local', sampleType: 'DNA' }
+      );
+      
+      expect(item.contextValue).toBe('type');
+    });
+  });
+
+  describe('moveSampleToGlobal', () => {
+    it('should move sample from local to global folder', async () => {
+      const { SampleTreeViewProvider } = await import('../views/SampleTreeViewProvider');
+      const fs = await import('fs');
+      
+      const mockContext = {
+        subscriptions: [],
+        extensionUri: { fsPath: '/test/extension' },
+      };
+      
+      // Mock local folder with sample, global folder empty
+      vi.mocked(fs.existsSync).mockReturnValue(true);
+      vi.mocked(fs.readFileSync).mockImplementation((filePath: any) => {
+        if (filePath.includes('document') || filePath.includes('local')) {
+          return JSON.stringify({
+            'DNA-123': { type: 'DNA', alias: 'LocalSample', descriptions: ['Desc'], sources: ['test.md'] }
+          });
+        }
+        return JSON.stringify({});
+      });
+      
+      const provider = new SampleTreeViewProvider(mockContext as any, '/test/workspace', '/test/document/folder');
+      
+      await provider.moveSampleToGlobal('DNA', 'DNA-123');
+      
+      // Should save both local (without sample) and global (with sample)
+      expect(fs.writeFileSync).toHaveBeenCalledTimes(2);
+    });
+
+    it('should refresh tree after move', async () => {
+      const { SampleTreeViewProvider } = await import('../views/SampleTreeViewProvider');
+      const fs = await import('fs');
+      
+      const mockContext = {
+        subscriptions: [],
+        extensionUri: { fsPath: '/test/extension' },
+      };
+      
+      vi.mocked(fs.existsSync).mockReturnValue(true);
+      vi.mocked(fs.readFileSync).mockReturnValue(JSON.stringify({
+        'DNA-123': { type: 'DNA', alias: 'Test', descriptions: [], sources: [] }
+      }));
+      
+      const provider = new SampleTreeViewProvider(mockContext as any, '/test/workspace', '/test/document/folder');
+      const refreshSpy = vi.spyOn(provider, 'refresh');
+      
+      await provider.moveSampleToGlobal('DNA', 'DNA-123');
+      
+      expect(refreshSpy).toHaveBeenCalled();
+    });
+  });
+
+  describe('moveSampleToLocal', () => {
+    it('should move sample from global to local folder', async () => {
+      const { SampleTreeViewProvider } = await import('../views/SampleTreeViewProvider');
+      const fs = await import('fs');
+      
+      const mockContext = {
+        subscriptions: [],
+        extensionUri: { fsPath: '/test/extension' },
+      };
+      
+      // Mock local folder empty, global folder with sample
+      vi.mocked(fs.existsSync).mockReturnValue(true);
+      vi.mocked(fs.readFileSync).mockImplementation((filePath: any) => {
+        if (filePath.includes('document') || filePath.includes('local')) {
+          return JSON.stringify({});
+        }
+        return JSON.stringify({
+          'DNA-123': { type: 'DNA', alias: 'GlobalSample', descriptions: ['Desc'], sources: ['test.md'] }
+        });
+      });
+      
+      const provider = new SampleTreeViewProvider(mockContext as any, '/test/workspace', '/test/document/folder');
+      
+      await provider.moveSampleToLocal('DNA', 'DNA-123');
+      
+      // Should save both local (with sample) and global (without sample)
+      expect(fs.writeFileSync).toHaveBeenCalledTimes(2);
+    });
+
+    it('should refresh tree after move', async () => {
+      const { SampleTreeViewProvider } = await import('../views/SampleTreeViewProvider');
+      const fs = await import('fs');
+      
+      const mockContext = {
+        subscriptions: [],
+        extensionUri: { fsPath: '/test/extension' },
+      };
+      
+      vi.mocked(fs.existsSync).mockReturnValue(true);
+      vi.mocked(fs.readFileSync).mockReturnValue(JSON.stringify({
+        'DNA-123': { type: 'DNA', alias: 'Test', descriptions: [], sources: [] }
+      }));
+      
+      const provider = new SampleTreeViewProvider(mockContext as any, '/test/workspace', '/test/document/folder');
+      const refreshSpy = vi.spyOn(provider, 'refresh');
+      
+      await provider.moveSampleToLocal('DNA', 'DNA-123');
+      
+      expect(refreshSpy).toHaveBeenCalled();
+    });
+  });
+
   describe('getAllSamplesForSearch', () => {
     it('should return all samples from both local and global folders', async () => {
       const { SampleTreeViewProvider } = await import('../views/SampleTreeViewProvider');

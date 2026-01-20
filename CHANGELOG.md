@@ -5,6 +5,23 @@
 형식은 [Keep a Changelog](https://keepachangelog.com/ko/1.1.0/)를 기반으로 하며,
 이 프로젝트는 [유의적 버전 관리](https://semver.org/lang/ko/)를 따릅니다.
 
+## [0.16.1] - 2026-01-20
+
+### 추가
+
+#### 샘플 Local/Global 이동 기능
+- **Move to Global**: Local 샘플을 Global로 이동 (우클릭 → Move to Global)
+- **Move to Local**: Global 샘플을 Local로 이동 (우클릭 → Move to Local)
+- contextValue에 scope 포함: `sample_local`, `sample_global` 구분으로 메뉴 조건 제어
+- 기존 `sampleStorage.ts`의 `moveSampleToGlobal`, `moveSampleToLocal` 함수 재사용
+
+### 테스트
+
+- Extension 테스트: 328개 (19개 파일) - 8개 추가
+- 총 328개 테스트 통과
+
+---
+
 ## [0.16.0] - 2026-01-20
 
 ### 추가
