@@ -4,6 +4,14 @@
   "description": "Markdown-based lab note editor with sample tracking and workflow management",
   "version": "0.16.1",
   "publisher": "labnotev",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/sblabkribb/labnotev.git"
+  },
+  "homepage": "https://github.com/sblabkribb/labnotev#readme",
+  "bugs": {
+    "url": "https://github.com/sblabkribb/labnotev/issues"
+  },
   "engines": {
     "vscode": "^1.85.0"
   },
