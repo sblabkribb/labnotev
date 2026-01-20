@@ -5,6 +5,22 @@
 형식은 [Keep a Changelog](https://keepachangelog.com/ko/1.1.0/)를 기반으로 하며,
 이 프로젝트는 [유의적 버전 관리](https://semver.org/lang/ko/)를 따릅니다.
 
+## [0.16.3] - 2026-01-20
+
+### 변경
+
+#### Sample Tracking 조건 제거
+- `Sample Tracking: Yes` 설정 없이도 항상 샘플 정보 저장 및 하이라이팅 활성화
+- Sample TreeView 사용으로 YAML front matter 설정 불필요
+- `@type:ID|alias:description` 형식 파싱 지원 추가
+
+### 테스트
+
+- Extension 테스트: 333개 (19개 파일) - 5개 추가
+- 총 333개 테스트 통과
+
+---
+
 ## [0.16.2] - 2026-01-20
 
 ### 추가

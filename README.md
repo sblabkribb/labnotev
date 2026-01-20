@@ -41,14 +41,14 @@ VS Code용 마크다운 기반 실험실 노트 에디터입니다. 샘플 ID �
 
 
 #### 공통 기능
-- **샘플 ID 하이라이팅**: 타입별 색상으로 샘플 ID 강조 표시
+- **샘플 ID 하이라이팅**: 타입별 색상으로 샘플 ID 강조 표시 (항상 활성화)
   - DNA, RNA, Plasmid, Reagent, Primer, Equip, Labware 지원
 - **Sample Info 패널**: 문서 내 모든 샘플 ID 조회
   - 별칭, 설명, 출처 표시
   - 위치로 이동, Rename, Replace 기능
-- **자동 저장**: 문서 저장 시 샘플 정보를 JSON으로 자동 저장
+- **자동 저장**: 문서 저장 시 샘플 정보를 JSON으로 자동 저장 (항상 활성화)
   - `resources/labsamples/{TYPE}.json`에 저장
-  - 형식: `ID|별칭:설명`, `ID|별칭`, `ID: 설명`
+  - 지원 형식: `@type:ID|별칭:설명`, `ID|별칭:설명`, `ID|별칭`, `ID: 설명`
 
 ### 🌲 Sample TreeView (Activity Bar)
 - **트리뷰 표시**: VS Code Activity Bar에 플라스크 아이콘으로 샘플 패널 표시
@@ -67,7 +67,7 @@ VS Code용 마크다운 기반 실험실 노트 에디터입니다. 샘플 ID �
 - **샘플 검색**: 트리뷰 제목 바의 🔍 아이콘 또는 `Lab Note: Search Sample` 명령어
   - QuickPick으로 ID, 별칭, 설명 검색
   - 선택 시 에디터에 자동 삽입
-- **설정**: `labnotev.sampleTracking`으로 트리뷰 표시 제어
+- **설정**: Sample TreeView 사용으로 `Sample Tracking: Yes` 설정 불필요
 
 ### 🔬 Workflow TreeView (Activity Bar)
 - **워크플로 트리뷰**: Activity Bar의 Lab Samples 패널에 "Workflows" 세션
@@ -110,7 +110,6 @@ VS Code용 마크다운 기반 실험실 노트 에디터입니다. 샘플 ID �
 
 ### 📋 YAML Front Matter 지원
 - **YAML 보존**: 문서 시작의 `---` 블록이 에디터에서 코드 블록으로 표시되고 저장 시 복원
-- **Sample Tracking 설정**: `Sample Tracking: Yes/No`로 샘플 하이라이팅 활성화/비활성화
 - **메타데이터 편집**: `created_date`, `last_updated_date` 등 YAML 필드 편집 가능
 
 ### 🎨 VS Code 통합
@@ -256,7 +255,7 @@ npm run test:all
 
 프로젝트에는 포괄적인 테스트 커버리지가 포함되어 있습니다:
 
-- **Extension 테스트**: 328개 (19개 파일)
+- **Extension 테스트**: 333개 (19개 파일)
 - **Webview 테스트**: 153개 (7개 파일)
 - **테스트 프레임워크**: Vitest
 

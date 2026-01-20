@@ -80,6 +80,78 @@ describe('Sample Storage', () => {
         'DNA', 'RNA', 'Plasmid', 'Reagent', 'Primer', 'Protein', 'Equip', 'Labware'
       ]);
     });
+
+    // @type:ID|alias:description 형식 테스트
+    it('should extract sample from @type:ID|alias:description format', async () => {
+      const { extractSampleInfoFromText } = await import('../lib/sampleStorage');
+      
+      const text = '@dna:DNA-123|SampleA:This is a test sample';
+      const samples = extractSampleInfoFromText(text);
+      
+      expect(samples.length).toBe(1);
+      expect(samples[0].id).toBe('DNA-123');
+      expect(samples[0].type).toBe('DNA');
+      expect(samples[0].alias).toBe('SampleA');
+      expect(samples[0].description).toBe('This is a test sample');
+    });
+
+    it('should extract sample from @type:ID|alias format (without description)', async () => {
+      const { extractSampleInfoFromText } = await import('../lib/sampleStorage');
+      
+      const text = '@rna:RNA-456|MyRNA';
+      const samples = extractSampleInfoFromText(text);
+      
+      expect(samples.length).toBe(1);
+      expect(samples[0].id).toBe('RNA-456');
+      expect(samples[0].type).toBe('RNA');
+      expect(samples[0].alias).toBe('MyRNA');
+      expect(samples[0].description).toBeNull();
+    });
+
+    it('should extract sample from @type:ID format (without alias and description)', async () => {
+      const { extractSampleInfoFromText } = await import('../lib/sampleStorage');
+      
+      const text = '@plasmid:Plasmid-789';
+      const samples = extractSampleInfoFromText(text);
+      
+      expect(samples.length).toBe(1);
+      expect(samples[0].id).toBe('Plasmid-789');
+      expect(samples[0].type).toBe('Plasmid');
+      expect(samples[0].alias).toBeNull();
+      expect(samples[0].description).toBeNull();
+    });
+
+    it('should extract multiple samples with mixed formats', async () => {
+      const { extractSampleInfoFromText } = await import('../lib/sampleStorage');
+      
+      const text = `
+        @dna:DNA-111|SampleA:Description A
+        DNA-222|SampleB
+        @rna:RNA-333
+        Protein-444
+      `;
+      const samples = extractSampleInfoFromText(text);
+      
+      expect(samples.length).toBe(4);
+      expect(samples[0].id).toBe('DNA-111');
+      expect(samples[0].alias).toBe('SampleA');
+      expect(samples[0].description).toBe('Description A');
+      expect(samples[1].id).toBe('DNA-222');
+      expect(samples[1].alias).toBe('SampleB');
+      expect(samples[2].id).toBe('RNA-333');
+      expect(samples[3].id).toBe('Protein-444');
+    });
+
+    it('should handle @type: prefix case-insensitively', async () => {
+      const { extractSampleInfoFromText } = await import('../lib/sampleStorage');
+      
+      const text = '@DNA:DNA-100|Test';
+      const samples = extractSampleInfoFromText(text);
+      
+      expect(samples.length).toBe(1);
+      expect(samples[0].id).toBe('DNA-100');
+      expect(samples[0].alias).toBe('Test');
+    });
   });
 
   describe('SampleInfo interface', () => {

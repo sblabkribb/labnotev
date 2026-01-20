@@ -41,7 +41,7 @@ import {
   UnitOperationItem,
 } from './lib/workflowDataLoader';
 import { ImageLinkProvider } from './lib/imageLinkProvider';
-import { saveSamplesFromDocument, parseSampleTracking } from './lib/sampleStorage';
+import { saveSamplesFromDocument } from './lib/sampleStorage';
 import { generateSampleId } from './lib/sampleUtils';
 import { createLabnoteStructure, getNextLabnoteNumber, sanitizeTitle } from './lib/labnoteStructure';
 import {
@@ -1021,9 +1021,6 @@ ${equipment ? `- Equipment: ${equipment}` : software ? `- Software: ${software}`
       return;
     }
 
-    const documentText = document.getText();
-    const sampleTrackingEnabled = parseSampleTracking(documentText);
-
     const decorationsByType: Record<SampleType, vscode.DecorationOptions[]> = {} as Record<SampleType, vscode.DecorationOptions[]>;
     
     // Initialize decoration arrays for each type
@@ -1031,23 +1028,20 @@ ${equipment ? `- Equipment: ${equipment}` : software ? `- Software: ${software}`
       decorationsByType[type] = [];
     }
 
-    // Only scan for sample IDs if Sample Tracking is enabled
-    if (sampleTrackingEnabled) {
-      // Scan document for sample IDs
-      for (let lineNum = 0; lineNum < document.lineCount; lineNum++) {
-        const line = document.lineAt(lineNum);
+    // Scan document for sample IDs (always enabled - uses Sample TreeView)
+    for (let lineNum = 0; lineNum < document.lineCount; lineNum++) {
+      const line = document.lineAt(lineNum);
+      
+      for (const type of SAMPLE_TYPES) {
+        // Pattern: TYPE-{digits} (e.g., DNA-1737123456789)
+        const pattern = new RegExp(`\\b${type}-\\d+\\b`, 'g');
+        let match;
         
-        for (const type of SAMPLE_TYPES) {
-          // Pattern: TYPE-{digits} (e.g., DNA-1737123456789)
-          const pattern = new RegExp(`\\b${type}-\\d+\\b`, 'g');
-          let match;
-          
-          while ((match = pattern.exec(line.text)) !== null) {
-            const startPos = new vscode.Position(lineNum, match.index);
-            const endPos = new vscode.Position(lineNum, match.index + match[0].length);
-            const range = new vscode.Range(startPos, endPos);
-            decorationsByType[type].push({ range });
-          }
+        while ((match = pattern.exec(line.text)) !== null) {
+          const startPos = new vscode.Position(lineNum, match.index);
+          const endPos = new vscode.Position(lineNum, match.index + match[0].length);
+          const range = new vscode.Range(startPos, endPos);
+          decorationsByType[type].push({ range });
         }
       }
     }
@@ -1081,15 +1075,8 @@ ${equipment ? `- Equipment: ${equipment}` : software ? `- Software: ${software}`
         return;
       }
 
-      const documentText = document.getText();
-      
-      // Only save sample info if Sample Tracking is enabled
-      if (!parseSampleTracking(documentText)) {
-        return;
-      }
-
       try {
-        saveSamplesFromDocument(document.uri.fsPath, documentText);
+        saveSamplesFromDocument(document.uri.fsPath, document.getText());
       } catch (error) {
         console.error('[LabNote] Failed to save sample info:', error);
       }

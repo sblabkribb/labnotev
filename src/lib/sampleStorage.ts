@@ -35,6 +35,9 @@ export type SampleDatabase = Record<string, Record<string, SampleRecord>>;
 /**
  * Extract sample information from document text
  * Supports formats:
+ * - @type:ID|alias:description (definition format)
+ * - @type:ID|alias (definition with alias only)
+ * - @type:ID (definition with ID only)
  * - ID|alias:description (full format)
  * - ID|alias (alias only)
  * - ID: description (legacy format)
@@ -45,12 +48,13 @@ export function extractSampleInfoFromText(text: string): SampleInfo[] {
   const foundIds = new Set<string>();
 
   for (const type of SAMPLE_TYPES) {
-    // Pattern to match sample ID with optional alias and description
-    // Matches: TYPE-digits followed by optional |alias:description or |alias or : description
+    // Pattern to match sample ID with optional @type: prefix, alias and description
+    // Matches: optional @type: prefix + TYPE-digits followed by optional |alias:description or |alias or : description
     // Note: [^\s:\n|]+ excludes spaces to prevent greedy matching across multiple IDs
+    // gi flag: case-insensitive for @type: prefix
     const pattern = new RegExp(
-      `\\b(${type}-\\d+)(?:\\|([^\\s:\\n|]+)(?::([^\\n|]+))?|:\\s*([^\\n|]+))?`,
-      'g'
+      `(?:@${type}:)?(${type}-\\d+)(?:\\|([^\\s:\\n|]+)(?::([^\\n|]+))?|:\\s*([^\\n|]+))?`,
+      'gi'
     );
 
     let match;
