@@ -22,9 +22,9 @@ VS Code용 마크다운 기반 실험실 노트 에디터입니다. 샘플 ID �
 #### @ 기반 자동완성 (텍스트 에디터)
 - `@dna:`, `@rna:`, `@plasmid:`, `@reagent:`, `@primer:`, `@labware:` - 타입별 샘플 검색
 - `@sample:` - 모든 타입 샘플 검색
-- `@equip:` - MongoDB 연동 장비 검색 (새 ID 생성 불가)
+- `@equip:` - 장비 검색 (MongoDB/로컬) 및 "정보 입력"으로 ID/별칭/설명 직접 입력 (새 ID 생성만 불가)
 - 검색어 입력으로 필터링 (예: `@dna:test`)
-- "새 ID 생성", "정보 입력" 옵션 제공 (Equip 제외)
+- "새 ID 생성", "정보 입력" 옵션 제공 (Equip는 "정보 입력"만 제공)
 
 #### 샘플 삽입 형식
 
@@ -42,7 +42,9 @@ VS Code용 마크다운 기반 실험실 노트 에디터입니다. 샘플 ID �
 
 #### 공통 기능
 - **샘플 ID 하이라이팅**: 타입별 색상으로 샘플 ID 강조 표시 (항상 활성화)
-  - DNA, RNA, Plasmid, Reagent, Primer, Equip, Labware 지원
+  - DNA, RNA, Plasmid, Reagent, Primer, Protein, Equip, Labware 지원
+  - `TYPE-숫자` 및 `TYPE-숫자-숫자` 형식 지원 (예: `DNA-123`, `Equip-123-456`)
+- **@ 접두어 중복 방지**: "새 ID 생성" 또는 "정보 입력" 선택 시 이미 입력된 `@type:` 접두어를 교체하여 `@type:@type:...` 중복 방지
 - **Sample Info 패널**: 문서 내 모든 샘플 ID 조회
   - 별칭, 설명, 출처 표시
   - 위치로 이동, Rename, Replace 기능
@@ -255,7 +257,7 @@ npm run test:all
 
 프로젝트에는 포괄적인 테스트 커버리지가 포함되어 있습니다:
 
-- **Extension 테스트**: 333개 (19개 파일)
+- **Extension 테스트**: 345개 (20개 파일)
 - **Webview 테스트**: 153개 (7개 파일)
 - **테스트 프레임워크**: Vitest
 

@@ -257,6 +257,22 @@ describe('SampleCompletionProvider', () => {
       expect(newIdOption).toBeUndefined();
     });
 
+    it('should include "정보 입력" option for Equip type so @equip: works', () => {
+      const document = createMockDocument('@equip:');
+      const position = createMockPosition(0, 7);
+
+      const result = provider.provideCompletionItems(
+        document as any,
+        position as any,
+        {} as any,
+        {} as any
+      ) as any[];
+
+      const manualOption = result.find((item: any) => item.label === '정보 입력');
+      expect(manualOption).toBeDefined();
+      expect(manualOption?.command?.command).toBe('labnotev.inputSampleInfo');
+    });
+
     it('should include "Generate New ID" option for Labware type', () => {
       const document = createMockDocument('@labware:');
       const position = createMockPosition(0, 9);

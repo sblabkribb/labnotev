@@ -184,13 +184,15 @@ export class SampleCompletionProvider implements vscode.CompletionItemProvider {
       completionItems.push(newIdItem);
     }
     
-    // Add "Manual Input" option (not for Equip type)
-    if (specificType && !isSamplePrefix(fullPrefix) && specificType !== EQUIP_TYPE) {
+    // Add "Manual Input" option (for all types including Equip - so @equip: works when no MongoDB/local IDs)
+    if (specificType && !isSamplePrefix(fullPrefix)) {
       const manualItem = new vscode.CompletionItem(
         '정보 입력',
         vscode.CompletionItemKind.Snippet
       );
-      manualItem.detail = '샘플 ID, 별칭, 설명을 직접 입력합니다';
+      manualItem.detail = specificType === EQUIP_TYPE
+        ? 'Equip ID, 별칭, 설명을 직접 입력합니다 (DB/JSON ID 참조)'
+        : '샘플 ID, 별칭, 설명을 직접 입력합니다';
       manualItem.sortText = '2_manual';
       manualItem.command = {
         command: 'labnotev.inputSampleInfo',

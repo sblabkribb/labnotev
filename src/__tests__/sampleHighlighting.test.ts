@@ -90,5 +90,13 @@ describe('Sample ID Highlighting', () => {
       expect(pattern.test('Equip-1737123456789')).toBe(true);
       expect(pattern.test('Equip-123')).toBe(true);
     });
+
+    it('should match multi-part sample ID pattern (TYPE-num-num)', () => {
+      // Extension uses: \bTYPE-\d+(?:-\d+)*\b for highlighting
+      const pattern = /^\w+-\d+(?:-\d+)*$/;
+      expect(pattern.test('DNA-123')).toBe(true);
+      expect(pattern.test('DNA-1737123456789-1')).toBe(true);
+      expect(pattern.test('Equip-123-456')).toBe(true);
+    });
   });
 });

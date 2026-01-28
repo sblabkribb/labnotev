@@ -5,6 +5,7 @@ import {
   sampleTypeColors,
   generateSampleId,
   resetIdCounter,
+  findSamplePrefixRange,
 } from '../../lib/sampleUtils';
 
 describe('sampleUtils', () => {
@@ -99,6 +100,105 @@ describe('sampleUtils', () => {
       
       const pattern = /^Protein-\d+(-\d+)?$/;
       expect(pattern.test(newId)).toBe(true);
+    });
+  });
+
+  describe('findSamplePrefixRange', () => {
+
+    it('should find @type: prefix at cursor position', () => {
+      const mockDocument = {
+        lineAt: (line: number) => ({
+          text: '@labware:',
+          range: {
+            start: { line, character: 0 },
+            end: { line, character: 9 },
+          },
+        }),
+      };
+
+      const position = { line: 0, character: 8 }; // After "@labware:"
+
+      const result = findSamplePrefixRange(mockDocument, position, 'Labware');
+
+      expect(result).not.toBeNull();
+      expect(result?.start.character).toBe(0);
+      expect(result?.end.character).toBe(9);
+    });
+
+    it('should find @dna: prefix at cursor position', () => {
+      const mockDocument = {
+        lineAt: (line: number) => ({
+          text: '@dna:',
+          range: {
+            start: { line, character: 0 },
+            end: { line, character: 5 },
+          },
+        }),
+      };
+
+      const position = { line: 0, character: 5 };
+
+      const result = findSamplePrefixRange(mockDocument, position, 'DNA');
+
+      expect(result).not.toBeNull();
+      expect(result?.start.character).toBe(0);
+      expect(result?.end.character).toBe(5);
+    });
+
+    it('should return null when prefix not found', () => {
+      const mockDocument = {
+        lineAt: (line: number) => ({
+          text: 'Some text',
+          range: {
+            start: { line, character: 0 },
+            end: { line, character: 9 },
+          },
+        }),
+      };
+
+      const position = { line: 0, character: 5 };
+
+      const result = findSamplePrefixRange(mockDocument, position, 'DNA');
+
+      expect(result).toBeNull();
+    });
+
+    it('should return null when cursor is before prefix', () => {
+      const mockDocument = {
+        lineAt: (line: number) => ({
+          text: '@dna:',
+          range: {
+            start: { line, character: 0 },
+            end: { line, character: 5 },
+          },
+        }),
+      };
+
+      const position = { line: 0, character: 0 }; // Before "@"
+
+      const result = findSamplePrefixRange(mockDocument, position, 'DNA');
+
+      expect(result).toBeNull();
+    });
+
+    it('should handle case-insensitive matching', () => {
+      const mockDocument = {
+        lineAt: (line: number) => ({
+          text: '@DNA:',
+          range: {
+            start: { line, character: 0 },
+            end: { line, character: 5 },
+          },
+        }),
+      };
+
+      const position = { line: 0, character: 5 };
+
+      const result = findSamplePrefixRange(mockDocument, position, 'dna');
+
+      expect(result).not.toBeNull();
+      expect(result?.start.character).toBe(0);
+      expect(result?.end.character).toBe(5);
     });
   });
 });

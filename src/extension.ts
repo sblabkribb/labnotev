@@ -9,7 +9,7 @@ import {
   updateAllDatesInLine,
   updateAllDateFields,
 } from './lib/dateUtils';
-import { SAMPLE_TYPES, SampleType } from './lib/sampleUtils';
+import { SAMPLE_TYPES, SampleType, findSamplePrefixRange } from './lib/sampleUtils';
 import { sampleDecorations } from './lib/sampleDecorations';
 import { SampleInfoPanel } from './views/SampleInfoPanel';
 import { SampleTreeViewProvider, SampleTreeItem, SampleTreeItemType, getInsertText, getDefinitionText } from './views/SampleTreeViewProvider';
@@ -1029,12 +1029,12 @@ ${equipment ? `- Equipment: ${equipment}` : software ? `- Software: ${software}`
     }
 
     // Scan document for sample IDs (always enabled - uses Sample TreeView)
+    // Pattern: TYPE-{digits} or TYPE-{digits}-{digits}... (e.g. DNA-123, Equip-123-456)
     for (let lineNum = 0; lineNum < document.lineCount; lineNum++) {
       const line = document.lineAt(lineNum);
       
       for (const type of SAMPLE_TYPES) {
-        // Pattern: TYPE-{digits} (e.g., DNA-1737123456789)
-        const pattern = new RegExp(`\\b${type}-\\d+\\b`, 'g');
+        const pattern = new RegExp(`\\b${type}-\\d+(?:-\\d+)*\\b`, 'g');
         let match;
         
         while ((match = pattern.exec(line.text)) !== null) {
@@ -1637,8 +1637,27 @@ ${equipment ? `- Equipment: ${equipment}` : software ? `- Software: ${software}`
         insertText += `:${description}`;
       }
       
+      // Check if @type: prefix already exists at cursor position
+      const prefixRange = findSamplePrefixRange(
+        editor.document,
+        editor.selection.active,
+        sampleType
+      );
+      
       await editor.edit(editBuilder => {
-        editBuilder.insert(editor.selection.active, insertText);
+        if (prefixRange) {
+          // Replace the existing prefix with the full definition
+          const replaceRange = new vscode.Range(
+            prefixRange.start.line,
+            prefixRange.start.character,
+            editor.selection.active.line,
+            editor.selection.active.character
+          );
+          editBuilder.replace(replaceRange, insertText);
+        } else {
+          // No prefix found, insert normally
+          editBuilder.insert(editor.selection.active, insertText);
+        }
       });
 
       vscode.window.showInformationMessage(`새 샘플이 생성되었습니다: ${newId}`);
@@ -1709,8 +1728,27 @@ ${equipment ? `- Equipment: ${equipment}` : software ? `- Software: ${software}`
         insertText += `:${description}`;
       }
 
+      // Check if @type: prefix already exists at cursor position
+      const prefixRange = findSamplePrefixRange(
+        editor.document,
+        editor.selection.active,
+        sampleType
+      );
+
       await editor.edit(editBuilder => {
-        editBuilder.insert(editor.selection.active, insertText);
+        if (prefixRange) {
+          // Replace the existing prefix with the full definition
+          const replaceRange = new vscode.Range(
+            prefixRange.start.line,
+            prefixRange.start.character,
+            editor.selection.active.line,
+            editor.selection.active.character
+          );
+          editBuilder.replace(replaceRange, insertText);
+        } else {
+          // No prefix found, insert normally
+          editBuilder.insert(editor.selection.active, insertText);
+        }
       });
 
       vscode.window.showInformationMessage(`샘플 정보가 저장되었습니다: ${sampleId}`);

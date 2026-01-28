@@ -5,6 +5,29 @@
 형식은 [Keep a Changelog](https://keepachangelog.com/ko/1.1.0/)를 기반으로 하며,
 이 프로젝트는 [유의적 버전 관리](https://semver.org/lang/ko/)를 따릅니다.
 
+## [0.16.4] - 2026-01-28
+
+### 수정
+
+#### @ 접두어 중복 삽입
+- "새 ID 생성" 또는 "정보 입력" 선택 시 이미 입력된 `@type:` 접두어가 그대로 두고 삽입되어 `@labware:@labware:{sampleid}` 등으로 중복되던 문제 수정
+- `findSamplePrefixRange()` 유틸 추가: 커서 위치에서 `@type:` 접두어 범위 탐지
+- `generateSampleId`, `inputSampleInfo` 명령에서 접두어가 있으면 해당 범위를 교체하고, 없으면 삽입하도록 변경
+
+#### @equip: 동작
+- Equip 타입에 "정보 입력" 옵션 추가: MongoDB/로컬 ID가 없어도 `@equip:` 입력 시 수동으로 Equip ID·별칭·설명 입력 가능
+- "새 ID 생성"은 Equip에서만 제외 (기존과 동일)
+
+#### 샘플 하이라이트
+- 하이라이트 정규식을 `TYPE-\d+`에서 `TYPE-\d+(?:-\d+)*`로 확장
+- `DNA-1737123456789-1`, `Equip-123-456` 등 다중 구간 ID도 하이라이트되도록 수정
+
+### 테스트
+- Extension 테스트: 345개 (20개 파일) — 12개 추가
+- `sampleCommandInsertion.test.ts` (접두어 중복 방지), `findSamplePrefixRange` 단위 테스트, Equip "정보 입력" 및 다중 구간 ID 패턴 테스트 포함
+
+---
+
 ## [0.16.3] - 2026-01-20
 
 ### 변경
