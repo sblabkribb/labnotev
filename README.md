@@ -137,7 +137,7 @@ mongodb://username:password@host:port/?authMechanism=SCRAM-SHA-256&authSource=SB
 
 ### GitHub Releases에서 설치 (권장)
 
-1. [Releases](https://github.com/sblabkribb/labnotev/releases) 페이지에서 최신 `.vsix` 파일 다운로드
+1. [Releases](https://github.com/sblabkribb/labnotev/releases) 페이지에서 최신 `.vsix` 파일 다운로드 (최신 버전: v0.16.5)
 2. VS Code에서 설치:
    - **방법 A**: 명령줄에서 `code --install-extension labnotev-x.x.x.vsix`
    - **방법 B**: VS Code → `Ctrl+Shift+P` → "Extensions: Install from VSIX..." → 파일 선택
