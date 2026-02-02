@@ -83,32 +83,30 @@ export class SampleCompletionProvider implements vscode.CompletionItemProvider {
     const linePrefix = document.lineAt(position).text.substring(0, position.character);
     
     // Check for @ trigger patterns
-    // Pattern: @TYPE: or @sample:
-    const prefixMatch = linePrefix.match(/@(\w+):(\S*)$/);
+    // Pattern: @TYPE: or @sample: (colon optional so we match when trigger fires before colon is inserted)
+    const prefixMatch = linePrefix.match(/@(\w+):?(\S*)$/);
     if (!prefixMatch) {
       return undefined;
     }
-    
+
     const fullPrefix = `@${prefixMatch[1]}:`;
     const searchTerm = prefixMatch[2].toLowerCase();
-    
+
     if (!isKnownPrefix(fullPrefix)) {
       return undefined;
     }
-    
+
     const completionItems: vscode.CompletionItem[] = [];
     const documentUri = document.uri;
-    
+
     // Determine which types to search
     const specificType = matchSampleType(fullPrefix);
     const typesToSearch = isSamplePrefix(fullPrefix) ? [...SAMPLE_TYPES] : (specificType ? [specificType] : []);
-    
-    // Calculate the range to replace (including @type: prefix for reference)
-    // When referencing existing sample, we want to replace @dna:searchTerm with just ID|Alias
-    const prefixStartPos = position.character - fullPrefix.length - searchTerm.length;
+
+    // Range to replace: from @ to cursor (match.index so it works with or without colon in document)
     const replaceRange = new vscode.Range(
       position.line,
-      prefixStartPos,
+      prefixMatch.index,
       position.line,
       position.character
     );
@@ -208,12 +206,14 @@ export class SampleCompletionProvider implements vscode.CompletionItemProvider {
 }
 
 /**
- * Create and return the completion provider with trigger characters
+ * Create and return the completion provider with trigger characters.
+ * ':' opens the list; letters/digits/-/_ re-trigger so typing after @type: filters the list.
  */
 export function createSampleCompletionProvider(): vscode.Disposable {
+  const triggerChars = [':', ...'abcdefghijklmnopqrstuvwxyz0123456789-_'.split('')];
   return vscode.languages.registerCompletionItemProvider(
     { language: 'markdown', scheme: 'file' },
     new SampleCompletionProvider(),
-    ':' // Trigger on ':'
+    ...triggerChars
   );
 }

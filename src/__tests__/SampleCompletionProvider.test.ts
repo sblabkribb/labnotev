@@ -113,6 +113,21 @@ describe('SampleCompletionProvider', () => {
       expect(Array.isArray(result)).toBe(true);
     });
 
+    it('should handle @dna without colon (trigger before colon inserted)', () => {
+      const document = createMockDocument('@dna');
+      const position = createMockPosition(0, 4);
+
+      const result = provider.provideCompletionItems(
+        document as any,
+        position as any,
+        {} as any,
+        {} as any
+      );
+
+      expect(result).toBeDefined();
+      expect(Array.isArray(result)).toBe(true);
+    });
+
     it('should handle @sample: prefix for all types', () => {
       const document = createMockDocument('@sample:');
       const position = createMockPosition(0, 8);
