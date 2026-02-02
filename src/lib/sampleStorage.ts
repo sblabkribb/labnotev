@@ -147,12 +147,12 @@ export function mergeSampleDatabases(
           existingRecord.alias = record.alias;
         }
 
-        // Combine descriptions (unique)
-        for (const desc of record.descriptions) {
-          if (!existingRecord.descriptions.includes(desc)) {
-            existingRecord.descriptions.push(desc);
-          }
-        }
+        // Put current document's descriptions first so sidebar shows latest (descriptions[0])
+        const fromNew = record.descriptions || [];
+        const fromExisting = (existingRecord.descriptions || []).filter(
+          (d) => !fromNew.includes(d)
+        );
+        existingRecord.descriptions = [...fromNew, ...fromExisting];
 
         // Combine sources (unique)
         for (const source of record.sources) {
@@ -168,6 +168,49 @@ export function mergeSampleDatabases(
   }
 
   return merged;
+}
+
+/**
+ * Find the range of a sample definition in document text for replacement.
+ * Returns { start, length } of the first matching definition, or null.
+ * - General types: matches @type:ID with optional |alias:description (same pattern as extractSampleInfoFromText).
+ * - Equip: if no match by id, tries @equip:|currentAlias with optional :description (definition without ID in text).
+ */
+export function findSampleDefinitionMatch(
+  text: string,
+  type: string,
+  id: string,
+  currentAlias?: string | null
+): { start: number; length: number } | null {
+  const typeEsc = type.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+
+  // 1) Match by @type:ID (same pattern as extractSampleInfoFromText)
+  const idPattern = new RegExp(
+    `(?:@${typeEsc}:)?(${typeEsc}-\\d+(?:-\\d+)?)(?:\\|([^\\s:\\n|]+)(?::([^\\n|]+))?|:\\s*([^\\n|]+))?`,
+    'gi'
+  );
+  let match = idPattern.exec(text);
+  while (match) {
+    if (match[1] === id) {
+      return { start: match.index, length: match[0].length };
+    }
+    match = idPattern.exec(text);
+  }
+
+  // 2) Equip: match by @equip:|currentAlias when definition has no ID in text
+  if ((type.toLowerCase() === 'equip') && currentAlias && currentAlias.trim()) {
+    const aliasEsc = currentAlias.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    const equipAliasPattern = new RegExp(
+      `@equip:\\|${aliasEsc}(?::([^\\n|]*))?`,
+      'gi'
+    );
+    const equipMatch = equipAliasPattern.exec(text);
+    if (equipMatch) {
+      return { start: equipMatch.index, length: equipMatch[0].length };
+    }
+  }
+
+  return null;
 }
 
 /**

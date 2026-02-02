@@ -5,6 +5,21 @@
 형식은 [Keep a Changelog](https://keepachangelog.com/ko/1.1.0/)를 기반으로 하며,
 이 프로젝트는 [유의적 버전 관리](https://semver.org/lang/ko/)를 따릅니다.
 
+## [0.16.6] - 2026-02-02
+
+### 추가
+
+#### 샘플 정의와 사이드바 동기화
+- **저장 시 사이드바 갱신**: 마크다운 저장 시 샘플 JSON 갱신 후 사이드바 샘플 트리가 자동으로 갱신되어, 본문에서 수정한 별칭/설명이 곧바로 반영됨
+- **Description 수정 반영**: 본문에서 샘플 정의의 Description을 수정하고 저장하면, merge 시 현재 문서의 설명을 앞에 두어 사이드바에 수정된 설명이 표시되도록 변경
+- **사이드바 Edit 시 본문 갱신**: 사이드바에서 샘플 우클릭 → Edit으로 별칭/설명을 수정하면, JSON뿐 아니라 현재 열린 마크다운 본문의 해당 샘플 정의 문자열도 새 값으로 치환됨 (Equip 포함 모든 타입 지원)
+
+### 변경
+- `mergeSampleDatabases`: descriptions를 현재 문서(newData) 기준으로 앞에 두고 기존 항목을 뒤에 유지하도록 변경
+- `findSampleDefinitionMatch` 헬퍼 추가 (sampleStorage): 본문에서 샘플 정의 위치 검색 (일반 타입은 ID, Equip은 alias 기반)
+
+---
+
 ## [0.16.5] - 2026-01-28
 
 ### 변경

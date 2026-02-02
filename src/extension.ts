@@ -41,7 +41,7 @@ import {
   UnitOperationItem,
 } from './lib/workflowDataLoader';
 import { ImageLinkProvider } from './lib/imageLinkProvider';
-import { saveSamplesFromDocument } from './lib/sampleStorage';
+import { saveSamplesFromDocument, findSampleDefinitionMatch } from './lib/sampleStorage';
 import { generateSampleId } from './lib/sampleUtils';
 import { createLabnoteStructure, getNextLabnoteNumber, sanitizeTitle } from './lib/labnoteStructure';
 import {
@@ -326,6 +326,33 @@ export async function activate(context: vscode.ExtensionContext) {
         newAlias || null,
         newDescription || null
       );
+
+      // Update markdown document if active editor contains this sample definition
+      const editor = vscode.window.activeTextEditor;
+      if (editor && editor.document.languageId === 'markdown') {
+        const docText = editor.document.getText();
+        const match = findSampleDefinitionMatch(
+          docText,
+          item.sampleType!,
+          item.sampleId!,
+          item.alias ?? null
+        );
+        if (match) {
+          const range = new vscode.Range(
+            editor.document.positionAt(match.start),
+            editor.document.positionAt(match.start + match.length)
+          );
+          const newDefinitionText = getDefinitionText({
+            sampleType: item.sampleType,
+            sampleId: item.sampleId,
+            alias: newAlias || null,
+            description: newDescription || null,
+          } as SampleTreeItem);
+          await editor.edit((editBuilder) => {
+            editBuilder.replace(range, newDefinitionText);
+          });
+        }
+      }
 
       vscode.window.showInformationMessage(`샘플이 수정되었습니다: ${item.sampleId}`);
     })
@@ -1077,6 +1104,7 @@ ${equipment ? `- Equipment: ${equipment}` : software ? `- Software: ${software}`
 
       try {
         saveSamplesFromDocument(document.uri.fsPath, document.getText());
+        sampleTreeProvider.refresh();
       } catch (error) {
         console.error('[LabNote] Failed to save sample info:', error);
       }
