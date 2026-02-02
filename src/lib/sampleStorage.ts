@@ -184,9 +184,9 @@ export function findSampleDefinitionMatch(
 ): { start: number; length: number } | null {
   const typeEsc = type.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 
-  // 1) Match by @type:ID (same pattern as extractSampleInfoFromText)
+  // 1) Match by @type:ID (same pattern as extractSampleInfoFromText; alias [^:\n|]+ allows spaces)
   const idPattern = new RegExp(
-    `(?:@${typeEsc}:)?(${typeEsc}-\\d+(?:-\\d+)?)(?:\\|([^\\s:\\n|]+)(?::([^\\n|]+))?|:\\s*([^\\n|]+))?`,
+    `(?:@${typeEsc}:)?(${typeEsc}-\\d+(?:-\\d+)?)(?:\\|([^:\\n|]+)(?::([^\\n|]+))?|:\\s*([^\\n|]+))?`,
     'gi'
   );
   let match = idPattern.exec(text);

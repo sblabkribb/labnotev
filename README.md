@@ -67,6 +67,7 @@ VSCode용 마크다운 기반 실험실 노트 에디터입니다. 샘플 ID 관
 - **컨텍스트 메뉴**:
   - 샘플 더블클릭: 에디터에 `ID|별칭` 삽입 (참조)
   - 샘플 우클릭 → Insert Definition: `@{type}:ID|별칭:설명` 삽입 (정의)
+  - 샘플 우클릭 → Move to Definition: 해당 샘플이 정의된 마크다운 본문 위치로 이동
   - 타입 우클릭: 새 샘플 추가
   - 샘플 우클릭: 편집 / 삭제 (별칭·설명 수정 시 JSON과 현재 열린 마크다운 본문 모두 갱신)
   - Local 샘플 우클릭 → Move to Global: 샘플을 Global로 이동
@@ -142,7 +143,7 @@ mongodb://username:password@host:port/?authMechanism=SCRAM-SHA-256&authSource=SB
 
 ### GitHub Releases에서 설치 (권장)
 
-1. [Releases](https://github.com/sblabkribb/labnotev/releases) 페이지에서 최신 `.vsix` 파일 다운로드 (최신 버전: v0.16.8)
+1. [Releases](https://github.com/sblabkribb/labnotev/releases) 페이지에서 최신 `.vsix` 파일 다운로드 (최신 버전: v0.16.9)
 2. VS Code에서 설치:
    - **방법 A**: 명령줄에서 `code --install-extension labnotev-x.x.x.vsix`
    - **방법 B**: VS Code → `Ctrl+Shift+P` → "Extensions: Install from VSIX..." → 파일 선택

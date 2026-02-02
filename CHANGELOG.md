@@ -5,6 +5,21 @@
 형식은 [Keep a Changelog](https://keepachangelog.com/ko/1.1.0/)를 기반으로 하며,
 이 프로젝트는 [유의적 버전 관리](https://semver.org/lang/ko/)를 따릅니다.
 
+## [0.16.9] - 2026-02-02
+
+### 추가
+
+#### Sample TreeView – Move to Definition
+- **Move to Definition 메뉴**: 사이드바 샘플 목록에서 샘플 항목 우클릭 시 "Move to Definition" 메뉴 추가
+- 선택 시 해당 샘플이 정의된 마크다운 본문의 정의 위치로 커서/뷰 이동
+- 활성 에디터가 마크다운이면 해당 문서에서 정의 검색; 없으면 샘플 레코드의 sources 파일을 열어 검색 (Local: 문서 폴더 기준, Global: 워크스페이스에서 파일명 검색)
+
+### 변경
+- SampleTreeViewProvider에 `getDocumentFolder()`, `getLocalFolder()`, `getGlobalFolder()` 추가 (Move to Definition 등에서 경로 조회용)
+- `findSampleDefinitionMatch`의 alias 캡처를 `[^:\n|]+`로 통일하여 공백·특수문자 포함 별칭도 정의 검색 시 매치되도록 수정
+
+---
+
 ## [0.16.8] - 2026-02-02
 
 ### 수정

@@ -210,6 +210,27 @@ export class SampleTreeViewProvider implements vscode.TreeDataProvider<SampleTre
   }
 
   /**
+   * Get document folder for Local samples (parent of resources/labsamples)
+   */
+  public getDocumentFolder(): string {
+    return path.dirname(path.dirname(this.localFolder));
+  }
+
+  /**
+   * Get Local labsamples folder path
+   */
+  public getLocalFolder(): string {
+    return this.localFolder;
+  }
+
+  /**
+   * Get Global labsamples folder path
+   */
+  public getGlobalFolder(): string {
+    return this.globalFolder;
+  }
+
+  /**
    * Get tree item for display
    */
   getTreeItem(element: SampleTreeItem): vscode.TreeItem {

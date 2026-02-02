@@ -40,7 +40,7 @@ import {
   UnitOperationItem,
 } from './lib/workflowDataLoader';
 import { ImageLinkProvider } from './lib/imageLinkProvider';
-import { saveSamplesFromDocument, findSampleDefinitionMatch, getGlobalLabsamplesFolder } from './lib/sampleStorage';
+import { saveSamplesFromDocument, findSampleDefinitionMatch, getGlobalLabsamplesFolder, loadSamplesByType } from './lib/sampleStorage';
 import { generateSampleId } from './lib/sampleUtils';
 import { createLabnoteStructure, getNextLabnoteNumber, sanitizeTitle } from './lib/labnoteStructure';
 import {
@@ -374,6 +374,90 @@ export async function activate(context: vscode.ExtensionContext) {
         await sampleTreeProvider.moveSampleToLocal(item.sampleType, item.sampleId);
         vscode.window.showInformationMessage(`${item.sampleId}을(를) Local로 이동했습니다`);
       }
+    })
+  );
+
+  // Register move to definition command
+  context.subscriptions.push(
+    vscode.commands.registerCommand('labnotev.moveToDefinition', async (item: SampleTreeItem) => {
+      if (!item || item.itemType !== SampleTreeItemType.Sample || !item.sampleType || !item.sampleId) {
+        return;
+      }
+
+      const revealAndSelect = (editor: vscode.TextEditor, match: { start: number; length: number }) => {
+        const range = new vscode.Range(
+          editor.document.positionAt(match.start),
+          editor.document.positionAt(match.start + match.length)
+        );
+        editor.revealRange(range, vscode.TextEditorRevealType.InCenter);
+        editor.selection = new vscode.Selection(range.start, range.end);
+      };
+
+      // (1) Check active editor (markdown)
+      const activeEditor = vscode.window.activeTextEditor;
+      if (activeEditor && activeEditor.document.languageId === 'markdown') {
+        const docText = activeEditor.document.getText();
+        const match = findSampleDefinitionMatch(
+          docText,
+          item.sampleType,
+          item.sampleId,
+          item.alias ?? null
+        );
+        if (match) {
+          revealAndSelect(activeEditor, match);
+          return;
+        }
+      }
+
+      // (2) Search in source files
+      const folder = item.scope === 'local' ? sampleTreeProvider.getLocalFolder() : sampleTreeProvider.getGlobalFolder();
+      const samples = loadSamplesByType(folder, item.sampleType);
+      const record = samples[item.sampleId];
+      const sources = record?.sources;
+      if (!sources || sources.length === 0) {
+        vscode.window.showInformationMessage('정의를 찾을 수 없습니다.');
+        return;
+      }
+
+      if (item.scope === 'local') {
+        const documentFolder = sampleTreeProvider.getDocumentFolder();
+        for (const source of sources) {
+          const fullPath = path.join(documentFolder, source);
+          if (!fs.existsSync(fullPath)) continue;
+          try {
+            const doc = await vscode.workspace.openTextDocument(fullPath);
+            const text = doc.getText();
+            const match = findSampleDefinitionMatch(text, item.sampleType, item.sampleId, item.alias ?? null);
+            if (match) {
+              const editor = await vscode.window.showTextDocument(doc, { preview: false });
+              revealAndSelect(editor, match);
+              return;
+            }
+          } catch {
+            // skip
+          }
+        }
+      } else {
+        for (const source of sources) {
+          const uris = await vscode.workspace.findFiles(`**/${source}`);
+          for (const uri of uris) {
+            try {
+              const doc = await vscode.workspace.openTextDocument(uri);
+              const text = doc.getText();
+              const match = findSampleDefinitionMatch(text, item.sampleType, item.sampleId, item.alias ?? null);
+              if (match) {
+                const editor = await vscode.window.showTextDocument(doc, { preview: false });
+                revealAndSelect(editor, match);
+                return;
+              }
+            } catch {
+              // skip
+            }
+          }
+        }
+      }
+
+      vscode.window.showInformationMessage('정의를 찾을 수 없습니다.');
     })
   );
 

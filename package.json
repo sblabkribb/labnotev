@@ -2,7 +2,7 @@
   "name": "labnotev",
   "displayName": "Lab Note Editor",
   "description": "Markdown-based lab note editor with sample tracking and workflow management",
-  "version": "0.16.8",
+  "version": "0.16.9",
   "publisher": "labnotev",
   "repository": {
     "type": "git",
@@ -114,6 +114,11 @@
         "command": "labnotev.editSample",
         "title": "Edit Sample",
         "icon": "$(edit)"
+      },
+      {
+        "command": "labnotev.moveToDefinition",
+        "title": "Move to Definition",
+        "icon": "$(go-to-file)"
       },
       {
         "command": "labnotev.searchSample",
@@ -240,6 +245,11 @@
           "command": "labnotev.editSample",
           "when": "view == labnotev.sampleTreeView && viewItem =~ /^sample_/",
           "group": "1_modify@2"
+        },
+        {
+          "command": "labnotev.moveToDefinition",
+          "when": "view == labnotev.sampleTreeView && viewItem =~ /^sample_/",
+          "group": "1_modify@3"
         },
         {
           "command": "labnotev.deleteSample",
