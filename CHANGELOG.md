@@ -5,6 +5,17 @@
 형식은 [Keep a Changelog](https://keepachangelog.com/ko/1.1.0/)를 기반으로 하며,
 이 프로젝트는 [유의적 버전 관리](https://semver.org/lang/ko/)를 따릅니다.
 
+## [0.16.8] - 2026-02-02
+
+### 수정
+
+#### Local → Global 이동 후 alias 잘림 및 Local 재등록
+- **alias 추출 공백 허용**: 별칭 추출 정규식을 `[^\s:\n|]+`에서 `[^:\n|]+`로 변경하여, 공백·특수문자(™ 등)가 포함된 별칭이 잘리지 않고 전체가 추출되도록 수정 (예: `UltraPure™ DNase/RNase-Free Distilled Water`)
+- **Move to Global 후 저장 시 Local 재추가 방지**: 문서 저장 시 Global에 이미 있는 (type, id) 샘플은 Local 병합 결과에서 제외하여, Move to Global한 샘플이 저장 시 잘린 별칭으로 Local에 다시 들어가지 않도록 수정
+- `saveSamplesFromDocument`에 `globalLabsamplesFolder` 인자 추가; extension에서 workspace root 기준 global 폴더를 계산해 전달
+
+---
+
 ## [0.16.7] - 2026-02-02
 
 ### 수정

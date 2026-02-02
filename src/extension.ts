@@ -11,7 +11,6 @@ import {
 } from './lib/dateUtils';
 import { SAMPLE_TYPES, SampleType, findSamplePrefixRange } from './lib/sampleUtils';
 import { sampleDecorations } from './lib/sampleDecorations';
-import { SampleInfoPanel } from './views/SampleInfoPanel';
 import { SampleTreeViewProvider, SampleTreeItem, SampleTreeItemType, getInsertText, getDefinitionText } from './views/SampleTreeViewProvider';
 import { ImagePreviewPanel } from './views/ImagePreviewPanel';
 import {
@@ -41,7 +40,7 @@ import {
   UnitOperationItem,
 } from './lib/workflowDataLoader';
 import { ImageLinkProvider } from './lib/imageLinkProvider';
-import { saveSamplesFromDocument, findSampleDefinitionMatch } from './lib/sampleStorage';
+import { saveSamplesFromDocument, findSampleDefinitionMatch, getGlobalLabsamplesFolder } from './lib/sampleStorage';
 import { generateSampleId } from './lib/sampleUtils';
 import { createLabnoteStructure, getNextLabnoteNumber, sanitizeTitle } from './lib/labnoteStructure';
 import {
@@ -1103,7 +1102,9 @@ ${equipment ? `- Equipment: ${equipment}` : software ? `- Software: ${software}`
       }
 
       try {
-        saveSamplesFromDocument(document.uri.fsPath, document.getText());
+        const workspaceRoot = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath;
+        const globalLabsamplesFolder = workspaceRoot ? getGlobalLabsamplesFolder(workspaceRoot) : undefined;
+        saveSamplesFromDocument(document.uri.fsPath, document.getText(), globalLabsamplesFolder);
         sampleTreeProvider.refresh();
       } catch (error) {
         console.error('[LabNote] Failed to save sample info:', error);
@@ -1115,13 +1116,6 @@ ${equipment ? `- Equipment: ${equipment}` : software ? `- Software: ${software}`
   if (vscode.window.activeTextEditor && vscode.window.activeTextEditor.document.languageId === 'markdown') {
     applySampleIdHighlights(vscode.window.activeTextEditor);
   }
-
-  // Register show sample info command
-  context.subscriptions.push(
-    vscode.commands.registerCommand('labnotev.showSampleInfo', () => {
-      SampleInfoPanel.createOrShow(context.extensionUri);
-    })
-  );
 
   // Register open image preview command
   context.subscriptions.push(
@@ -1493,118 +1487,6 @@ ${equipment ? `- Equipment: ${equipment}` : software ? `- Software: ${software}`
           vscode.window.showErrorMessage(`파일을 찾을 수 없습니다: ${selected.label}`);
         }
       }
-    })
-  );
-
-  // Register reorder workflows command
-  context.subscriptions.push(
-    vscode.commands.registerCommand('labnotev.reorderWorkflows', async () => {
-      const editor = vscode.window.activeTextEditor;
-      if (!editor) {
-        vscode.window.showWarningMessage('README.md 파일을 열어주세요');
-        return;
-      }
-
-      const readmePath = editor.document.uri.fsPath;
-      
-      if (!isValidReadmePath(readmePath)) {
-        vscode.window.showWarningMessage('labnote 폴더 내의 README.md 파일에서 실행해주세요');
-        return;
-      }
-
-      const labnoteDir = path.dirname(readmePath);
-      const files = fs.readdirSync(labnoteDir)
-        .filter(file => /^\d{3}_.+\.md$/i.test(file) && file.toLowerCase() !== 'readme.md')
-        .sort();
-      
-      if (files.length === 0) {
-        vscode.window.showInformationMessage('재정렬할 워크플로 파일이 없습니다');
-        return;
-      }
-
-      // Rename files with new sequence numbers
-      let newNumber = 1;
-      for (const file of files) {
-        const newPrefix = String(newNumber).padStart(3, '0');
-        const oldPrefix = file.substring(0, 3);
-        
-        if (oldPrefix !== newPrefix) {
-          const newFileName = newPrefix + file.substring(3);
-          const oldPath = path.join(labnoteDir, file);
-          const newPath = path.join(labnoteDir, newFileName);
-          fs.renameSync(oldPath, newPath);
-        }
-        newNumber++;
-      }
-
-      // Update README checklist
-      const readmeContent = fs.readFileSync(readmePath, 'utf8');
-      const items = parseWorkflowChecklistFromReadme(readmeContent);
-      
-      // Update file names in checklist items
-      const updatedItems = items.map((item, index) => {
-        const newPrefix = String(index + 1).padStart(3, '0');
-        const oldPrefix = item.fileName.substring(0, 3);
-        return {
-          ...item,
-          fileName: newPrefix + item.fileName.substring(3),
-          title: item.title.replace(/^\d{3}/, newPrefix),
-        };
-      });
-
-      const newChecklist = generateWorkflowChecklist(updatedItems);
-      const updatedReadme = updateReadmeWorkflowSection(readmeContent, newChecklist);
-      fs.writeFileSync(readmePath, updatedReadme, 'utf8');
-
-      // Reload document
-      await vscode.commands.executeCommand('workbench.action.files.revert');
-      vscode.window.showInformationMessage(`${files.length}개 워크플로 파일이 재정렬되었습니다`);
-    })
-  );
-
-  // Register reorder labnotes command
-  context.subscriptions.push(
-    vscode.commands.registerCommand('labnotev.reorderLabnotes', async () => {
-      const workspaceFolders = vscode.workspace.workspaceFolders;
-      if (!workspaceFolders) {
-        vscode.window.showErrorMessage('먼저 폴더를 열어주세요');
-        return;
-      }
-
-      const workspaceRoot = workspaceFolders[0].uri.fsPath;
-      const labnoteDir = path.join(workspaceRoot, 'labnote');
-      
-      if (!fs.existsSync(labnoteDir)) {
-        vscode.window.showErrorMessage('labnote 폴더가 없습니다');
-        return;
-      }
-
-      const folders = fs.readdirSync(labnoteDir, { withFileTypes: true })
-        .filter(entry => entry.isDirectory() && /^\d{3}_/.test(entry.name))
-        .map(entry => entry.name)
-        .sort();
-      
-      if (folders.length === 0) {
-        vscode.window.showInformationMessage('재정렬할 랩노트 폴더가 없습니다');
-        return;
-      }
-
-      // Rename folders with new sequence numbers
-      let newNumber = 1;
-      for (const folder of folders) {
-        const newPrefix = String(newNumber).padStart(3, '0');
-        const oldPrefix = folder.substring(0, 3);
-        
-        if (oldPrefix !== newPrefix) {
-          const newFolderName = newPrefix + folder.substring(3);
-          const oldPath = path.join(labnoteDir, folder);
-          const newPath = path.join(labnoteDir, newFolderName);
-          fs.renameSync(oldPath, newPath);
-        }
-        newNumber++;
-      }
-
-      vscode.window.showInformationMessage(`${folders.length}개 랩노트 폴더가 재정렬되었습니다`);
     })
   );
 

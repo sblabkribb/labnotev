@@ -2,7 +2,7 @@
   "name": "labnotev",
   "displayName": "Lab Note Editor",
   "description": "Markdown-based lab note editor with sample tracking and workflow management",
-  "version": "0.16.7",
+  "version": "0.16.8",
   "publisher": "labnotev",
   "repository": {
     "type": "git",
@@ -79,10 +79,6 @@
         "title": "Lab Note: Update All last_updated_date Fields"
       },
       {
-        "command": "labnotev.showSampleInfo",
-        "title": "Lab Note: Show Sample Info Panel"
-      },
-      {
         "command": "labnotev.addWorkflow",
         "title": "Lab Note: Add Workflow"
       },
@@ -139,14 +135,6 @@
       {
         "command": "labnotev.manageTemplates",
         "title": "Lab Note: Manage Templates"
-      },
-      {
-        "command": "labnotev.reorderWorkflows",
-        "title": "Lab Note: Reorder Workflows"
-      },
-      {
-        "command": "labnotev.reorderLabnotes",
-        "title": "Lab Note: Reorder Labnotes"
       },
       {
         "command": "labnotev.refreshWorkflowTree",

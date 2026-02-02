@@ -51,13 +51,15 @@ VSCode용 마크다운 기반 실험실 노트 에디터입니다. 샘플 ID 관
 - **자동 저장**: 문서 저장 시 샘플 정보를 JSON으로 자동 저장 (항상 활성화)
   - `resources/labsamples/{TYPE}.json`에 저장
   - 지원 형식: `@type:ID|별칭:설명`, `ID|별칭:설명`, `ID|별칭`, `ID: 설명`
+  - 별칭에 공백·특수문자(™ 등) 포함 가능 (예: `Reagent-1|UltraPure™ DNase/RNase-Free Water:설명`)
+  - Move to Global한 샘플은 문서 저장 시 Local에 다시 추가되지 않음
 - **본문 ↔ 사이드바 동기화**:
   - 본문에서 샘플 정의(별칭/설명)를 수정하고 저장하면 사이드바 샘플 리스트가 자동 갱신됨
   - 사이드바에서 샘플 우클릭 → Edit으로 별칭/설명을 수정하면, 현재 열린 마크다운 본문의 해당 샘플 정의도 함께 갱신됨
 
 ### 🌲 Sample TreeView (Activity Bar)
 - **트리뷰 표시**: VS Code Activity Bar에 플라스크 아이콘으로 샘플 패널 표시
-- **Local/Global 구분**: 문서 폴더와 워크스페이스 루트의 샘플 분리 표시
+- **Local/Global 구분**: 문서 폴더와 워크스페이스 루트의 샘플 분리 표시 (Move to Global 후 문서를 저장해도 해당 샘플은 Local에 재등록되지 않음)
 - **계층 구조**:
   - `Samples (Local)` / `Samples (Global)`: 루트 노드 (언폴딩)
   - `DNA [3]`, `RNA [1]` 등: 타입별 노드 (언폴딩)
@@ -140,7 +142,7 @@ mongodb://username:password@host:port/?authMechanism=SCRAM-SHA-256&authSource=SB
 
 ### GitHub Releases에서 설치 (권장)
 
-1. [Releases](https://github.com/sblabkribb/labnotev/releases) 페이지에서 최신 `.vsix` 파일 다운로드 (최신 버전: v0.16.5)
+1. [Releases](https://github.com/sblabkribb/labnotev/releases) 페이지에서 최신 `.vsix` 파일 다운로드 (최신 버전: v0.16.8)
 2. VS Code에서 설치:
    - **방법 A**: 명령줄에서 `code --install-extension labnotev-x.x.x.vsix`
    - **방법 B**: VS Code → `Ctrl+Shift+P` → "Extensions: Install from VSIX..." → 파일 선택
@@ -188,7 +190,6 @@ npm run build
 | `Lab Note: Insert Current Date and Time` | 현재 날짜/시간 삽입 |
 | `Lab Note: Update Date Field on Current Line` | 현재 줄의 날짜 필드 업데이트 |
 | `Lab Note: Update All last_updated_date Fields` | 모든 날짜 필드 업데이트 |
-| `Lab Note: Show Sample Info Panel` | 샘플 정보 패널 표시 |
 
 ## 개발
 

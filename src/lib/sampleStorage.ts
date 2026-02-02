@@ -50,10 +50,10 @@ export function extractSampleInfoFromText(text: string): SampleInfo[] {
   for (const type of SAMPLE_TYPES) {
     // Pattern to match sample ID with optional @type: prefix, alias and description
     // Matches: optional @type: prefix + TYPE-digits followed by optional |alias:description or |alias or : description
-    // Note: [^\s:\n|]+ excludes spaces to prevent greedy matching across multiple IDs
+    // Alias: [^:\n|]+ allows spaces and special chars (e.g. ™); stops at : or | so ID|alias:description is unambiguous
     // gi flag: case-insensitive for @type: prefix
     const pattern = new RegExp(
-      `(?:@${type}:)?(${type}-\\d+)(?:\\|([^\\s:\\n|]+)(?::([^\\n|]+))?|:\\s*([^\\n|]+))?`,
+      `(?:@${type}:)?(${type}-\\d+)(?:\\|([^:\\n|]+)(?::([^\\n|]+))?|:\\s*([^\\n|]+))?`,
       'gi'
     );
 
@@ -269,29 +269,41 @@ export function saveSamplesByType(
 
 /**
  * Save samples extracted from a document to JSON files
- * Merges with existing data
+ * Merges with existing data. Samples that exist in Global are not re-added to Local
+ * (so after Move to Global, saving the document does not re-add the sample to Local).
  */
 export function saveSamplesFromDocument(
   documentPath: string,
-  documentText: string
+  documentText: string,
+  globalLabsamplesFolder?: string
 ): void {
   const labsamplesFolder = getLabsamplesFolder(documentPath);
   const sourceFile = path.basename(documentPath);
-  
+
   // Extract samples from document
   const samples = extractSampleInfoFromText(documentText);
-  
+
   if (samples.length === 0) {
     return;
   }
-  
+
   // Build new database from extracted samples
   const newDb = buildSampleDatabase(samples, sourceFile);
-  
-  // Merge with existing data for each type
+
   for (const type of Object.keys(newDb)) {
     const existing = loadSamplesByType(labsamplesFolder, type);
     const merged = mergeSampleDatabases({ [type]: existing }, { [type]: newDb[type] });
+
+    // Do not keep in Local samples that exist in Global (avoid re-adding after Move to Global)
+    if (globalLabsamplesFolder) {
+      const globalSamples = loadSamplesByType(globalLabsamplesFolder, type);
+      for (const id of Object.keys(globalSamples)) {
+        if (merged[type][id]) {
+          delete merged[type][id];
+        }
+      }
+    }
+
     saveSamplesByType(labsamplesFolder, type, merged[type]);
   }
 }

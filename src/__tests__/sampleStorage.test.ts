@@ -171,8 +171,8 @@ describe('Sample Storage', () => {
   describe('buildSampleDatabase', () => {
     it('should group samples by type', async () => {
       const { extractSampleInfoFromText, buildSampleDatabase } = await import('../lib/sampleStorage');
-      
-      const text = 'DNA-1|A DNA-2|B RNA-3|C';
+      // Use newlines so each ID|alias is unambiguous (alias is [^:\n|]+)
+      const text = 'DNA-1|A\nDNA-2|B\nRNA-3|C';
       const samples = extractSampleInfoFromText(text);
       const db = buildSampleDatabase(samples, 'test.md');
       
