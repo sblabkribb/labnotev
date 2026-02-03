@@ -5,6 +5,24 @@
 형식은 [Keep a Changelog](https://keepachangelog.com/ko/1.1.0/)를 기반으로 하며,
 이 프로젝트는 [유의적 버전 관리](https://semver.org/lang/ko/)를 따릅니다.
 
+## [0.17.0] - 2026-02-02
+
+### 변경
+
+#### 유닛 오퍼레이션 템플릿: HW / SW 구분
+- **하드웨어(HW)**: 기존 템플릿 유지 (Input, Reagent, Consumables, Equipment, Method, Output, Results & Discussions)
+- **소프트웨어(SW)**: 실행·산출·설정·QC·환경·논의를 반영한 별도 템플릿 적용
+  - Input (이전 단계 산출물, 데이터, 모델)
+  - Output (다음 단계 산출물: 파일, 데이터셋, 모델)
+  - Parameters (옵션, 하이퍼파라미터, seed)
+  - QC Metrics (성능 지표, QC 지표)
+  - Method (소프트웨어/모델 + 자연어 설명)
+  - Environment (conda / poetry / container / OS / HW)
+  - Discussion (다음 단계에 대한 코멘트)
+- 트리에서 Insert 시와 QuickPick "Add Unit Operation" → Software 선택 시 SW 템플릿 사용
+
+---
+
 ## [0.16.9] - 2026-02-02
 
 ### 추가

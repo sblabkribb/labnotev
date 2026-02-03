@@ -90,6 +90,9 @@ VSCode용 마크다운 기반 실험실 노트 에디터입니다. 샘플 ID 관
     - `UHW010: Liquid Handling`, `UHW020: 96 Channel Liquid Handling` 등
   - `SW Unit Operations [40]`: 소프트웨어 유닛 오퍼레이션
     - `USW010: DNA Oligomer Pool Design`, `USW020: Primer Design` 등
+- **유닛 오퍼레이션 템플릿**:
+  - **HW**: Input, Reagent, Consumables, Equipment, Method, Output, Results & Discussions
+  - **SW**: Input, Output, Parameters, QC Metrics, Method, Environment, Discussion (실행·산출·설정·QC·환경·논의)
 - **워크플로 명령어**:
   - 워크플로 항목 `[Create]` 버튼: README.md에서 워크플로 파일 생성
   - 워크플로 우클릭 → Edit, Delete: JSON 수정/삭제

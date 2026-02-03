@@ -1,9 +1,9 @@
 {
-  "name": "labnotev",
-  "displayName": "Lab Note Editor",
-  "description": "Markdown-based lab note editor with sample tracking and workflow management",
-  "version": "0.16.9",
-  "publisher": "labnotev",
+  "name": "LabnoteV",
+  "displayName": "Labnote Assistant for VSCode",
+  "description": "Markdown-based labnote assistant with sample tracking and workflow management",
+  "version": "0.17.0",
+  "publisher": "Korea Biofoundry",
   "repository": {
     "type": "git",
     "url": "https://github.com/sblabkribb/labnotev.git"
@@ -60,35 +60,35 @@
     "commands": [
       {
         "command": "labnotev.createLabnote",
-        "title": "Lab Note: Create New Labnote Folder"
+        "title": "Labnote: Create New Labnote Folder"
       },
       {
         "command": "labnotev.insertDate",
-        "title": "Lab Note: Insert Current Date"
+        "title": "Labnote: Insert Current Date"
       },
       {
         "command": "labnotev.insertDateTime",
-        "title": "Lab Note: Insert Current Date and Time"
+        "title": "Labnote: Insert Current Date and Time"
       },
       {
         "command": "labnotev.updateDateField",
-        "title": "Lab Note: Update Date Field on Current Line"
+        "title": "Labnote: Update Date Field on Current Line"
       },
       {
         "command": "labnotev.updateAllDateFields",
-        "title": "Lab Note: Update All last_updated_date Fields"
+        "title": "Labnote: Update All last_updated_date Fields"
       },
       {
         "command": "labnotev.addWorkflow",
-        "title": "Lab Note: Add Workflow"
+        "title": "Labnote: Add Workflow"
       },
       {
         "command": "labnotev.addUnitOperation",
-        "title": "Lab Note: Add Unit Operation"
+        "title": "Labnote: Add Unit Operation"
       },
       {
         "command": "labnotev.refreshSampleTree",
-        "title": "Lab Note: Refresh Sample Tree",
+        "title": "Labnote: Refresh Sample Tree",
         "icon": "$(refresh)"
       },
       {
@@ -122,7 +122,7 @@
       },
       {
         "command": "labnotev.searchSample",
-        "title": "Lab Note: Search Sample",
+        "title": "Labnote: Search Sample",
         "icon": "$(search)"
       },
       {
@@ -135,70 +135,70 @@
       },
       {
         "command": "labnotev.openImagePreview",
-        "title": "Lab Note: Open Image Preview"
+        "title": "Labnote: Open Image Preview"
       },
       {
         "command": "labnotev.manageTemplates",
-        "title": "Lab Note: Manage Templates"
+        "title": "Labnote: Manage Templates"
       },
       {
         "command": "labnotev.refreshWorkflowTree",
-        "title": "Lab Note: Refresh Workflow Tree",
+        "title": "Labnote: Refresh Workflow Tree",
         "icon": "$(refresh)"
       },
       {
         "command": "labnotev.searchWorkflow",
-        "title": "Lab Note: Search Workflow",
+        "title": "Labnote: Search Workflow",
         "icon": "$(search)"
       },
       {
         "command": "labnotev.createWorkflowFromTree",
-        "title": "Create Workflow",
+        "title": "Labnote: Create Workflow",
         "icon": "$(new-file)"
       },
       {
         "command": "labnotev.editWorkflowItem",
-        "title": "Edit Workflow",
+        "title": "Labnote: Edit Workflow",
         "icon": "$(edit)"
       },
       {
         "command": "labnotev.deleteWorkflowItem",
-        "title": "Delete Workflow",
+        "title": "Labnote: Delete Workflow",
         "icon": "$(trash)"
       },
       {
         "command": "labnotev.addWorkflowItem",
-        "title": "Add Workflow",
+        "title": "Labnote: Add Workflow",
         "icon": "$(add)"
       },
       {
         "command": "labnotev.insertUnitOperation",
-        "title": "Insert Unit Operation",
+        "title": "Labnote: Insert Unit Operation",
         "icon": "$(insert)"
       },
       {
         "command": "labnotev.editUnitOperation",
-        "title": "Edit Unit Operation",
+        "title": "Labnote: Edit Unit Operation",
         "icon": "$(edit)"
       },
       {
         "command": "labnotev.deleteUnitOperation",
-        "title": "Delete Unit Operation",
+        "title": "Labnote: Delete Unit Operation",
         "icon": "$(trash)"
       },
       {
         "command": "labnotev.addUnitOperationItem",
-        "title": "Add Unit Operation",
+        "title": "Labnote: Add Unit Operation",
         "icon": "$(add)"
       },
       {
         "command": "labnotev.moveSampleToGlobal",
-        "title": "Move to Global",
+        "title": "Labnote: Move to Global",
         "icon": "$(globe)"
       },
       {
         "command": "labnotev.moveSampleToLocal",
-        "title": "Move to Local",
+        "title": "Labnote: Move to Local",
         "icon": "$(folder)"
       }
     ],

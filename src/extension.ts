@@ -753,6 +753,7 @@ export async function activate(context: vscode.ExtensionContext) {
       const opDescription = item.opDescription || (item as any).opDescription;
       const equipment = item.equipment || (item as any).equipment;
       const software = item.software || (item as any).software;
+      const opType = (item as { opType?: 'hw' | 'sw' }).opType ?? (software ? 'sw' : 'hw');
 
       if (!opId || !opName) {
         vscode.window.showErrorMessage('유닛 오퍼레이션 정보가 없습니다');
@@ -768,11 +769,10 @@ export async function activate(context: vscode.ExtensionContext) {
         experimenter = parseExperimenterFromReadme(readmeContent);
       }
 
-      // Generate template
+      // Generate template (HW: lab-style sections; SW: Input/Output/Parameters/QC Metrics/Method/Environment/Discussion)
       const dateTime = getDateTime(new Date());
-      const equipmentOrSoftware = equipment || software || '';
-      
-      const template = `
+      const template = opType === 'sw'
+        ? `
 
 ---
 
@@ -784,7 +784,43 @@ export async function activate(context: vscode.ExtensionContext) {
 - Experimenter: ${experimenter}
 - Start_date: '${dateTime}'
 - End_date: ''
-${equipment ? `- Equipment: ${equipment}` : software ? `- Software: ${software}` : ''}
+${software ? `- Software: ${software}` : ''}
+
+#### Input
+- (이전 단계 산출물, 데이터, 모델)
+
+#### Output
+- (다음 단계로 넘어갈 산출물: 파일, 데이터셋, 모델)
+
+#### Parameters
+- (옵션, 하이퍼파라미터, seed)
+
+#### QC Metrics
+- (성능 지표, QC 지표)
+
+#### Method
+- (소프트웨어/모델 + 자연어 설명)
+
+#### Environment
+- (conda / poetry / container / OS / HW)
+
+#### Discussion
+- (다음 단계에 대한 코멘트)
+
+`
+        : `
+
+---
+
+### [${opId} ${opName}]
+
+> ${opDescription}
+
+#### Meta
+- Experimenter: ${experimenter}
+- Start_date: '${dateTime}'
+- End_date: ''
+${equipment ? `- Equipment: ${equipment}` : ''}
 
 #### Input
 - (samples from the previous step)
@@ -1485,12 +1521,50 @@ ${equipment ? `- Equipment: ${equipment}` : software ? `- Software: ${software}`
         experimenter = parseExperimenterFromReadme(readmeContent);
       }
 
-      // Generate unit operation template
+      // Generate unit operation template (HW: lab-style sections; SW: Input/Output/Parameters/QC Metrics/Method/Environment/Discussion)
       const dateTime = getDateTime(new Date());
       const op = selected.operation;
       const descriptionPart = userDescription ? ` ${userDescription.trim()}` : '';
-      
-      const template = `
+      const isSw = category === 'Software';
+
+      const template = isSw
+        ? `
+
+---
+
+### [${op.id} ${op.name}]${descriptionPart}
+
+> ${op.description}
+
+#### Meta
+- Experimenter: ${experimenter}
+- Start_date: '${dateTime}'
+- End_date: ''
+- Software: 
+
+#### Input
+- (이전 단계 산출물, 데이터, 모델)
+
+#### Output
+- (다음 단계로 넘어갈 산출물: 파일, 데이터셋, 모델)
+
+#### Parameters
+- (옵션, 하이퍼파라미터, seed)
+
+#### QC Metrics
+- (성능 지표, QC 지표)
+
+#### Method
+- (소프트웨어/모델 + 자연어 설명)
+
+#### Environment
+- (conda / poetry / container / OS / HW)
+
+#### Discussion
+- (다음 단계에 대한 코멘트)
+
+`
+        : `
 
 ---
 
