@@ -3,7 +3,7 @@
   "displayName": "Labnote Assistant for VSCode",
   "description": "Markdown-based labnote assistant with sample tracking and workflow management",
   "version": "0.17.0",
-  "publisher": "Korea Biofoundry",
+  "publisher": "korea-biofoundry",
   "repository": {
     "type": "git",
     "url": "https://github.com/sblabkribb/labnotev.git"
