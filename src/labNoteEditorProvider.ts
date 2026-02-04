@@ -65,22 +65,49 @@ export class LabNoteEditorProvider implements vscode.CustomTextEditorProvider {
       }
     );
 
+    // Valid message types for security validation
+    const VALID_MESSAGE_TYPES = ['ready', 'save', 'saveImage', 'getAssetUri', 'getSamples', 'saveSample', 'openInTextMode'];
+
     // Listen for messages from webview
     webviewPanel.webview.onDidReceiveMessage(async (message) => {
+      // Security: Validate message structure
+      if (!message || typeof message !== 'object' || typeof message.type !== 'string') {
+        console.warn('[LabNoteV] Invalid message structure received from webview');
+        return;
+      }
+
+      // Security: Validate message type is known
+      if (!VALID_MESSAGE_TYPES.includes(message.type)) {
+        console.warn('[LabNoteV] Unknown message type received from webview:', message.type);
+        return;
+      }
+
       switch (message.type) {
         case 'ready':
           updateWebview();
           break;
 
         case 'save':
+          if (typeof message.content !== 'string') {
+            console.warn('[LabNoteV] Invalid save message: content must be string');
+            return;
+          }
           await this.updateTextDocument(document, message.content);
           break;
 
         case 'saveImage':
+          if (typeof message.data !== 'string' || typeof message.filename !== 'string') {
+            console.warn('[LabNoteV] Invalid saveImage message: data and filename must be strings');
+            return;
+          }
           await this.saveImage(document, message.data, message.filename);
           break;
 
         case 'getAssetUri':
+          if (typeof message.relativePath !== 'string') {
+            console.warn('[LabNoteV] Invalid getAssetUri message: relativePath must be string');
+            return;
+          }
           const assetUri = this.getAssetUri(
             webviewPanel.webview,
             document,
@@ -94,6 +121,10 @@ export class LabNoteEditorProvider implements vscode.CustomTextEditorProvider {
           break;
 
         case 'getSamples':
+          if (typeof message.sampleType !== 'string') {
+            console.warn('[LabNoteV] Invalid getSamples message: sampleType must be string');
+            return;
+          }
           const samples = await this.getSamples(document, message.sampleType);
           webviewPanel.webview.postMessage({
             type: 'samples',
@@ -103,6 +134,10 @@ export class LabNoteEditorProvider implements vscode.CustomTextEditorProvider {
           break;
 
         case 'saveSample':
+          if (typeof message.sampleType !== 'string' || typeof message.sampleId !== 'string') {
+            console.warn('[LabNoteV] Invalid saveSample message: sampleType and sampleId must be strings');
+            return;
+          }
           await this.saveSample(
             document,
             message.sampleType,
