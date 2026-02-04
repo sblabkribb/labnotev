@@ -14,6 +14,11 @@
 - `sampleUtils.ts`와 `dataLoader.ts` 간 SAMPLE_TYPES 정의 동기화
 - `@protein:` 자동완성이 정상 작동하도록 수정
 
+#### Path Traversal 보안 취약점 해결 (Critical)
+- `labNoteEditorProvider.ts`의 `saveImage` 메서드에 파일명 검증 추가
+- `labNoteEditorProvider.ts`의 `getAssetUri` 메서드에 경로 검증 추가
+- `../` 시퀀스를 통한 디렉토리 탈출 공격 방지
+
 ---
 
 ## [0.17.0] - 2026-02-02

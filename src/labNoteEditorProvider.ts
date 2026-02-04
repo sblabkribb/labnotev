@@ -199,7 +199,15 @@ export class LabNoteEditorProvider implements vscode.CustomTextEditorProvider {
   ): Promise<string> {
     const documentDir = path.dirname(document.uri.fsPath);
     const assetsDir = path.join(documentDir, 'assets');
-    
+
+    // Security: Sanitize filename to prevent path traversal
+    // Only allow the basename (removes any path components like ../)
+    const sanitizedFilename = path.basename(filename);
+    if (!sanitizedFilename || sanitizedFilename !== filename) {
+      console.warn('[LabNoteV] Path traversal attempt detected in saveImage:', filename);
+      throw new Error('Invalid filename: path traversal not allowed');
+    }
+
     // Create assets directory if it doesn't exist
     const assetsDirUri = vscode.Uri.file(assetsDir);
     try {
@@ -209,12 +217,21 @@ export class LabNoteEditorProvider implements vscode.CustomTextEditorProvider {
     }
 
     // Write image file
-    const imagePath = path.join(assetsDir, filename);
-    const imageUri = vscode.Uri.file(imagePath);
+    const imagePath = path.join(assetsDir, sanitizedFilename);
+
+    // Security: Verify the resolved path is within the assets directory
+    const resolvedPath = path.resolve(imagePath);
+    const resolvedAssetsDir = path.resolve(assetsDir);
+    if (!resolvedPath.startsWith(resolvedAssetsDir + path.sep)) {
+      console.warn('[LabNoteV] Path traversal attempt detected:', resolvedPath);
+      throw new Error('Invalid path: path traversal not allowed');
+    }
+
+    const imageUri = vscode.Uri.file(resolvedPath);
     const imageData = Buffer.from(base64Data, 'base64');
     await vscode.workspace.fs.writeFile(imageUri, imageData);
 
-    return `./assets/${filename}`;
+    return `./assets/${sanitizedFilename}`;
   }
 
   private getAssetUri(
@@ -223,7 +240,18 @@ export class LabNoteEditorProvider implements vscode.CustomTextEditorProvider {
     relativePath: string
   ): string {
     const documentDir = path.dirname(document.uri.fsPath);
-    const absolutePath = path.join(documentDir, relativePath);
+    const absolutePath = path.resolve(documentDir, relativePath);
+
+    // Security: Verify the resolved path is within the document directory
+    // This prevents path traversal attacks via ../../ sequences
+    const resolvedDocDir = path.resolve(documentDir);
+    if (!absolutePath.startsWith(resolvedDocDir + path.sep) && absolutePath !== resolvedDocDir) {
+      console.warn('[LabNoteV] Path traversal attempt detected in getAssetUri:', relativePath);
+      // Return empty string for invalid paths instead of throwing
+      // to avoid breaking the webview
+      return '';
+    }
+
     return webview.asWebviewUri(vscode.Uri.file(absolutePath)).toString();
   }
 
