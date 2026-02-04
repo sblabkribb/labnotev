@@ -5,6 +5,17 @@
 형식은 [Keep a Changelog](https://keepachangelog.com/ko/1.1.0/)를 기반으로 하며,
 이 프로젝트는 [유의적 버전 관리](https://semver.org/lang/ko/)를 따릅니다.
 
+## [0.17.1] - 2026-02-05
+
+### 수정
+
+#### SAMPLE_TYPES 불일치 해결 (Critical)
+- `dataLoader.ts`에 누락되었던 'Protein' 타입 추가
+- `sampleUtils.ts`와 `dataLoader.ts` 간 SAMPLE_TYPES 정의 동기화
+- `@protein:` 자동완성이 정상 작동하도록 수정
+
+---
+
 ## [0.17.0] - 2026-02-02
 
 ### 변경

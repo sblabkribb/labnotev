@@ -7,8 +7,8 @@ import * as fs from 'fs';
 import * as path from 'path';
 import * as vscode from 'vscode';
 
-// Sample Types
-export const SAMPLE_TYPES = ['DNA', 'RNA', 'Plasmid', 'Reagent', 'Primer', 'Equip', 'Labware'] as const;
+// Sample Types (must match sampleUtils.ts SAMPLE_TYPES)
+export const SAMPLE_TYPES = ['DNA', 'RNA', 'Plasmid', 'Reagent', 'Primer', 'Protein', 'Equip', 'Labware'] as const;
 export type SampleType = typeof SAMPLE_TYPES[number];
 
 // MongoDB-backed types (loaded from remote database)
@@ -265,9 +265,17 @@ export function loadIdsByType(type: string, documentUri?: vscode.Uri): string[] 
   const resultIds: string[] = [];
   const seenIds = new Set<string>();
 
-  // 1. Load from local resources/labsamples/{TYPE}.json
+  // 1. Load from local resources/labsamples/{TYPE}.json (same path as sampleStorage/Sample TreeView)
   if (documentUri) {
-    const resourcesPath = findResourcesFolder(documentUri);
+    let resourcesPath = findResourcesFolder(documentUri);
+    // Fallback: try document dir directly (folder may exist but findResourcesFolder missed it, e.g. path normalization)
+    if (!resourcesPath) {
+      const docDir = path.dirname(documentUri.fsPath);
+      const candidatePath = path.join(docDir, 'resources', 'labsamples');
+      if (fs.existsSync(candidatePath)) {
+        resourcesPath = candidatePath;
+      }
+    }
     if (resourcesPath) {
       const samples = loadSamplesByTypeFromResources(type, resourcesPath);
       for (const id of Object.keys(samples)) {
