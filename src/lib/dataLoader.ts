@@ -7,9 +7,9 @@ import * as fs from 'fs';
 import * as path from 'path';
 import * as vscode from 'vscode';
 
-// Sample Types (must match sampleUtils.ts SAMPLE_TYPES)
-export const SAMPLE_TYPES = ['DNA', 'RNA', 'Plasmid', 'Reagent', 'Primer', 'Protein', 'Equip', 'Labware'] as const;
-export type SampleType = typeof SAMPLE_TYPES[number];
+// Import and re-export from sampleUtils.ts (single source of truth)
+import { SAMPLE_TYPES, SampleType } from './sampleUtils';
+export { SAMPLE_TYPES, SampleType };
 
 // MongoDB-backed types (loaded from remote database)
 export const MONGO_BACKED_TYPES: readonly SampleType[] = ['Equip', 'Labware'];
