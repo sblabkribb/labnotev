@@ -27,7 +27,7 @@ export interface SampleTreeItemOptions {
   sampleType?: string;
   sampleId?: string;
   alias?: string | null;
-  description?: string | null;
+  sampleDescription?: string | null;  // Renamed to avoid conflict with TreeItem.description
 }
 
 /**
@@ -85,19 +85,19 @@ export function getDefinitionText(item: SampleTreeItem): string {
     if (item.alias && item.alias.trim()) {
       text += `|${item.alias}`;
     }
-    if (item.description && item.description.trim()) {
-      text += `:${item.description}`;
+    if (item.sampleDescription && item.sampleDescription.trim()) {
+      text += `:${item.sampleDescription}`;
     }
     return text;
   }
-  
+
   // Regular sample types: include ID
   let text = `@${type}:${item.sampleId || ''}`;
   if (item.alias && item.alias.trim()) {
     text += `|${item.alias}`;
   }
-  if (item.description && item.description.trim()) {
-    text += `:${item.description}`;
+  if (item.sampleDescription && item.sampleDescription.trim()) {
+    text += `:${item.sampleDescription}`;
   }
   return text;
 }
@@ -111,7 +111,7 @@ export class SampleTreeItem extends vscode.TreeItem {
   public readonly sampleType?: string;
   public readonly sampleId?: string;
   public readonly alias?: string | null;
-  public readonly description?: string | null;
+  public readonly sampleDescription?: string | null;  // Renamed to avoid conflict with TreeItem.description
 
   constructor(
     label: string,
@@ -119,13 +119,13 @@ export class SampleTreeItem extends vscode.TreeItem {
     options: SampleTreeItemOptions
   ) {
     super(label, getCollapsibleState(itemType));
-    
+
     this.itemType = itemType;
     this.scope = options.scope;
     this.sampleType = options.sampleType;
     this.sampleId = options.sampleId;
     this.alias = options.alias;
-    this.description = options.description;
+    this.sampleDescription = options.sampleDescription;
 
     // Set context value for menu contributions
     // For Sample items, include scope to enable different context menus
@@ -165,8 +165,8 @@ export class SampleTreeItem extends vscode.TreeItem {
       if (this.alias) {
         parts.push(`Alias: ${this.alias}`);
       }
-      if (this.description) {
-        parts.push(`Description: ${this.description}`);
+      if (this.sampleDescription) {
+        parts.push(`Description: ${this.sampleDescription}`);
       }
       this.tooltip = parts.join('\n');
     }
@@ -302,7 +302,7 @@ export class SampleTreeViewProvider implements vscode.TreeDataProvider<SampleTre
           sampleType,
           sampleId: id,
           alias: record.alias,
-          description: record.descriptions?.[0] || null,
+          sampleDescription: record.descriptions?.[0] || null,
         }
       );
     });
@@ -321,7 +321,7 @@ export class SampleTreeViewProvider implements vscode.TreeDataProvider<SampleTre
     ));
 
     items.push(new SampleTreeItem(
-      `description: ${sample.description || '(없음)'}`,
+      `description: ${sample.sampleDescription || '(없음)'}`,
       SampleTreeItemType.Detail,
       { scope: sample.scope, sampleType: sample.sampleType, sampleId: sample.sampleId }
     ));

@@ -310,7 +310,7 @@ export async function activate(context: vscode.ExtensionContext) {
       // Ask for new description
       const newDescription = await vscode.window.showInputBox({
         prompt: '새 설명을 입력하세요',
-        value: item.description || '',
+        value: item.sampleDescription || '',
         placeHolder: '예: 실험 1에서 사용된 샘플',
       });
 
@@ -345,7 +345,7 @@ export async function activate(context: vscode.ExtensionContext) {
             sampleType: item.sampleType,
             sampleId: item.sampleId,
             alias: newAlias || null,
-            description: newDescription || null,
+            sampleDescription: newDescription || null,
           } as SampleTreeItem);
           await editor.edit((editBuilder) => {
             editBuilder.replace(range, newDefinitionText);
@@ -490,27 +490,33 @@ export async function activate(context: vscode.ExtensionContext) {
       const hwOps = workflowTreeProvider.getUnitOperations('hw');
       const swOps = workflowTreeProvider.getUnitOperations('sw');
 
+      // Custom interface to avoid conflict with QuickPickItem.kind (which is QuickPickItemKind enum)
+      interface WorkflowQuickPickItem extends vscode.QuickPickItem {
+        itemType: 'workflow' | 'hw' | 'sw';
+        data: WorkflowItem | UnitOperationItem;
+      }
+
       // Combine all items for search
-      const allItems: vscode.QuickPickItem[] = [
+      const allItems: WorkflowQuickPickItem[] = [
         ...workflows.map(w => ({
           label: `$(symbol-class) ${w.id}: ${w.name}`,
           description: w.category,
           detail: w.description,
-          kind: 'workflow' as const,
+          itemType: 'workflow' as const,
           data: w,
         })),
         ...hwOps.map(op => ({
           label: `$(symbol-function) ${op.id}: ${op.name}`,
           description: 'HW Unit Operation',
           detail: op.description,
-          kind: 'hw' as const,
+          itemType: 'hw' as const,
           data: op,
         })),
         ...swOps.map(op => ({
           label: `$(symbol-function) ${op.id}: ${op.name}`,
           description: 'SW Unit Operation',
           detail: op.description,
-          kind: 'sw' as const,
+          itemType: 'sw' as const,
           data: op,
         })),
       ];
@@ -519,10 +525,10 @@ export async function activate(context: vscode.ExtensionContext) {
         placeHolder: '워크플로/유닛 오퍼레이션 검색...',
         matchOnDescription: true,
         matchOnDetail: true,
-      }) as (vscode.QuickPickItem & { kind: string; data: WorkflowItem | UnitOperationItem }) | undefined;
+      });
 
       if (selected) {
-        if (selected.kind === 'workflow') {
+        if (selected.itemType === 'workflow') {
           // Create workflow
           await vscode.commands.executeCommand('labnotev.createWorkflowFromTree', {
             workflowId: (selected.data as WorkflowItem).id,
@@ -536,7 +542,7 @@ export async function activate(context: vscode.ExtensionContext) {
             opId: (selected.data as UnitOperationItem).id,
             opName: (selected.data as UnitOperationItem).name,
             opDescription: (selected.data as UnitOperationItem).description,
-            opType: selected.kind as 'hw' | 'sw',
+            opType: selected.itemType as 'hw' | 'sw',
             equipment: (selected.data as UnitOperationItem).equipment,
             software: (selected.data as UnitOperationItem).software,
           });

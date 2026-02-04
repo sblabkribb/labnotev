@@ -8,13 +8,68 @@ import * as vscode from 'vscode';
 import {
   SAMPLE_TYPES,
   SampleType,
-  loadIdsByType,
-  getSampleInfo,
   getMongoIds,
   getMongoRecord,
   MONGO_BACKED_TYPES,
 } from '../lib/dataLoader';
+import { getLabsamplesFolder, getGlobalLabsamplesFolder, loadSamplesByType } from '../lib/sampleStorage';
 import { generateSampleId } from '../lib/sampleUtils';
+
+/** Load sample IDs and record info (alias, description) from same paths as Sample TreeView (sampleStorage) */
+function loadSampleIdsAndRecords(
+  type: string,
+  documentUri: vscode.Uri
+): { id: string; alias: string | null; description: string | null }[] {
+  const result: { id: string; alias: string | null; description: string | null }[] = [];
+  const seenIds = new Set<string>();
+
+  // 1. Local: document folder's resources/labsamples (same as Sample TreeView)
+  const localFolder = getLabsamplesFolder(documentUri.fsPath);
+  const localSamples = loadSamplesByType(localFolder, type);
+  for (const id of Object.keys(localSamples)) {
+    if (!seenIds.has(id)) {
+      seenIds.add(id);
+      const rec = localSamples[id];
+      result.push({
+        id,
+        alias: rec.alias ?? null,
+        description: rec.descriptions?.[0] ?? null,
+      });
+    }
+  }
+
+  // 2. Global: workspace root's resources/labsamples
+  const workspaceFolder = vscode.workspace.getWorkspaceFolder(documentUri);
+  const workspaceRoot = workspaceFolder?.uri.fsPath;
+  if (workspaceRoot) {
+    const globalFolder = getGlobalLabsamplesFolder(workspaceRoot);
+    const globalSamples = loadSamplesByType(globalFolder, type);
+    for (const id of Object.keys(globalSamples)) {
+      if (!seenIds.has(id)) {
+        seenIds.add(id);
+        const rec = globalSamples[id];
+        result.push({
+          id,
+          alias: rec.alias ?? null,
+          description: rec.descriptions?.[0] ?? null,
+        });
+      }
+    }
+  }
+
+  // 3. Equip/Labware: add MongoDB IDs
+  if ((MONGO_BACKED_TYPES as readonly string[]).includes(type)) {
+    const mongoIds = getMongoIds(type);
+    for (const id of mongoIds) {
+      if (!seenIds.has(id)) {
+        seenIds.add(id);
+        result.push({ id, alias: null, description: null });
+      }
+    }
+  }
+
+  return result;
+}
 
 /**
  * Match sample type from prefix
@@ -67,6 +122,20 @@ function isKnownPrefix(prefix: string): boolean {
   return false;
 }
 
+let _completionLogChannel: vscode.OutputChannel | undefined;
+
+function logCompletionDebug(message: string): void {
+  try {
+    if (typeof vscode.window?.createOutputChannel !== 'function') return;
+    if (!_completionLogChannel) {
+      _completionLogChannel = vscode.window.createOutputChannel('Lab Note');
+    }
+    _completionLogChannel.appendLine(`[completion] ${message}`);
+  } catch {
+    // No-op when output channel is unavailable (e.g. in tests)
+  }
+}
+
 /**
  * Sample Completion Provider
  */
@@ -81,18 +150,21 @@ export class SampleCompletionProvider implements vscode.CompletionItemProvider {
     
     // Get the text from start of line to cursor position
     const linePrefix = document.lineAt(position).text.substring(0, position.character);
-    
+
     // Check for @ trigger patterns
     // Pattern: @TYPE: or @sample: (colon optional so we match when trigger fires before colon is inserted)
     const prefixMatch = linePrefix.match(/@(\w+):?(\S*)$/);
-    if (!prefixMatch) {
+    if (!prefixMatch || prefixMatch.index === undefined) {
+      logCompletionDebug(`prefixMatch null or no index, linePrefix=${JSON.stringify(linePrefix)}`);
       return undefined;
     }
 
     const fullPrefix = `@${prefixMatch[1]}:`;
     const searchTerm = prefixMatch[2].toLowerCase();
+    const matchIndex = prefixMatch.index;
 
     if (!isKnownPrefix(fullPrefix)) {
+      logCompletionDebug(`unknown prefix fullPrefix=${JSON.stringify(fullPrefix)}`);
       return undefined;
     }
 
@@ -106,21 +178,18 @@ export class SampleCompletionProvider implements vscode.CompletionItemProvider {
     // Range to replace: from @ to cursor (match.index so it works with or without colon in document)
     const replaceRange = new vscode.Range(
       position.line,
-      prefixMatch.index,
+      matchIndex,
       position.line,
       position.character
     );
     
-    // Add sample ID completions
+    // Add sample ID completions (use sampleStorage so paths match Sample TreeView local/global)
     for (const type of typesToSearch) {
-      const ids = loadIdsByType(type, documentUri);
-      
-      for (const id of ids) {
-        // Get sample info for alias and description
-        const info = getSampleInfo(type, id, documentUri);
-        const alias = info?.alias || null;
-        const description = info?.descriptions?.[0] || null;
-        
+      const records = loadSampleIdsAndRecords(type, documentUri);
+      if (specificType && records.length === 0) {
+        logCompletionDebug(`${fullPrefix} type=${type} loadSampleIdsAndRecords returned 0 (doc=${documentUri.fsPath})`);
+      }
+      for (const { id, alias, description } of records) {
         // Build label: "ID (Alias) - Description" or "ID - Description" or just "ID"
         let label = id;
         if (alias) {
@@ -148,6 +217,8 @@ export class SampleCompletionProvider implements vscode.CompletionItemProvider {
         item.range = replaceRange; // Replace @type:searchTerm with just ID|Alias
         item.detail = `${type} Sample`;
         item.sortText = `0_${id}`; // Sort samples first
+        // So VS Code filter (typed prefix e.g. "@dna:") matches and sample items are shown
+        item.filterText = `${fullPrefix} ${label}`;
         
         // Add MongoDB details for Equip/Labware
         if (MONGO_BACKED_TYPES.includes(type)) {
@@ -200,8 +271,8 @@ export class SampleCompletionProvider implements vscode.CompletionItemProvider {
       manualItem.insertText = '';
       completionItems.push(manualItem);
     }
-    
-    return completionItems;
+    // isIncomplete: true so VS Code does not filter the list by typed prefix (sample items would be hidden)
+    return new vscode.CompletionList(completionItems, true);
   }
 }
 
@@ -210,7 +281,8 @@ export class SampleCompletionProvider implements vscode.CompletionItemProvider {
  * ':' opens the list; letters/digits/-/_ re-trigger so typing after @type: filters the list.
  */
 export function createSampleCompletionProvider(): vscode.Disposable {
-  const triggerChars = [':', ...'abcdefghijklmnopqrstuvwxyz0123456789-_'.split('')];
+  // Include '@' so completion is triggered as soon as user types @ (then each letter re-triggers)
+  const triggerChars = ['@', ':', ...'abcdefghijklmnopqrstuvwxyz0123456789-_'.split('')];
   return vscode.languages.registerCompletionItemProvider(
     { language: 'markdown', scheme: 'file' },
     new SampleCompletionProvider(),
