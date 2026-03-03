@@ -15,9 +15,9 @@ export { SAMPLE_TYPES, SampleType };
 export const MONGO_BACKED_TYPES: readonly SampleType[] = ['Equip', 'Labware'];
 
 /**
- * Sample information stored in JSON files
+ * Sample record stored in JSON resource files (distinct from sampleStorage.JsonSampleRecord which represents extracted data)
  */
-export interface SampleInfo {
+export interface JsonSampleRecord {
   type: string;
   alias?: string | null;
   descriptions?: string[];
@@ -229,13 +229,13 @@ function getWorkspaceRoot(documentUri?: vscode.Uri): string | null {
 /**
  * Load samples from JSON file
  */
-function loadSamplesFromJson(filePath: string): Record<string, SampleInfo> {
+function loadSamplesFromJson(filePath: string): Record<string, JsonSampleRecord> {
   try {
     if (!fs.existsSync(filePath)) {
       return {};
     }
     const content = fs.readFileSync(filePath, 'utf-8');
-    return JSON.parse(content) as Record<string, SampleInfo>;
+    return JSON.parse(content) as Record<string, JsonSampleRecord>;
   } catch (err) {
     console.error(`[labnotev] Failed to load samples from ${filePath}:`, err);
     return {};
@@ -245,7 +245,7 @@ function loadSamplesFromJson(filePath: string): Record<string, SampleInfo> {
 /**
  * Load samples by type from local resources folder
  */
-export function loadSamplesByTypeFromResources(type: string, resourcesPath: string): Record<string, SampleInfo> {
+export function loadSamplesByTypeFromResources(type: string, resourcesPath: string): Record<string, JsonSampleRecord> {
   const filePath = path.join(resourcesPath, `${type}.json`);
   return loadSamplesFromJson(filePath);
 }
@@ -253,7 +253,7 @@ export function loadSamplesByTypeFromResources(type: string, resourcesPath: stri
 /**
  * Load samples by type from global resources folder
  */
-export function loadSamplesByTypeFromGlobalResources(type: string, workspaceRoot: string): Record<string, SampleInfo> {
+export function loadSamplesByTypeFromGlobalResources(type: string, workspaceRoot: string): Record<string, JsonSampleRecord> {
   const filePath = path.join(workspaceRoot, 'resources', 'labsamples', `${type}.json`);
   return loadSamplesFromJson(filePath);
 }
@@ -334,7 +334,7 @@ export function saveSampleToResources(
   ensureResourcesFolder(resourcesPath);
   
   const filePath = path.join(resourcesPath, `${type}.json`);
-  let samples: Record<string, SampleInfo> = {};
+  let samples: Record<string, JsonSampleRecord> = {};
   
   if (fs.existsSync(filePath)) {
     try {
@@ -373,7 +373,7 @@ export function saveSampleToResources(
 /**
  * Get sample info by type and ID
  */
-export function getSampleInfo(type: string, id: string, documentUri?: vscode.Uri): SampleInfo | null {
+export function getJsonSampleRecord(type: string, id: string, documentUri?: vscode.Uri): JsonSampleRecord | null {
   // Check local resources first
   if (documentUri) {
     const resourcesPath = findResourcesFolder(documentUri);

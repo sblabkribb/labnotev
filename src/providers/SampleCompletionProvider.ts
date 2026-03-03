@@ -218,7 +218,7 @@ export class SampleCompletionProvider implements vscode.CompletionItemProvider {
         item.detail = `${type} Sample`;
         item.sortText = `0_${id}`; // Sort samples first
         // So VS Code filter (typed prefix e.g. "@dna:") matches and sample items are shown
-        item.filterText = `${fullPrefix} ${label}`;
+        item.filterText = `${fullPrefix}${label}`;
         
         // Add MongoDB details for Equip/Labware
         if (MONGO_BACKED_TYPES.includes(type)) {

@@ -5,6 +5,38 @@
 형식은 [Keep a Changelog](https://keepachangelog.com/ko/1.1.0/)를 기반으로 하며,
 이 프로젝트는 [유의적 버전 관리](https://semver.org/lang/ko/)를 따릅니다.
 
+## [0.18.0] - 2026-02-03
+
+### 수정
+
+#### 샘플 ID 정규식 버그 수정 (Critical)
+- `extractSampleInfoFromText`의 ID 패턴에 `(?:-\d+)?`를 추가하여 `DNA-123-1` 형식(동일 밀리초 카운터 접미사)이 정상 추출되도록 수정
+- `SampleInfoPanel`의 `extractSampleIdsFromText`에도 동일 패턴 적용
+- `findSampleDefinitionMatch`에는 이미 반영되어 있었으나 추출 함수들과 불일치였던 문제 해소
+
+#### SAMPLE_TYPES 테스트 불일치 수정
+- `dataLoader.test.ts`: Protein 타입 누락으로 테스트 실패하던 문제 수정 (7 → 8개)
+- `SampleCompletionProvider.test.ts`: mock의 SAMPLE_TYPES에 Protein 추가
+
+### 변경
+
+#### BlockNote 커스텀 에디터 제거
+- `package.json`에서 `customEditors` 선언, `openInBlocknoteMode` 명령/메뉴 제거
+- `extension.ts`, `sampleCommands.ts`, `utilityCommands.ts`에서 `LabNoteEditorProvider` 참조 및 BlockNote fallback 제거
+- 샘플 삽입 시 마크다운 에디터가 없으면 경고 메시지 표시로 변경
+- `.md` 파일은 항상 VS Code 기본 텍스트 에디터로 열림 (@ 자동완성이 모든 환경에서 동작)
+
+#### .vscodeignore 정리
+- `.cursor/**`, `.github/**`, `coverage/**`, `webview/coverage/**`, `**/*.vsix`, `TEST_GUIDE.md`, `vitest.config.ts` 등 추가
+- VSIX 크기 약 600KB 절감
+
+#### 기타 개선
+- `SampleCompletionProvider`의 `filterText` 공백 제거로 필터링 일관성 개선
+- `loadSamplesByType`에서 JSON 파싱 실패 시 `console.warn` 로깅 추가
+- README.md 설치 안내의 버전 참조를 현재 버전으로 업데이트
+
+---
+
 ## [0.17.1] - 2026-02-05
 
 ### 수정

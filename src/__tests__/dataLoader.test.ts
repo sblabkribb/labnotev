@@ -33,8 +33,8 @@ describe('dataLoader', () => {
       expect(SAMPLE_TYPES).toContain('Labware');
     });
 
-    it('should have 7 sample types', () => {
-      expect(SAMPLE_TYPES.length).toBe(7);
+    it('should have 8 sample types', () => {
+      expect(SAMPLE_TYPES.length).toBe(8);
     });
   });
 
@@ -55,12 +55,12 @@ describe('dataLoader', () => {
     });
   });
 
-  describe('SampleInfo interface', () => {
-    it('should allow creating SampleInfo objects', async () => {
-      const { SampleInfo } = await import('../lib/dataLoader');
+  describe('JsonSampleRecord interface', () => {
+    it('should allow creating JsonSampleRecord objects', async () => {
+      const { JsonSampleRecord } = await import('../lib/dataLoader');
       
       // Type assertion to test interface structure
-      const sample: typeof SampleInfo = {
+      const sample: typeof JsonSampleRecord = {
         type: 'DNA',
         alias: 'TestAlias',
         descriptions: ['Test description'],
@@ -75,7 +75,7 @@ describe('dataLoader', () => {
   describe('type checking', () => {
     it('should export SAMPLE_TYPES as readonly array', () => {
       expect(Array.isArray(SAMPLE_TYPES)).toBe(true);
-      expect(SAMPLE_TYPES).toEqual(['DNA', 'RNA', 'Plasmid', 'Reagent', 'Primer', 'Equip', 'Labware']);
+      expect(SAMPLE_TYPES).toEqual(['DNA', 'RNA', 'Plasmid', 'Reagent', 'Primer', 'Protein', 'Equip', 'Labware']);
     });
 
     it('should export MONGO_BACKED_TYPES as readonly array', () => {

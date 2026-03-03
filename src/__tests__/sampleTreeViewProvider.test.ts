@@ -68,7 +68,7 @@ describe('SampleTreeViewProvider', () => {
           sampleType: 'DNA',
           sampleId: 'DNA-1737123456789',
           alias: '샘플A',
-          description: '테스트 설명'
+          sampleDescription: '테스트 설명'
         }
       );
       
@@ -76,7 +76,7 @@ describe('SampleTreeViewProvider', () => {
       expect(item.itemType).toBe(SampleTreeItemType.Sample);
       expect(item.sampleId).toBe('DNA-1737123456789');
       expect(item.alias).toBe('샘플A');
-      expect(item.description).toBe('테스트 설명');
+      expect(item.sampleDescription).toBe('테스트 설명');
     });
 
     it('should create sample item without alias', async () => {
@@ -90,7 +90,7 @@ describe('SampleTreeViewProvider', () => {
           sampleType: 'DNA',
           sampleId: 'DNA-1737123456789',
           alias: null,
-          description: null
+          sampleDescription: null
         }
       );
       
@@ -227,7 +227,7 @@ describe('SampleTreeViewProvider', () => {
           sampleType: 'DNA',
           sampleId: 'DNA-123',
           alias: '샘플A',
-          description: '테스트 설명'
+          sampleDescription: '테스트 설명'
         }
       );
       const children = await provider.getChildren(sampleItem);
@@ -356,7 +356,7 @@ describe('SampleTreeViewProvider', () => {
           sampleType: 'DNA',
           sampleId: 'DNA-123',
           alias: '샘플A',
-          description: null
+          sampleDescription: null
         }
       );
       
@@ -375,7 +375,7 @@ describe('SampleTreeViewProvider', () => {
           sampleType: 'DNA',
           sampleId: 'DNA-123',
           alias: null,
-          description: null
+          sampleDescription: null
         }
       );
       
@@ -396,7 +396,7 @@ describe('SampleTreeViewProvider', () => {
           sampleType: 'DNA',
           sampleId: 'DNA-123',
           alias: '샘플A',
-          description: '테스트 설명'
+          sampleDescription: '테스트 설명'
         }
       );
       
@@ -415,7 +415,7 @@ describe('SampleTreeViewProvider', () => {
           sampleType: 'RNA',
           sampleId: 'RNA-456',
           alias: 'SampleB',
-          description: null
+          sampleDescription: null
         }
       );
       
@@ -434,7 +434,7 @@ describe('SampleTreeViewProvider', () => {
           sampleType: 'Plasmid',
           sampleId: 'Plasmid-789',
           alias: null,
-          description: null
+          sampleDescription: null
         }
       );
       
@@ -453,7 +453,7 @@ describe('SampleTreeViewProvider', () => {
           sampleType: 'Equip',
           sampleId: 'Equip-001',
           alias: 'Centrifuge',
-          description: 'High-speed centrifuge'
+          sampleDescription: 'High-speed centrifuge'
         }
       );
       
@@ -473,7 +473,7 @@ describe('SampleTreeViewProvider', () => {
           sampleType: 'Equip',
           sampleId: 'Equip-002',
           alias: 'Incubator',
-          description: null
+          sampleDescription: null
         }
       );
       
@@ -492,7 +492,7 @@ describe('SampleTreeViewProvider', () => {
           sampleType: 'Equip',
           sampleId: 'Equip-003',
           alias: null,
-          description: null
+          sampleDescription: null
         }
       );
       
@@ -511,7 +511,7 @@ describe('SampleTreeViewProvider', () => {
           sampleType: 'Labware',
           sampleId: 'Labware-100',
           alias: '96-well plate',
-          description: 'Standard 96-well plate'
+          sampleDescription: 'Standard 96-well plate'
         }
       );
       
@@ -533,7 +533,7 @@ describe('SampleTreeViewProvider', () => {
           sampleType: 'DNA',
           sampleId: 'DNA-123',
           alias: '샘플A',
-          description: null
+          sampleDescription: null
         }
       );
       
@@ -551,7 +551,7 @@ describe('SampleTreeViewProvider', () => {
           sampleType: 'DNA',
           sampleId: 'DNA-456',
           alias: '글로벌샘플',
-          description: null
+          sampleDescription: null
         }
       );
       

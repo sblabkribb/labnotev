@@ -10,19 +10,17 @@ import {
   getInsertText,
   getDefinitionText,
 } from '../views/SampleTreeViewProvider';
-import { LabNoteEditorProvider } from '../labNoteEditorProvider';
 import { findSampleDefinitionMatch, loadSamplesByType } from '../lib/sampleStorage';
 
 export interface SampleCommandProviders {
   sampleTreeProvider: SampleTreeViewProvider;
-  labNoteEditorProvider: LabNoteEditorProvider;
 }
 
 export function registerSampleCommands(
   context: vscode.ExtensionContext,
   providers: SampleCommandProviders
 ): void {
-  const { sampleTreeProvider, labNoteEditorProvider } = providers;
+  const { sampleTreeProvider } = providers;
 
   // Register refresh sample tree command
   context.subscriptions.push(
@@ -44,8 +42,7 @@ export function registerSampleCommands(
             editBuilder.insert(editor.selection.active, insertText);
           });
         } else {
-          // Fallback to BlockNote webview
-          labNoteEditorProvider.insertTextToActiveEditor(insertText);
+          vscode.window.showWarningMessage('마크다운 파일을 열어주세요');
         }
       }
     })
@@ -64,8 +61,7 @@ export function registerSampleCommands(
             editBuilder.insert(editor.selection.active, insertText);
           });
         } else {
-          // Fallback to BlockNote webview
-          labNoteEditorProvider.insertTextToActiveEditor(insertText);
+          vscode.window.showWarningMessage('마크다운 파일을 열어주세요');
         }
       }
     })
@@ -349,8 +345,7 @@ export function registerSampleCommands(
             editBuilder.insert(editor.selection.active, insertText);
           });
         } else {
-          // Fallback to BlockNote webview
-          labNoteEditorProvider.insertTextToActiveEditor(insertText);
+          vscode.window.showWarningMessage('마크다운 파일을 열어주세요');
         }
       }
     })

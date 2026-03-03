@@ -13,46 +13,17 @@ import { ImagePreviewPanel } from '../views/ImagePreviewPanel';
 import { ImageLinkProvider } from '../lib/imageLinkProvider';
 import { saveSamplesFromDocument, getGlobalLabsamplesFolder } from '../lib/sampleStorage';
 import { SampleTreeViewProvider } from '../views/SampleTreeViewProvider';
-import { LabNoteEditorProvider } from '../labNoteEditorProvider';
 import { findResourcesFolder, ensureResourcesFolder, saveSampleToResources } from '../lib/dataLoader';
 
 export interface UtilityCommandProviders {
   sampleTreeProvider: SampleTreeViewProvider;
-  labNoteEditorProvider: LabNoteEditorProvider;
 }
 
 export function registerUtilityCommands(
   context: vscode.ExtensionContext,
   providers: UtilityCommandProviders
 ): void {
-  const { sampleTreeProvider, labNoteEditorProvider } = providers;
-
-  // Register open in text mode command (called from BlockNote webview)
-  context.subscriptions.push(
-    vscode.commands.registerCommand('labnotev.openInTextMode', async (uri: vscode.Uri) => {
-      if (uri) {
-        // Close current editor and open in text mode
-        await vscode.commands.executeCommand('workbench.action.closeActiveEditor');
-        await vscode.commands.executeCommand('vscode.openWith', uri, 'default');
-      }
-    })
-  );
-
-  // Register open in BlockNote mode command (called from text editor context menu)
-  context.subscriptions.push(
-    vscode.commands.registerCommand('labnotev.openInBlocknoteMode', async () => {
-      const editor = vscode.window.activeTextEditor;
-      if (editor) {
-        const uri = editor.document.uri;
-        // Save document before switching
-        await editor.document.save();
-        // Close current editor
-        await vscode.commands.executeCommand('workbench.action.closeActiveEditor');
-        // Open in BlockNote mode
-        await vscode.commands.executeCommand('vscode.openWith', uri, 'labnotev.editor');
-      }
-    })
-  );
+  const { sampleTreeProvider } = providers;
 
   // Register insert date command
   context.subscriptions.push(

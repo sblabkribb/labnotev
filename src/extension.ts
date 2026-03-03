@@ -1,6 +1,5 @@
 import * as vscode from 'vscode';
 import * as path from 'path';
-import { LabNoteEditorProvider } from './labNoteEditorProvider';
 import { SampleTreeViewProvider } from './views/SampleTreeViewProvider';
 import { WorkflowTreeViewProvider } from './views/WorkflowTreeViewProvider';
 import { createSampleCompletionProvider } from './providers/SampleCompletionProvider';
@@ -24,21 +23,6 @@ export async function activate(context: vscode.ExtensionContext) {
 
   // Register Sample Completion Provider for @ based auto-completion
   context.subscriptions.push(createSampleCompletionProvider());
-
-  // Register the custom editor provider (BlockNote - optional)
-  const labNoteEditorProvider = new LabNoteEditorProvider(context);
-  context.subscriptions.push(
-    vscode.window.registerCustomEditorProvider(
-      LabNoteEditorProvider.viewType,
-      labNoteEditorProvider,
-      {
-        webviewOptions: {
-          retainContextWhenHidden: true,
-        },
-        supportsMultipleEditorsPerDocument: false,
-      }
-    )
-  );
 
   // Sample TreeView setup
   const workspaceFoldersForTree = vscode.workspace.workspaceFolders;
@@ -109,7 +93,6 @@ export async function activate(context: vscode.ExtensionContext) {
   // Register sample commands
   registerSampleCommands(context, {
     sampleTreeProvider,
-    labNoteEditorProvider,
   });
 
   // Register workflow commands
@@ -120,7 +103,6 @@ export async function activate(context: vscode.ExtensionContext) {
   // Register utility commands
   registerUtilityCommands(context, {
     sampleTreeProvider,
-    labNoteEditorProvider,
   });
 
   // Register creation commands

@@ -53,7 +53,7 @@ export function extractSampleInfoFromText(text: string): SampleInfo[] {
     // Alias: [^:\n|]+ allows spaces and special chars (e.g. ™); stops at : or | so ID|alias:description is unambiguous
     // gi flag: case-insensitive for @type: prefix
     const pattern = new RegExp(
-      `(?:@${type}:)?(${type}-\\d+)(?:\\|([^:\\n|]+)(?::([^\\n|]+))?|:\\s*([^\\n|]+))?`,
+      `(?:@${type}:)?(${type}-\\d+(?:-\\d+)?)(?:\\|([^:\\n|]+)(?::([^\\n|]+))?|:\\s*([^\\n|]+))?`,
       'gi'
     );
 
@@ -244,7 +244,8 @@ export function loadSamplesByType(
   try {
     const content = fs.readFileSync(filePath, 'utf8');
     return JSON.parse(content);
-  } catch {
+  } catch (error) {
+    console.warn(`[labnotev] Failed to load ${filePath}:`, error);
     return {};
   }
 }

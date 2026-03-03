@@ -2,7 +2,7 @@
   "name": "LabnoteV",
   "displayName": "Labnote Assistant for VSCode",
   "description": "Markdown-based labnote assistant with sample tracking and workflow management",
-  "version": "0.17.3",
+  "version": "0.18.0",
   "publisher": "korea-biofoundry",
   "repository": {
     "type": "git",
@@ -23,18 +23,6 @@
   ],
   "main": "./dist/extension.js",
   "contributes": {
-    "customEditors": [
-      {
-        "viewType": "labnotev.editor",
-        "displayName": "Lab Note Editor (BlockNote)",
-        "selector": [
-          {
-            "filenamePattern": "*.md"
-          }
-        ],
-        "priority": "option"
-      }
-    ],
     "viewsContainers": {
       "activitybar": [
         {
@@ -124,14 +112,6 @@
         "command": "labnotev.searchSample",
         "title": "Labnote: Search Sample",
         "icon": "$(search)"
-      },
-      {
-        "command": "labnotev.openInTextMode",
-        "title": "Edit in Text Mode"
-      },
-      {
-        "command": "labnotev.openInBlocknoteMode",
-        "title": "Edit in BlockNote Mode"
       },
       {
         "command": "labnotev.openImagePreview",
@@ -305,13 +285,6 @@
           "command": "labnotev.addUnitOperationItem",
           "when": "view == labnotev.workflowTreeView && viewItem == unitOpRoot",
           "group": "1_modify"
-        }
-      ],
-      "editor/context": [
-        {
-          "command": "labnotev.openInBlocknoteMode",
-          "when": "resourceExtname == .md",
-          "group": "navigation"
         }
       ]
     },

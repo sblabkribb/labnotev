@@ -3,7 +3,6 @@ import { mockVscode } from './setup';
 
 // Import after mocking
 import { activate, deactivate } from '../extension';
-import { LabNoteEditorProvider } from '../labNoteEditorProvider';
 
 describe('Extension', () => {
   let mockContext: {
@@ -23,21 +22,6 @@ describe('Extension', () => {
   });
 
   describe('activate', () => {
-    it('should register custom editor provider', async () => {
-      await activate(mockContext as unknown as Parameters<typeof activate>[0]);
-
-      expect(mockVscode.window.registerCustomEditorProvider).toHaveBeenCalledWith(
-        LabNoteEditorProvider.viewType,
-        expect.any(LabNoteEditorProvider),
-        expect.objectContaining({
-          webviewOptions: {
-            retainContextWhenHidden: true,
-          },
-          supportsMultipleEditorsPerDocument: false,
-        })
-      );
-    });
-
     it('should register createLabnote command', async () => {
       await activate(mockContext as unknown as Parameters<typeof activate>[0]);
 

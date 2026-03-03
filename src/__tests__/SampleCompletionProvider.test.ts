@@ -10,6 +10,12 @@ vi.mock('vscode', () => ({
   languages: {
     registerCompletionItemProvider: vi.fn(() => ({ dispose: vi.fn() })),
   },
+  workspace: {
+    getWorkspaceFolder: vi.fn(() => ({ uri: { fsPath: '/workspace' } })),
+  },
+  window: {
+    createOutputChannel: vi.fn(() => ({ appendLine: vi.fn() })),
+  },
   CompletionItem: vi.fn().mockImplementation((label, kind) => ({
     label,
     kind,
@@ -34,12 +40,20 @@ vi.mock('vscode', () => ({
 
 // Mock dataLoader
 vi.mock('../lib/dataLoader', () => ({
-  SAMPLE_TYPES: ['DNA', 'RNA', 'Plasmid', 'Reagent', 'Primer', 'Equip', 'Labware'],
+  SAMPLE_TYPES: ['DNA', 'RNA', 'Plasmid', 'Reagent', 'Primer', 'Protein', 'Equip', 'Labware'],
   MONGO_BACKED_TYPES: ['Equip', 'Labware'],
-  loadIdsByType: vi.fn(() => []),
-  getSampleInfo: vi.fn(() => null),
   getMongoIds: vi.fn(() => []),
   getMongoRecord: vi.fn(() => undefined),
+}));
+
+// Mock sampleStorage (completion uses same paths as Sample TreeView)
+vi.mock('../lib/sampleStorage', () => ({
+  getLabsamplesFolder: vi.fn((documentPath: string) => {
+    const path = documentPath.replace(/[^/\\]+$/, '').replace(/\\/g, '/');
+    return path + 'resources/labsamples';
+  }),
+  getGlobalLabsamplesFolder: vi.fn((workspaceRoot: string) => workspaceRoot + '/resources/labsamples'),
+  loadSamplesByType: vi.fn(() => ({})),
 }));
 
 describe('SampleCompletionProvider', () => {
@@ -186,13 +200,15 @@ describe('SampleCompletionProvider', () => {
     });
 
     it('should exclude description from insertText when referencing existing sample', async () => {
-      // Mock sample data with alias and description
-      const { loadIdsByType, getSampleInfo } = await import('../lib/dataLoader');
-      vi.mocked(loadIdsByType).mockReturnValue(['DNA-123']);
-      vi.mocked(getSampleInfo).mockReturnValue({
-        alias: 'SampleA',
-        descriptions: ['Test description'],
-        sources: [],
+      // Mock sampleStorage (completion uses same paths as Sample TreeView)
+      const { loadSamplesByType } = await import('../lib/sampleStorage');
+      vi.mocked(loadSamplesByType).mockReturnValue({
+        'DNA-123': {
+          type: 'DNA',
+          alias: 'SampleA',
+          descriptions: ['Test description'],
+          sources: [],
+        },
       });
 
       const document = createMockDocument('@dna:');
@@ -216,12 +232,14 @@ describe('SampleCompletionProvider', () => {
     });
 
     it('should include only ID when sample has no alias', async () => {
-      const { loadIdsByType, getSampleInfo } = await import('../lib/dataLoader');
-      vi.mocked(loadIdsByType).mockReturnValue(['DNA-456']);
-      vi.mocked(getSampleInfo).mockReturnValue({
-        alias: null,
-        descriptions: ['Some description'],
-        sources: [],
+      const { loadSamplesByType } = await import('../lib/sampleStorage');
+      vi.mocked(loadSamplesByType).mockReturnValue({
+        'DNA-456': {
+          type: 'DNA',
+          alias: null,
+          descriptions: ['Some description'],
+          sources: [],
+        },
       });
 
       const document = createMockDocument('@dna:');

@@ -21,7 +21,7 @@ export function extractSampleIdsFromText(text: string): string[] {
   
   for (const type of SAMPLE_TYPES) {
     // Pattern: TYPE-{digits} (e.g., DNA-1737123456789)
-    const pattern = new RegExp(`\\b${type}-\\d+\\b`, 'g');
+    const pattern = new RegExp(`\\b${type}-\\d+(?:-\\d+)?\\b`, 'g');
     let match;
     while ((match = pattern.exec(text)) !== null) {
       sampleIds.push(match[0]);
@@ -281,7 +281,7 @@ export class SampleInfoPanel {
     const text = doc.getText();
     
     // Extract all IDs of the same type
-    const pattern = new RegExp(`\\b${type}-\\d+\\b`, 'g');
+    const pattern = new RegExp(`\\b${type}-\\d+(?:-\\d+)?\\b`, 'g');
     const existingIds = [...new Set(text.match(pattern) || [])].filter(id => id !== oldId);
 
     if (existingIds.length === 0) {
