@@ -12,7 +12,7 @@ import {
   getMongoRecord,
   MONGO_BACKED_TYPES,
 } from '../lib/dataLoader';
-import { getLabsamplesFolder, getGlobalLabsamplesFolder, loadSamplesByType } from '../lib/sampleStorage';
+import { getLabsamplesFolder, getGlobalLabsamplesFolder, loadSamplesByType, loadReferenceSamplesByType } from '../lib/sampleStorage';
 import { generateSampleId } from '../lib/sampleUtils';
 
 /** Load sample IDs and record info (alias, description) from same paths as Sample TreeView (sampleStorage) */
@@ -57,7 +57,39 @@ function loadSampleIdsAndRecords(
     }
   }
 
-  // 3. Equip/Labware: add MongoDB IDs
+  // 3. Reagent/Labware: add reference DB (local + global {type}_*.json)
+  const REFERENCE_DB_TYPES = ['Reagent', 'Labware'];
+  if (REFERENCE_DB_TYPES.includes(type)) {
+    const refLocal = loadReferenceSamplesByType(localFolder, type);
+    for (const id of Object.keys(refLocal)) {
+      if (!seenIds.has(id)) {
+        seenIds.add(id);
+        const rec = refLocal[id];
+        result.push({
+          id,
+          alias: rec.alias ?? null,
+          description: rec.descriptions?.[0] ?? null,
+        });
+      }
+    }
+    if (workspaceRoot) {
+      const globalFolder = getGlobalLabsamplesFolder(workspaceRoot);
+      const refGlobal = loadReferenceSamplesByType(globalFolder, type);
+      for (const id of Object.keys(refGlobal)) {
+        if (!seenIds.has(id)) {
+          seenIds.add(id);
+          const rec = refGlobal[id];
+          result.push({
+            id,
+            alias: rec.alias ?? null,
+            description: rec.descriptions?.[0] ?? null,
+          });
+        }
+      }
+    }
+  }
+
+  // 4. Equip/Labware: add MongoDB IDs
   if ((MONGO_BACKED_TYPES as readonly string[]).includes(type)) {
     const mongoIds = getMongoIds(type);
     for (const id of mongoIds) {

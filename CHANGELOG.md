@@ -5,6 +5,34 @@
 형식은 [Keep a Changelog](https://keepachangelog.com/ko/1.1.0/)를 기반으로 하며,
 이 프로젝트는 [유의적 버전 관리](https://semver.org/lang/ko/)를 따릅니다.
 
+## [0.19.1] - 2026-02-03
+
+### 변경
+- README 설치 안내의 최신 버전 표기를 v0.19.1로 업데이트
+
+---
+
+## [0.19.0] - 2026-02-03
+
+### 추가
+
+#### 참조 DB 및 Reagent/Labware 제품 검색
+- **참조 DB**: `resources/labsamples/` 내 `{TYPE}_{suffix}.json` 형식 파일 지원 (예: `reagent_buffer.json`, `labware_plate.json`)
+  - 사용자가 직접 생성·관리하는 제품 카탈로그 (읽기 전용)
+  - 연구노트에 기록되는 샘플은 기존처럼 `Reagent.json`, `Labware.json` 등 고정 파일에만 저장
+- **Reagent/Labware 새 ID 생성**: "새 ID 생성" 선택 시 별칭/설명 직접 입력 대신 **제품 DB 검색 QuickPick** 표시
+  - 참조 DB(로컬·글로벌 `reagent_*.json`, `labware_*.json`) + Labware의 경우 MongoDB 항목 포함
+  - 제품 선택 시 해당 별칭·설명으로 사용자 DB(Reagent.json/Labware.json)에 저장되어 본문·사이드바에서 참조 가능
+  - 선택 취소 또는 후보 없음 시 기존처럼 수동 입력
+- **자동완성**: `@reagent:`, `@labware:` 시 사용자 DB + 참조 DB + MongoDB(Labware) 통합 검색
+
+### 변경
+- `sampleStorage`: `loadReferenceSamplesByType()` 추가
+- `SampleCompletionProvider`: Reagent/Labware에 참조 DB 소스 병합
+- `utilityCommands.generateSampleId`, `sampleCommands.addSample`: Reagent/Labware 시 제품 선택 QuickPick 분기
+
+---
+
 ## [0.18.0] - 2026-02-03
 
 ### 수정

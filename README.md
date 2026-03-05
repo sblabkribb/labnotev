@@ -49,10 +49,14 @@ VSCode용 마크다운 기반 실험실 노트 에디터입니다. 샘플 ID 관
   - 별칭, 설명, 출처 표시
   - 위치로 이동, Rename, Replace 기능
 - **자동 저장**: 문서 저장 시 샘플 정보를 JSON으로 자동 저장 (항상 활성화)
-  - `resources/labsamples/{TYPE}.json`에 저장
+  - `resources/labsamples/{TYPE}.json`에 저장 (사용자 DB)
   - 지원 형식: `@type:ID|별칭:설명`, `ID|별칭:설명`, `ID|별칭`, `ID: 설명`
   - 별칭에 공백·특수문자(™ 등) 포함 가능 (예: `Reagent-1|UltraPure™ DNase/RNase-Free Water:설명`)
   - Move to Global한 샘플은 문서 저장 시 Local에 다시 추가되지 않음
+- **참조 DB (Reagent/Labware)**: 같은 폴더에 `{TYPE}_{이름}.json` 파일을 두면 제품 카탈로그로 읽음 (쓰기 없음)
+  - 예: `reagent_buffer.json`, `labware_plate.json` — 사용자가 직접 생성·편집
+  - `@reagent:` / `@labware:` 자동완성 및 "새 ID 생성" 시 이 목록에서 검색·선택 가능
+  - 선택한 제품으로 생성한 샘플은 `Reagent.json` / `Labware.json`에 저장되어 본문·사이드바에서 참조
 - **본문 ↔ 사이드바 동기화**:
   - 본문에서 샘플 정의(별칭/설명)를 수정하고 저장하면 사이드바 샘플 리스트가 자동 갱신됨
   - 사이드바에서 샘플 우클릭 → Edit으로 별칭/설명을 수정하면, 현재 열린 마크다운 본문의 해당 샘플 정의도 함께 갱신됨
@@ -146,7 +150,7 @@ mongodb://username:password@host:port/?authMechanism=SCRAM-SHA-256&authSource=SB
 
 ### GitHub Releases에서 설치 (권장)
 
-1. [Releases](https://github.com/sblabkribb/labnotev/releases) 페이지에서 최신 `.vsix` 파일 다운로드 (최신 버전: v0.18.0)
+1. [Releases](https://github.com/sblabkribb/labnotev/releases) 페이지에서 최신 `.vsix` 파일 다운로드 (최신 버전: v0.19.1)
 2. VS Code에서 설치:
    - **방법 A**: 명령줄에서 `code --install-extension labnotev-x.x.x.vsix`
    - **방법 B**: VS Code → `Ctrl+Shift+P` → "Extensions: Install from VSIX..." → 파일 선택

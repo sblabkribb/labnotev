@@ -14,6 +14,7 @@ import { ImageLinkProvider } from '../lib/imageLinkProvider';
 import { saveSamplesFromDocument, getGlobalLabsamplesFolder } from '../lib/sampleStorage';
 import { SampleTreeViewProvider } from '../views/SampleTreeViewProvider';
 import { findResourcesFolder, ensureResourcesFolder, saveSampleToResources } from '../lib/dataLoader';
+import { showProductPicker } from '../lib/productPicker';
 
 export interface UtilityCommandProviders {
   sampleTreeProvider: SampleTreeViewProvider;
@@ -168,17 +169,27 @@ export function registerUtilityCommands(
 
       const newId = generateSampleId(sampleType as SampleType);
 
-      // Ask for alias
-      const alias = await vscode.window.showInputBox({
-        prompt: `새 ${sampleType} 샘플의 별칭을 입력하세요`,
-        placeHolder: '예: Sample-A',
-      });
+      let alias: string | undefined;
+      let description: string | undefined;
 
-      // Ask for description
-      const description = await vscode.window.showInputBox({
-        prompt: '설명을 입력하세요 (선택 사항)',
-        placeHolder: '예: 실험 1에서 사용된 샘플',
-      });
+      if (sampleType === 'Reagent' || sampleType === 'Labware') {
+        const picked = await showProductPicker(sampleType, documentUri);
+        if (picked) {
+          alias = picked.alias ?? undefined;
+          description = picked.description ?? undefined;
+        }
+      }
+      if (alias === undefined && description === undefined) {
+        // Not Reagent/Labware, or user cancelled picker: use manual input
+        alias = await vscode.window.showInputBox({
+          prompt: `새 ${sampleType} 샘플의 별칭을 입력하세요`,
+          placeHolder: '예: Sample-A',
+        });
+        description = await vscode.window.showInputBox({
+          prompt: '설명을 입력하세요 (선택 사항)',
+          placeHolder: '예: 실험 1에서 사용된 샘플',
+        });
+      }
 
       // Save to resources
       const resourcesPath = findResourcesFolder(documentUri);

@@ -11,6 +11,7 @@ import {
   getDefinitionText,
 } from '../views/SampleTreeViewProvider';
 import { findSampleDefinitionMatch, loadSamplesByType } from '../lib/sampleStorage';
+import { showProductPicker } from '../lib/productPicker';
 
 export interface SampleCommandProviders {
   sampleTreeProvider: SampleTreeViewProvider;
@@ -80,24 +81,38 @@ export function registerSampleCommands(
       // Generate new sample ID
       const newSampleId = generateSampleId(sampleType);
 
-      // Ask for alias
-      const alias = await vscode.window.showInputBox({
-        prompt: `새 ${sampleType} 샘플의 별칭을 입력하세요`,
-        placeHolder: '예: Sample-A',
-      });
+      let alias: string | null = null;
+      let description: string | null = null;
 
-      // Ask for description
-      const description = await vscode.window.showInputBox({
-        prompt: '설명을 입력하세요 (선택 사항)',
-        placeHolder: '예: 실험 1에서 사용된 샘플',
-      });
+      if (sampleType === 'Reagent' || sampleType === 'Labware') {
+        const documentUri =
+          vscode.window.activeTextEditor?.document?.uri ??
+          vscode.workspace.workspaceFolders?.[0]?.uri;
+        if (documentUri) {
+          const picked = await showProductPicker(sampleType, documentUri);
+          if (picked) {
+            alias = picked.alias;
+            description = picked.description;
+          }
+        }
+      }
+      if (alias === null && description === null) {
+        alias = await vscode.window.showInputBox({
+          prompt: `새 ${sampleType} 샘플의 별칭을 입력하세요`,
+          placeHolder: '예: Sample-A',
+        }) ?? null;
+        description = await vscode.window.showInputBox({
+          prompt: '설명을 입력하세요 (선택 사항)',
+          placeHolder: '예: 실험 1에서 사용된 샘플',
+        }) ?? null;
+      }
 
       await sampleTreeProvider.addSample(
         scope,
         sampleType,
         newSampleId,
-        alias || null,
-        description || null
+        alias,
+        description
       );
 
       vscode.window.showInformationMessage(`샘플이 추가되었습니다: ${newSampleId}`);

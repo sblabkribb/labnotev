@@ -369,6 +369,20 @@ Sample Tracking: YES
     });
   });
 
+  describe('loadReferenceSamplesByType', () => {
+    it('should return empty object when folder does not exist', async () => {
+      const { loadReferenceSamplesByType } = await import('../lib/sampleStorage');
+      const result = loadReferenceSamplesByType('/nonexistent/folder/path', 'Reagent');
+      expect(result).toEqual({});
+    });
+
+    it('should return empty object for non Reagent/Labware type when folder is empty', async () => {
+      const { loadReferenceSamplesByType } = await import('../lib/sampleStorage');
+      const result = loadReferenceSamplesByType('/nonexistent/folder', 'DNA');
+      expect(result).toEqual({});
+    });
+  });
+
   describe('getSampleLocation', () => {
     it('should return "local" for sample only in local', async () => {
       const { getSampleLocation } = await import('../lib/sampleStorage');

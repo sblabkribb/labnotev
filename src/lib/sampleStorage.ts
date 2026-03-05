@@ -251,6 +251,50 @@ export function loadSamplesByType(
 }
 
 /**
+ * Load reference DB: all JSON files matching {type}_{suffix}.json in labsamples folder.
+ * Used for Reagent/Labware product catalog (read-only). Same record format as loadSamplesByType.
+ */
+export function loadReferenceSamplesByType(
+  labsamplesFolder: string,
+  type: string
+): Record<string, SampleRecord> {
+  const merged: Record<string, SampleRecord> = {};
+  if (!fs.existsSync(labsamplesFolder)) {
+    return merged;
+  }
+  const prefix = `${type}_`;
+  const suffix = '.json';
+  try {
+    const entries = fs.readdirSync(labsamplesFolder, { withFileTypes: true });
+    for (const ent of entries) {
+      if (!ent.isFile() || !ent.name.startsWith(prefix) || !ent.name.endsWith(suffix)) {
+        continue;
+      }
+      const filePath = path.join(labsamplesFolder, ent.name);
+      try {
+        const content = fs.readFileSync(filePath, 'utf8');
+        const data = JSON.parse(content) as Record<string, SampleRecord>;
+        for (const [id, record] of Object.entries(data)) {
+          if (record && typeof record === 'object' && !merged[id]) {
+            merged[id] = {
+              type: record.type ?? type,
+              alias: record.alias ?? null,
+              descriptions: record.descriptions ?? [],
+              sources: record.sources ?? [],
+            };
+          }
+        }
+      } catch (err) {
+        console.warn(`[labnotev] Failed to load reference ${filePath}:`, err);
+      }
+    }
+  } catch (err) {
+    console.warn(`[labnotev] Failed to readdir ${labsamplesFolder}:`, err);
+  }
+  return merged;
+}
+
+/**
  * Save sample database to JSON file for a specific type
  */
 export function saveSamplesByType(
