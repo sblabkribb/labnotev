@@ -5,6 +5,15 @@
 형식은 [Keep a Changelog](https://keepachangelog.com/ko/1.1.0/)를 기반으로 하며,
 이 프로젝트는 [유의적 버전 관리](https://semver.org/lang/ko/)를 따릅니다.
 
+## [0.20.1] - 2026-03-06
+
+### 변경
+- README를 확장 설치 후 확인하는 실제 사용자 도움말 역할에 맞게 재구성
+- Quick start, 주요 명령어, 문제 해결, 샘플 정의/참조, Reagent/Labware/Equip의 사용자 DB·참조 DB 설명을 보강
+- README 내 명령어 표기를 실제 확장 UI의 `Labnote:` 명령명과 일치하도록 정리
+
+---
+
 ## [0.20.0] - 2026-02-03
 
 ### 수정
