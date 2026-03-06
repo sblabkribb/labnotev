@@ -252,6 +252,11 @@ export function updateReadmeWorkflowSection(
   // Find the section boundaries
   let insertStart = headerIndex + 1;
   
+  // Skip empty lines after header
+  while (insertStart < lines.length && lines[insertStart].trim() === '') {
+    insertStart++;
+  }
+  
   // Skip blockquote lines (instructions)
   while (insertStart < lines.length && lines[insertStart].trim().startsWith('>')) {
     insertStart++;

@@ -57,9 +57,8 @@ function loadSampleIdsAndRecords(
     }
   }
 
-  // 3. Reagent/Labware: add reference DB (local + global {type}_*.json)
-  const REFERENCE_DB_TYPES = ['Reagent', 'Labware'];
-  if (REFERENCE_DB_TYPES.includes(type)) {
+  // 3. Equip only: add reference DB (local + global Equip_*.json) so @equip: list shows them
+  if (type === 'Equip') {
     const refLocal = loadReferenceSamplesByType(localFolder, type);
     for (const id of Object.keys(refLocal)) {
       if (!seenIds.has(id)) {
@@ -221,7 +220,26 @@ export class SampleCompletionProvider implements vscode.CompletionItemProvider {
       if (specificType && records.length === 0) {
         logCompletionDebug(`${fullPrefix} type=${type} loadSampleIdsAndRecords returned 0 (doc=${documentUri.fsPath})`);
       }
-      for (const { id, alias, description } of records) {
+      for (const { id, alias: recAlias, description: recDesc } of records) {
+        // For Equip from MongoDB, alias/description may be null; try to get from getMongoRecord
+        let alias = recAlias;
+        let description = recDesc;
+        if (type === 'Equip' && (!alias || !description)) {
+          const mongoRecord = getMongoRecord(type, id);
+          if (mongoRecord) {
+            if (!alias) {
+              const parts = [
+                String(mongoRecord.equip ?? '').trim(),
+                mongoRecord.equip_num != null ? String(mongoRecord.equip_num).trim().padStart(3, '0') : '',
+                String(mongoRecord.subname ?? '').trim(),
+              ].filter(s => s.length > 0);
+              alias = parts.join(' ') || id;
+            }
+            if (!description && mongoRecord.subname) {
+              description = String(mongoRecord.subname).trim();
+            }
+          }
+        }
         // Build label: "ID (Alias) - Description" or "ID - Description" or just "ID"
         let label = id;
         if (alias) {
@@ -236,19 +254,17 @@ export class SampleCompletionProvider implements vscode.CompletionItemProvider {
           continue;
         }
         
-        // Build insert text for reference: "ID|Alias" or just "ID" (no description)
-        // Description is only included when defining a new sample, not when referencing
-        // The @type: prefix will be replaced (removed) when selecting existing sample
+        // Build insert text: "ID|Alias" or "ID|Alias:Description". For Equip, use id|alias:description when available
         let insertText = id;
         if (alias) {
-          insertText = `${id}|${alias}`;
+          insertText = description ? `${id}|${alias}:${description}` : `${id}|${alias}`;
         }
         
         const item = new vscode.CompletionItem(label, vscode.CompletionItemKind.Reference);
         item.insertText = insertText;
         item.range = replaceRange; // Replace @type:searchTerm with just ID|Alias
         item.detail = `${type} Sample`;
-        item.sortText = `0_${id}`; // Sort samples first
+        item.sortText = `1_${id}`; // After "새 X ID 생성" (0_new)
         // So VS Code filter (typed prefix e.g. "@dna:") matches and sample items are shown
         item.filterText = `${fullPrefix}${label}`;
         
@@ -274,7 +290,7 @@ export class SampleCompletionProvider implements vscode.CompletionItemProvider {
         vscode.CompletionItemKind.Event
       );
       newIdItem.detail = '새로운 샘플 ID를 자동 생성합니다';
-      newIdItem.sortText = '1_new'; // Sort after samples
+      newIdItem.sortText = '0_new'; // Sort first so Enter triggers new ID immediately
       newIdItem.command = {
         command: 'labnotev.generateSampleId',
         title: 'Generate Sample ID',

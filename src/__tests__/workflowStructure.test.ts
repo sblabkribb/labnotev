@@ -259,6 +259,33 @@ Content here
     });
   });
 
+  describe('updateReadmeWorkflowSection', () => {
+    it('should insert workflow checklist below the description blockquote', async () => {
+      const { updateReadmeWorkflowSection } = await import('../lib/workflowStructure');
+
+      const readmeContent = `# Test
+## Related Workflows
+
+> Enter the list of related workflow files between the markers below.
+> When you run the \`F1\`, \`New workflow\` command, the list will be automatically added between the markers.
+
+## Other Section
+`;
+      const newChecklist = '[ ] [001 WD010 Design](./001_WD010_Design.md)';
+
+      const result = updateReadmeWorkflowSection(readmeContent, newChecklist);
+
+      const relatedSection = result.split('## Other Section')[0];
+      expect(relatedSection).toContain('## Related Workflows');
+      expect(relatedSection).toContain('> Enter the list of related workflow files');
+      expect(relatedSection).toContain(newChecklist);
+      // Checklist must appear after the blockquote (index of checklist > index of last blockquote line)
+      const lastBlockquoteInSection = relatedSection.lastIndexOf('> ');
+      const checklistIndex = relatedSection.indexOf(newChecklist);
+      expect(checklistIndex).toBeGreaterThan(lastBlockquoteInSection);
+    });
+  });
+
   describe('Workflow interface', () => {
     it('should export WorkflowInfo interface', async () => {
       const module = await import('../lib/workflowStructure');

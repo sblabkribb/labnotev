@@ -5,6 +5,18 @@
 형식은 [Keep a Changelog](https://keepachangelog.com/ko/1.1.0/)를 기반으로 하며,
 이 프로젝트는 [유의적 버전 관리](https://semver.org/lang/ko/)를 따릅니다.
 
+## [0.20.0] - 2026-02-03
+
+### 수정
+- **Related Workflows 삽입 위치**: 실험 폴더 README.md에서 workflow 입력 시, 워크플로 목록이 설명(blockquote) **아래**에 삽입되도록 수정 (이전에는 설명 위에 삽입됨)
+
+### 변경
+- **자동완성 목록 정리**: `@reagent:`, `@labware:` 입력 시 목록에 사용자 DB(Reagent.json/Labware.json)와 "새 Reagent/Labware ID 생성"만 표시 (참조 DB 항목 제거). "새 ID 생성" 선택 시 참조 DB 검색창은 기존과 동일
+- **Equip 참조 DB 노출**: `@equip:` 입력 시 사용자 Equip.json + 참조 DB(Equip_*.json) + MongoDB 목록 표시, 선택 시 id|alias:description 형식으로 삽입
+- **"새 X ID 생성" 정렬**: "새 DNA ID 생성", "새 Reagent ID 생성" 등 타입별 "새 X ID 생성" 항목을 목록 최상단에 배치 (Enter로 바로 실행 가능)
+
+---
+
 ## [0.19.1] - 2026-02-03
 
 ### 변경
