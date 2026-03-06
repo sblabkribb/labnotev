@@ -90,13 +90,13 @@ export async function showProductPicker(
   if (candidates.length === 0) {
     return null;
   }
-  const items: (vscode.QuickPickItem & { alias: string | null; description: string | null })[] = candidates.map(
+  const items: (vscode.QuickPickItem & { alias: string | null; sampleDescription: string | null })[] = candidates.map(
     (c) => ({
       label: c.alias || c.id,
       description: c.id,
       detail: c.description || undefined,
       alias: c.alias,
-      description: c.description,
+      sampleDescription: c.description,
     })
   );
   const selected = await vscode.window.showQuickPick(items, {
@@ -109,6 +109,6 @@ export async function showProductPicker(
   }
   return {
     alias: selected.alias ?? null,
-    description: selected.description ?? null,
+    description: selected.sampleDescription ?? null,
   };
 }

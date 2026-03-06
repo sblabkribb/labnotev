@@ -251,4 +251,4 @@ npm test
 
 ## 라이선스
 
-[라이선스 추가 예정]
+MIT License

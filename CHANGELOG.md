@@ -5,6 +5,15 @@
 형식은 [Keep a Changelog](https://keepachangelog.com/ko/1.1.0/)를 기반으로 하며,
 이 프로젝트는 [유의적 버전 관리](https://semver.org/lang/ko/)를 따릅니다.
 
+## [0.20.2] - 2026-03-06
+
+### 변경
+- MIT `LICENSE` 파일을 추가하고 `package.json`, `README.md`의 라이선스 표기를 정리
+- `.vscodeignore`를 보강해 VSIX에서 내부 문서/임시 폴더와 불필요한 패키지 파일을 제외
+- `productPicker`의 QuickPick 항목 키 충돌을 수정해 빌드 경고를 제거
+
+---
+
 ## [0.20.1] - 2026-03-06
 
 ### 변경

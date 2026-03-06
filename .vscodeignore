@@ -1,11 +1,16 @@
 .vscode/**
 .vscode-test/**
 .cursor/**
+.claude/**
+.omc/**
 .github/**
+docs/**
+docs2/**
 src/**
 webview/src/**
 webview/node_modules/**
 webview/coverage/**
+webview/package-lock.json
 webview/vitest.config.ts
 node_modules/**
 coverage/**
