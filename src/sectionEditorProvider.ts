@@ -5,8 +5,8 @@ import { parseLabNoteMd, serializeLabNoteMd } from './lib/labnoteSectionParser';
 import { parseWorkflowMd, serializeWorkflowMd } from './lib/workflowSectionParser';
 import type { UnitOperationBlock, WorkflowReference } from './lib/sectionTypes';
 import { getSeoulDateTimeString } from './lib/dateUtils';
-import { loadSamplesByType, loadReferenceSamplesByType, type SampleRecord } from './lib/sampleStorage';
-import { generateSampleId } from './lib/sampleUtils';
+import { createSampleWithPrompt } from './commands/sampleCommands';
+import type { SampleTreeViewProvider } from './views/SampleTreeViewProvider';
 
 export type MdFileType = 'labnote' | 'workflow' | 'unknown';
 
@@ -69,8 +69,13 @@ export class SectionEditorProvider implements vscode.CustomTextEditorProvider {
 
   private activeEditor: ActiveEditor | undefined;
   private _suppressDocChange = false;
+  private _sampleTreeProvider: SampleTreeViewProvider | undefined;
 
   constructor(private readonly context: vscode.ExtensionContext) {}
+
+  public setSampleTreeProvider(provider: SampleTreeViewProvider): void {
+    this._sampleTreeProvider = provider;
+  }
 
   public getActiveDocument(): vscode.TextDocument | undefined {
     return this.activeEditor?.document;
@@ -180,39 +185,6 @@ export class SectionEditorProvider implements vscode.CustomTextEditorProvider {
           await vscode.commands.executeCommand('vscode.openWith', document.uri, 'default');
           break;
 
-        case 'requestSamples': {
-          const sampleType = message.data?.sampleType || '';
-          const docDir = path.dirname(document.uri.fsPath);
-          try {
-            const localDb = await loadSamplesByType(docDir, sampleType);
-            const workspaceRoot = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath || '';
-            const globalDb = await loadSamplesByType(workspaceRoot, sampleType);
-            const refDb = await loadReferenceSamplesByType(docDir, sampleType);
-            const globalRefDb = await loadReferenceSamplesByType(workspaceRoot, sampleType);
-
-            const allRecords: Record<string, SampleRecord> = {
-              ...globalRefDb, ...refDb, ...globalDb, ...localDb,
-            };
-            const samples = Object.entries(allRecords).map(([id, rec]) => ({
-              id,
-              type: rec.type,
-              alias: rec.alias,
-              description: rec.descriptions?.[0],
-            }));
-
-            webviewPanel.webview.postMessage({
-              type: 'samplesLoaded',
-              data: { sampleType, samples },
-            });
-          } catch {
-            webviewPanel.webview.postMessage({
-              type: 'samplesLoaded',
-              data: { sampleType, samples: [] },
-            });
-          }
-          break;
-        }
-
         case 'openImagePreview':
           if (message.data?.imagePath) {
             const dir = path.dirname(document.uri.fsPath);
@@ -224,16 +196,6 @@ export class SectionEditorProvider implements vscode.CustomTextEditorProvider {
           }
           break;
 
-        case 'generateSampleId': {
-          const genType = message.data?.type || 'DNA';
-          const newId = generateSampleId(genType);
-          webviewPanel.webview.postMessage({
-            type: 'sampleIdGenerated',
-            data: { id: newId, type: genType },
-          });
-          break;
-        }
-
         case 'navigateToSample': {
           const { sampleId, sampleType } = message.data || {};
           if (sampleId && sampleType) {
@@ -243,6 +205,25 @@ export class SectionEditorProvider implements vscode.CustomTextEditorProvider {
               sampleId
             );
           }
+          break;
+        }
+
+        case 'createSampleDefinition': {
+          const { sampleType: reqType, opIndex, secIndex } = message.data || {};
+          if (!reqType || !this._sampleTreeProvider) break;
+
+          const result = await createSampleWithPrompt(reqType, this._sampleTreeProvider);
+          if (!result) break;
+
+          const typeLower = reqType.toLowerCase();
+          let definitionText = `@${typeLower}:${result.id}`;
+          if (result.alias) definitionText += `|${result.alias}`;
+          if (result.description) definitionText += `:${result.description}`;
+
+          webviewPanel.webview.postMessage({
+            type: 'sampleDefinitionCreated',
+            data: { definitionText, opIndex, secIndex },
+          });
           break;
         }
       }

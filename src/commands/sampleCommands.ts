@@ -19,6 +19,49 @@ export interface SampleCommandProviders {
   sectionEditorProvider?: SectionEditorProvider;
 }
 
+/**
+ * Generate a new sample ID, prompt for alias/description, and save to the sample DB.
+ * Returns the created sample info, or null if the user cancelled.
+ */
+export async function createSampleWithPrompt(
+  sampleType: string,
+  sampleTreeProvider: SampleTreeViewProvider,
+  scope: 'local' | 'global' = 'local'
+): Promise<{ id: string; alias: string | null; description: string | null } | null> {
+  const newSampleId = generateSampleId(sampleType as SampleType);
+
+  let alias: string | null = null;
+  let description: string | null = null;
+
+  if (sampleType === 'Reagent' || sampleType === 'Labware') {
+    const documentUri =
+      vscode.window.activeTextEditor?.document?.uri ??
+      vscode.workspace.workspaceFolders?.[0]?.uri;
+    if (documentUri) {
+      const picked = await showProductPicker(sampleType, documentUri);
+      if (picked) {
+        alias = picked.alias;
+        description = picked.description;
+      }
+    }
+  }
+  if (alias === null && description === null) {
+    alias = await vscode.window.showInputBox({
+      prompt: `새 ${sampleType} 샘플의 별칭을 입력하세요`,
+      placeHolder: '예: Sample-A',
+    }) ?? null;
+    if (alias === undefined) return null;
+    description = await vscode.window.showInputBox({
+      prompt: '설명을 입력하세요 (선택 사항)',
+      placeHolder: '예: 실험 1에서 사용된 샘플',
+    }) ?? null;
+  }
+
+  await sampleTreeProvider.addSample(scope, sampleType, newSampleId, alias, description);
+
+  return { id: newSampleId, alias, description };
+}
+
 export function registerSampleCommands(
   context: vscode.ExtensionContext,
   providers: SampleCommandProviders
@@ -90,44 +133,10 @@ export function registerSampleCommands(
       const sampleType = item.sampleType as SampleType;
       const scope = item.scope;
 
-      // Generate new sample ID
-      const newSampleId = generateSampleId(sampleType);
-
-      let alias: string | null = null;
-      let description: string | null = null;
-
-      if (sampleType === 'Reagent' || sampleType === 'Labware') {
-        const documentUri =
-          vscode.window.activeTextEditor?.document?.uri ??
-          vscode.workspace.workspaceFolders?.[0]?.uri;
-        if (documentUri) {
-          const picked = await showProductPicker(sampleType, documentUri);
-          if (picked) {
-            alias = picked.alias;
-            description = picked.description;
-          }
-        }
+      const result = await createSampleWithPrompt(sampleType, sampleTreeProvider, scope);
+      if (result) {
+        vscode.window.showInformationMessage(`샘플이 추가되었습니다: ${result.id}`);
       }
-      if (alias === null && description === null) {
-        alias = await vscode.window.showInputBox({
-          prompt: `새 ${sampleType} 샘플의 별칭을 입력하세요`,
-          placeHolder: '예: Sample-A',
-        }) ?? null;
-        description = await vscode.window.showInputBox({
-          prompt: '설명을 입력하세요 (선택 사항)',
-          placeHolder: '예: 실험 1에서 사용된 샘플',
-        }) ?? null;
-      }
-
-      await sampleTreeProvider.addSample(
-        scope,
-        sampleType,
-        newSampleId,
-        alias,
-        description
-      );
-
-      vscode.window.showInformationMessage(`샘플이 추가되었습니다: ${newSampleId}`);
     })
   );
 

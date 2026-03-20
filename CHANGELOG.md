@@ -5,6 +5,34 @@
 형식은 [Keep a Changelog](https://keepachangelog.com/ko/1.1.0/)를 기반으로 하며,
 이 프로젝트는 [유의적 버전 관리](https://semver.org/lang/ko/)를 따릅니다.
 
+## [0.21.4] - 2026-02-02
+
+### 추가
+
+#### 섹션별 샘플 정의 버튼
+- 유닛 오퍼레이션의 각 섹션 제목 옆에 샘플 타입별 빠른 정의 버튼 추가
+  - Input: `+DNA`, `+RNA`, `+Plasmid`, `+Protein`, `+Primer`
+  - Reagent: `+Reagent`
+  - Consumables: `+Labware`
+  - Equipment: `+Equip`
+  - Output: `+DNA`, `+RNA`, `+Plasmid`, `+Protein`
+- 버튼 클릭 시 VS Code InputBox로 별칭/설명 입력 → 샘플 DB 저장 + TreeView 갱신 → `@type:ID|별칭:설명` 정의 텍스트를 해당 textarea에 자동 삽입
+
+### 변경
+
+#### 샘플 생성 로직 리팩토링
+- `sampleCommands.ts`에서 `createSampleWithPrompt()` 헬퍼 함수 추출 (ID 생성 → alias/description 입력 → DB 저장)
+- TreeView의 "Add Sample" 커맨드와 Section Editor 버튼이 동일 헬퍼 사용
+
+### 제거
+
+#### 웹뷰 전용 `@` 자동완성 제거
+- Section Editor 내 `@` 트리거 자동완성 드롭다운(`SampleAutocomplete.tsx`) 삭제 (섹션 버튼으로 대체)
+- `sectionEditorProvider.ts`에서 `requestSamples`, `generateSampleId` 메시지 핸들러 제거
+- **기존 마크다운 텍스트 에디터의 `@dna:` 등 VS Code 네이티브 자동완성(`SampleCompletionProvider`)은 변경 없음**
+
+---
+
 ## [0.21.3] - 2026-02-02
 
 ### 추가

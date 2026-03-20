@@ -91,6 +91,7 @@ export async function activate(context: vscode.ExtensionContext) {
   // Section Editor Setup
   // ========================================
   const sectionEditorProvider = new SectionEditorProvider(context);
+  sectionEditorProvider.setSampleTreeProvider(sampleTreeProvider);
   context.subscriptions.push(
     vscode.window.registerCustomEditorProvider(
       SectionEditorProvider.viewType,

@@ -1,7 +1,6 @@
-import { useRef, useEffect, useState, useCallback } from 'react';
+import { useRef, useEffect, useState } from 'react';
 import { Title, Paper, Stack } from '@mantine/core';
 import { SampleHighlighter, highlightSampleIds } from './SampleHighlighter';
-import { SampleAutocomplete } from './SampleAutocomplete';
 
 interface SectionEditorProps {
   heading: string;
@@ -24,7 +23,6 @@ export function SectionEditor({
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const overlayRef = useRef<HTMLDivElement>(null);
   const [hasSamples, setHasSamples] = useState(false);
-  const [autocomplete, setAutocomplete] = useState<{ top: number; left: number; atPos: number } | null>(null);
 
   useEffect(() => {
     setHasSamples(highlightSampleIds(content));
@@ -36,54 +34,6 @@ export function SectionEditor({
       overlayRef.current.scrollLeft = textareaRef.current.scrollLeft;
     }
   };
-
-  const handleKeyDown = useCallback((e: React.KeyboardEvent<HTMLTextAreaElement>) => {
-    if (e.key === '@' && !autocomplete) {
-      const ta = textareaRef.current;
-      if (!ta) return;
-      const rect = ta.getBoundingClientRect();
-      const containerRect = ta.parentElement?.getBoundingClientRect();
-      if (!containerRect) return;
-
-      // Approximate caret position using character metrics
-      const lineHeight = 13 * 1.55;
-      const text = ta.value.substring(0, ta.selectionStart);
-      const lines = text.split('\n');
-      const currentLine = lines.length - 1;
-      const top = (currentLine + 1) * lineHeight + 8 - ta.scrollTop;
-      const left = 8;
-
-      setAutocomplete({ top, left, atPos: ta.selectionStart });
-    }
-  }, [autocomplete]);
-
-  const handleAutocompleteSelect = useCallback((sampleText: string) => {
-    if (autocomplete === null) return;
-    const ta = textareaRef.current;
-    if (!ta) return;
-
-    const before = content.substring(0, autocomplete.atPos + 1);
-    const after = content.substring(ta.selectionStart);
-    const filterText = content.substring(autocomplete.atPos + 1, ta.selectionStart);
-
-    // Replace @<filter> with the selected sample
-    const newContent = content.substring(0, autocomplete.atPos) + sampleText + after;
-    onChange(newContent);
-    setAutocomplete(null);
-
-    requestAnimationFrame(() => {
-      if (textareaRef.current) {
-        const newPos = autocomplete.atPos + sampleText.length;
-        textareaRef.current.selectionStart = newPos;
-        textareaRef.current.selectionEnd = newPos;
-        textareaRef.current.focus();
-      }
-    });
-  }, [autocomplete, content, onChange]);
-
-  const handleAutocompleteClose = useCallback(() => {
-    setAutocomplete(null);
-  }, []);
 
   const textareaStyle: React.CSSProperties = {
     fontFamily: 'monospace',
@@ -136,16 +86,8 @@ export function SectionEditor({
             onChange={(e) => onChange(e.currentTarget.value)}
             onFocus={onFocus}
             onScroll={syncScroll}
-            onKeyDown={handleKeyDown}
             style={textareaStyle}
           />
-          {autocomplete && (
-            <SampleAutocomplete
-              position={{ top: autocomplete.top, left: autocomplete.left }}
-              onSelect={handleAutocompleteSelect}
-              onClose={handleAutocompleteClose}
-            />
-          )}
         </div>
       </Stack>
     </Paper>

@@ -156,6 +156,25 @@ export default function App() {
           break;
         }
 
+        case 'sampleDefinitionCreated': {
+          const { definitionText, opIndex, secIndex } = message.data;
+          setWorkflow(prev => {
+            if (!prev) return prev;
+            const ops = [...prev.unitOperations];
+            const op = ops[opIndex];
+            if (!op) return prev;
+            const sections = [...op.sections];
+            const sec = sections[secIndex];
+            if (!sec) return prev;
+            const separator = sec.content.trim() ? '\n' : '';
+            sections[secIndex] = { ...sec, content: sec.content + separator + definitionText };
+            ops[opIndex] = { ...op, sections };
+            return { ...prev, unitOperations: ops };
+          });
+          markDirty();
+          break;
+        }
+
         case 'saveCompleted':
           setSaveStatus('saved');
           break;
@@ -174,6 +193,10 @@ export default function App() {
 
   const handleOpenAsText = useCallback(() => {
     postMessage({ type: 'openAsText' });
+  }, []);
+
+  const handleCreateSample = useCallback((opIndex: number, secIndex: number, sampleType: string) => {
+    postMessage({ type: 'createSampleDefinition', data: { sampleType, opIndex, secIndex } });
   }, []);
 
   if (!mode) {
@@ -342,6 +365,7 @@ export default function App() {
                 onSectionFocus={(opIndex, secIndex) => {
                   activeSectionRef.current = { area: 'unitOp', opIndex, secIndex };
                 }}
+                onCreateSample={handleCreateSample}
               />
             </Paper>
 

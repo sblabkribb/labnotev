@@ -1,13 +1,33 @@
-import { Accordion, Badge, Group, Text, Stack, Textarea, TextInput, Title, Paper, ActionIcon } from '@mantine/core';
+import { Accordion, Badge, Group, Text, Stack, Textarea, TextInput, Title, Paper, ActionIcon, UnstyledButton } from '@mantine/core';
 import { DndContext, closestCenter, KeyboardSensor, PointerSensor, useSensor, useSensors, type DragEndEvent } from '@dnd-kit/core';
 import { SortableContext, verticalListSortingStrategy, useSortable, arrayMove } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 import type { UnitOperationBlock } from '../types';
 
+const SECTION_SAMPLE_TYPES: Record<string, string[]> = {
+  'Input':       ['DNA', 'RNA', 'Plasmid', 'Protein', 'Primer'],
+  'Reagent':     ['Reagent'],
+  'Consumables': ['Labware'],
+  'Equipment':   ['Equip'],
+  'Output':      ['DNA', 'RNA', 'Plasmid', 'Protein'],
+};
+
+const SAMPLE_TYPE_COLORS: Record<string, string> = {
+  DNA: '#e74c3c',
+  RNA: '#3498db',
+  Plasmid: '#9b59b6',
+  Protein: '#e67e22',
+  Primer: '#c0392b',
+  Reagent: '#f39c12',
+  Labware: '#7f8c8d',
+  Equip: '#95a5a6',
+};
+
 interface UnitOpAccordionProps {
   unitOperations: UnitOperationBlock[];
   onChange: (unitOperations: UnitOperationBlock[]) => void;
   onSectionFocus?: (opIndex: number, secIndex: number) => void;
+  onCreateSample?: (opIndex: number, secIndex: number, sampleType: string) => void;
 }
 
 function GripIcon() {
@@ -29,9 +49,10 @@ interface SortableUnitOpProps {
   onUpdateSection: (opIndex: number, secIndex: number, content: string) => void;
   onUpdateAlias: (opIndex: number, alias: string) => void;
   onSectionFocus?: (opIndex: number, secIndex: number) => void;
+  onCreateSample?: (opIndex: number, secIndex: number, sampleType: string) => void;
 }
 
-function SortableUnitOp({ op, opIndex, onUpdateSection, onUpdateAlias, onSectionFocus }: SortableUnitOpProps) {
+function SortableUnitOp({ op, opIndex, onUpdateSection, onUpdateAlias, onSectionFocus, onCreateSample }: SortableUnitOpProps) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: op.id });
 
   const style = {
@@ -79,19 +100,44 @@ function SortableUnitOp({ op, opIndex, onUpdateSection, onUpdateAlias, onSection
             {op.opDescription && (
               <Text size="sm" c="dimmed" fs="italic">{op.opDescription}</Text>
             )}
-            {op.sections.map((section, secIndex) => (
-              <div key={secIndex}>
-                <Title order={5}>{section.heading}</Title>
-                <Textarea
-                  value={section.content}
-                  onChange={(e) => onUpdateSection(opIndex, secIndex, e.currentTarget.value)}
-                  onFocus={() => onSectionFocus?.(opIndex, secIndex)}
-                  autosize
-                  minRows={2}
-                  styles={{ input: { fontFamily: 'monospace', fontSize: '13px' } }}
-                />
-              </div>
-            ))}
+            {op.sections.map((section, secIndex) => {
+              const sampleTypes = SECTION_SAMPLE_TYPES[section.heading];
+              return (
+                <div key={secIndex}>
+                  <Group gap="xs" mb={4}>
+                    <Title order={5}>{section.heading}</Title>
+                    {sampleTypes && sampleTypes.map(type => (
+                      <UnstyledButton
+                        key={type}
+                        onClick={() => onCreateSample?.(opIndex, secIndex, type)}
+                        style={{ lineHeight: 1 }}
+                      >
+                        <Badge
+                          size="xs"
+                          variant="light"
+                          style={{
+                            cursor: 'pointer',
+                            backgroundColor: `${SAMPLE_TYPE_COLORS[type] || '#666'}15`,
+                            color: SAMPLE_TYPE_COLORS[type] || '#666',
+                            border: `1px solid ${SAMPLE_TYPE_COLORS[type] || '#666'}40`,
+                          }}
+                        >
+                          +{type}
+                        </Badge>
+                      </UnstyledButton>
+                    ))}
+                  </Group>
+                  <Textarea
+                    value={section.content}
+                    onChange={(e) => onUpdateSection(opIndex, secIndex, e.currentTarget.value)}
+                    onFocus={() => onSectionFocus?.(opIndex, secIndex)}
+                    autosize
+                    minRows={2}
+                    styles={{ input: { fontFamily: 'monospace', fontSize: '13px' } }}
+                  />
+                </div>
+              );
+            })}
           </Stack>
         </Accordion.Panel>
       </Accordion.Item>
@@ -99,7 +145,7 @@ function SortableUnitOp({ op, opIndex, onUpdateSection, onUpdateAlias, onSection
   );
 }
 
-export function UnitOpAccordion({ unitOperations, onChange, onSectionFocus }: UnitOpAccordionProps) {
+export function UnitOpAccordion({ unitOperations, onChange, onSectionFocus, onCreateSample }: UnitOpAccordionProps) {
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 8 } }),
     useSensor(KeyboardSensor)
@@ -157,6 +203,7 @@ export function UnitOpAccordion({ unitOperations, onChange, onSectionFocus }: Un
               onUpdateSection={updateSection}
               onUpdateAlias={updateAlias}
               onSectionFocus={onSectionFocus}
+              onCreateSample={onCreateSample}
             />
           ))}
         </Accordion>

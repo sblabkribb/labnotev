@@ -59,13 +59,6 @@ export interface WorkflowDocument {
   tailContent: string;
 }
 
-export interface SampleItem {
-  id: string;
-  type: string;
-  alias?: string;
-  description?: string;
-}
-
 // Extension <-> Webview message types
 export type ExtensionToWebviewMessage =
   | { type: 'init'; data: { mode: string; labNote?: LabNoteDocument; workflow?: WorkflowDocument; linkedWorkflows?: WorkflowDocument[] } }
@@ -73,8 +66,7 @@ export type ExtensionToWebviewMessage =
   | { type: 'sampleInserted'; data: { text: string } }
   | { type: 'textInserted'; data: { text: string } }
   | { type: 'workflowAdded'; data: WorkflowReference & { workflow?: WorkflowDocument } }
-  | { type: 'samplesLoaded'; data: { sampleType: string; samples: SampleItem[] } }
-  | { type: 'sampleIdGenerated'; data: { id: string; type: string } }
+  | { type: 'sampleDefinitionCreated'; data: { definitionText: string; opIndex: number; secIndex: number } }
   | { type: 'documentChanged'; data: { labNote?: LabNoteDocument; workflow?: WorkflowDocument } }
   | { type: 'saveCompleted' };
 
@@ -82,7 +74,6 @@ export type WebviewToExtensionMessage =
   | { type: 'ready' }
   | { type: 'save'; data: any }
   | { type: 'openAsText' }
-  | { type: 'requestSamples'; data: { sampleType: string } }
   | { type: 'openImagePreview'; data: { imagePath: string; altText?: string } }
-  | { type: 'generateSampleId'; data: { type: string } }
+  | { type: 'createSampleDefinition'; data: { sampleType: string; opIndex: number; secIndex: number } }
   | { type: 'navigateToSample'; data: { sampleId: string; sampleType: string } };
