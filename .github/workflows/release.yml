@@ -11,19 +11,19 @@ jobs:
     
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
       
       - name: Setup Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v5
         with:
-          node-version: '20'
+          node-version: '22'
           cache: 'npm'
       
       - name: Install root dependencies
         run: npm ci
       
       - name: Install webview dependencies
-        run: cd webview && npm ci
+        run: cd webview-section && npm ci
       
       - name: Build extension
         run: npm run build
@@ -36,7 +36,7 @@ jobs:
         run: echo "VERSION=${GITHUB_REF#refs/tags/v}" >> $GITHUB_OUTPUT
       
       - name: Create Release
-        uses: softprops/action-gh-release@v1
+        uses: softprops/action-gh-release@v2
         with:
           files: '*.vsix'
           name: Lab Note Editor v${{ steps.get_version.outputs.VERSION }}
