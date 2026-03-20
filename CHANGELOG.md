@@ -5,6 +5,19 @@
 형식은 [Keep a Changelog](https://keepachangelog.com/ko/1.1.0/)를 기반으로 하며,
 이 프로젝트는 [유의적 버전 관리](https://semver.org/lang/ko/)를 따릅니다.
 
+## [0.23.1] - 2026-02-02
+
+### 변경
+
+#### README 문서 업데이트
+- v0.21.0 이후 도입된 Section Editor(웹뷰) 기반 편집 경험을 반영하여 README.md 전면 재작성
+- Quick Start를 `.labnote.md` 파일과 Section Editor UI 기준으로 재작성
+- Section Editor 주요 기능 섹션 신설 (자동 저장, 이미지 붙여넣기/썸네일, 샘플 정의 버튼, Meta 폼, DateTimePicker 등)
+- 샘플 ID 관리를 Section Editor vs 텍스트 에디터로 구분하여 재구성
+- Workflow TreeView에 General 카테고리 및 Blank Workflow 반영
+- 폴더 구조, 파일 저장 형식을 `.labnote.md` 기반으로 업데이트
+- Section Editor가 열리지 않을 때 수동 설정 방법(Open With, settings.json) 추가
+
 ## [0.23.0] - 2026-02-02
 
 ### 추가
