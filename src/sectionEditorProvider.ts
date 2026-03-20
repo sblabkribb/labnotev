@@ -1,0 +1,403 @@
+import * as vscode from 'vscode';
+import * as path from 'path';
+import * as fs from 'fs';
+import { parseLabNoteMd, serializeLabNoteMd } from './lib/labnoteSectionParser';
+import { parseWorkflowMd, serializeWorkflowMd } from './lib/workflowSectionParser';
+import type { UnitOperationBlock, WorkflowReference } from './lib/sectionTypes';
+import { getSeoulDateTimeString } from './lib/dateUtils';
+import { loadSamplesByType, loadReferenceSamplesByType, type SampleRecord } from './lib/sampleStorage';
+import { generateSampleId } from './lib/sampleUtils';
+
+export type MdFileType = 'labnote' | 'workflow' | 'unknown';
+
+export function detectMdFileType(content: string): MdFileType {
+  const fmMatch = content.match(/^---\n([\s\S]*?)\n---/);
+  if (!fmMatch) return 'unknown';
+  const yaml = fmMatch[1];
+  if (/experiment_type:\s*labnote/i.test(yaml)) return 'labnote';
+  if (/experimenter:/i.test(yaml)) return 'workflow';
+  return 'unknown';
+}
+
+export function buildUnitOperationBlock(
+  opId: string,
+  opName: string,
+  opDescription: string,
+  opType: 'hw' | 'sw',
+  experimenter: string
+): UnitOperationBlock {
+  const dateTime = getSeoulDateTimeString(new Date());
+  const id = `unitop-${Date.now()}`;
+
+  const metaContent = opType === 'sw'
+    ? `- Experimenter: ${experimenter}\n- Start_date: '${dateTime}'\n- End_date: ''\n- Software:`
+    : `- Experimenter: ${experimenter}\n- Start_date: '${dateTime}'\n- End_date: ''`;
+
+  const sections = opType === 'sw'
+    ? [
+        { heading: 'Meta', content: metaContent },
+        { heading: 'Input', content: '- (이전 단계 산출물, 데이터, 모델)' },
+        { heading: 'Output', content: '- (다음 단계로 넘어갈 산출물: 파일, 데이터셋, 모델)' },
+        { heading: 'Parameters', content: '- (옵션, 하이퍼파라미터, seed)' },
+        { heading: 'QC Metrics', content: '- (성능 지표, QC 지표)' },
+        { heading: 'Method', content: '- (소프트웨어/모델 + 자연어 설명)' },
+        { heading: 'Environment', content: '- (conda / poetry / container / OS / HW)' },
+        { heading: 'Discussion', content: '- (다음 단계에 대한 코멘트)' },
+      ]
+    : [
+        { heading: 'Meta', content: metaContent },
+        { heading: 'Input', content: '- (samples from the previous step)' },
+        { heading: 'Reagent', content: '- (e.g. enzyme, buffer, etc.)' },
+        { heading: 'Consumables', content: '- (e.g. filter, well-plate, etc.)' },
+        { heading: 'Equipment', content: '- (e.g. centrifuge, spectrophotometer, etc.)' },
+        { heading: 'Method', content: '- (method used in this step)' },
+        { heading: 'Output', content: '- (samples to the next step)' },
+        { heading: 'Results & Discussions', content: '- (Any results and discussions. Link file path if needed)' },
+      ];
+
+  return { id, opId, opName, opDescription, opType, sections };
+}
+
+interface ActiveEditor {
+  document: vscode.TextDocument;
+  webviewPanel: vscode.WebviewPanel;
+  mode: MdFileType;
+}
+
+export class SectionEditorProvider implements vscode.CustomTextEditorProvider {
+  public static readonly viewType = 'labnotev.sectionEditor';
+
+  private activeEditor: ActiveEditor | undefined;
+  private _suppressDocChange = false;
+
+  constructor(private readonly context: vscode.ExtensionContext) {}
+
+  public getActiveDocument(): vscode.TextDocument | undefined {
+    return this.activeEditor?.document;
+  }
+
+  public getEditorMode(): MdFileType | undefined {
+    return this.activeEditor?.mode;
+  }
+
+  public getDocumentFolder(): string | undefined {
+    if (!this.activeEditor) return undefined;
+    return path.dirname(this.activeEditor.document.uri.fsPath);
+  }
+
+  public async appendUnitOpToDocument(
+    document: vscode.TextDocument,
+    unitOp: UnitOperationBlock
+  ): Promise<void> {
+    const content = document.getText();
+    const doc = parseWorkflowMd(content);
+    doc.unitOperations.push(unitOp);
+    const newContent = serializeWorkflowMd(doc);
+    const edit = new vscode.WorkspaceEdit();
+    const fullRange = new vscode.Range(
+      document.positionAt(0),
+      document.positionAt(content.length)
+    );
+    this._suppressDocChange = true;
+    try {
+      await vscode.workspace.applyEdit(edit);
+    } finally {
+      this._suppressDocChange = false;
+    }
+
+    if (this.activeEditor?.document === document) {
+      this.activeEditor.webviewPanel.webview.postMessage({
+        type: 'unitOpAdded',
+        data: unitOp,
+      });
+    }
+  }
+
+  public async insertSampleIntoDocument(
+    document: vscode.TextDocument,
+    sampleText: string
+  ): Promise<void> {
+    if (this.activeEditor?.document === document) {
+      this.activeEditor.webviewPanel.webview.postMessage({
+        type: 'sampleInserted',
+        data: { text: sampleText },
+      });
+    }
+  }
+
+  public async insertTextToActiveEditor(text: string): Promise<void> {
+    if (this.activeEditor) {
+      this.activeEditor.webviewPanel.webview.postMessage({
+        type: 'textInserted',
+        data: { text },
+      });
+    }
+  }
+
+  public async mergeWorkflowIntoDocument(
+    document: vscode.TextDocument,
+    wfRef: WorkflowReference
+  ): Promise<void> {
+    if (this.activeEditor?.document === document) {
+      this.activeEditor.webviewPanel.webview.postMessage({
+        type: 'workflowAdded',
+        data: wfRef,
+      });
+    }
+  }
+
+  public async resolveCustomTextEditor(
+    document: vscode.TextDocument,
+    webviewPanel: vscode.WebviewPanel,
+    _token: vscode.CancellationToken
+  ): Promise<void> {
+    const content = document.getText();
+    const mode = detectMdFileType(content);
+
+    this.activeEditor = { document, webviewPanel, mode };
+
+    webviewPanel.webview.options = {
+      enableScripts: true,
+      localResourceRoots: [
+        vscode.Uri.joinPath(this.context.extensionUri, 'webview-section', 'dist'),
+      ],
+    };
+
+    webviewPanel.webview.html = this.getHtmlForWebview(webviewPanel.webview);
+
+    webviewPanel.webview.onDidReceiveMessage(async (message) => {
+      switch (message.type) {
+        case 'ready':
+          await this.sendInitMessage(document, webviewPanel, mode);
+          break;
+
+        case 'save':
+          await this.handleSave(document, message.data, mode);
+          webviewPanel.webview.postMessage({ type: 'saveCompleted' });
+          break;
+
+        case 'openAsText':
+          await vscode.commands.executeCommand('vscode.openWith', document.uri, 'default');
+          break;
+
+        case 'requestSamples': {
+          const sampleType = message.data?.sampleType || '';
+          const docDir = path.dirname(document.uri.fsPath);
+          try {
+            const localDb = await loadSamplesByType(docDir, sampleType);
+            const workspaceRoot = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath || '';
+            const globalDb = await loadSamplesByType(workspaceRoot, sampleType);
+            const refDb = await loadReferenceSamplesByType(docDir, sampleType);
+            const globalRefDb = await loadReferenceSamplesByType(workspaceRoot, sampleType);
+
+            const allRecords: Record<string, SampleRecord> = {
+              ...globalRefDb, ...refDb, ...globalDb, ...localDb,
+            };
+            const samples = Object.entries(allRecords).map(([id, rec]) => ({
+              id,
+              type: rec.type,
+              alias: rec.alias,
+              description: rec.descriptions?.[0],
+            }));
+
+            webviewPanel.webview.postMessage({
+              type: 'samplesLoaded',
+              data: { sampleType, samples },
+            });
+          } catch {
+            webviewPanel.webview.postMessage({
+              type: 'samplesLoaded',
+              data: { sampleType, samples: [] },
+            });
+          }
+          break;
+        }
+
+        case 'openImagePreview':
+          if (message.data?.imagePath) {
+            const dir = path.dirname(document.uri.fsPath);
+            const imagePath = path.resolve(dir, message.data.imagePath);
+            await vscode.commands.executeCommand(
+              'labnotev.openImagePreview',
+              vscode.Uri.file(imagePath)
+            );
+          }
+          break;
+
+        case 'generateSampleId': {
+          const genType = message.data?.type || 'DNA';
+          const newId = generateSampleId(genType);
+          webviewPanel.webview.postMessage({
+            type: 'sampleIdGenerated',
+            data: { id: newId, type: genType },
+          });
+          break;
+        }
+
+        case 'navigateToSample': {
+          const { sampleId, sampleType } = message.data || {};
+          if (sampleId && sampleType) {
+            await vscode.commands.executeCommand(
+              'labnotev.moveToDefinition',
+              sampleType,
+              sampleId
+            );
+          }
+          break;
+        }
+      }
+    });
+
+    webviewPanel.onDidChangeViewState(() => {
+      if (webviewPanel.active) {
+        this.activeEditor = { document, webviewPanel, mode };
+      } else if (this.activeEditor?.document === document) {
+        this.activeEditor = undefined;
+      }
+    });
+
+    webviewPanel.onDidDispose(() => {
+      if (this.activeEditor?.document === document) {
+        this.activeEditor = undefined;
+      }
+    });
+
+    const changeSubscription = vscode.workspace.onDidChangeTextDocument((e) => {
+      if (this._suppressDocChange) return;
+      if (e.document.uri.toString() === document.uri.toString() && e.contentChanges.length > 0) {
+        const newContent = e.document.getText();
+        if (mode === 'labnote') {
+          const labNote = parseLabNoteMd(newContent);
+          webviewPanel.webview.postMessage({
+            type: 'documentChanged',
+            data: { labNote },
+          });
+        } else if (mode === 'workflow') {
+          const workflow = parseWorkflowMd(newContent);
+          webviewPanel.webview.postMessage({
+            type: 'documentChanged',
+            data: { workflow },
+          });
+        }
+      }
+    });
+
+    webviewPanel.onDidDispose(() => {
+      changeSubscription.dispose();
+    });
+  }
+
+  private async sendInitMessage(
+    document: vscode.TextDocument,
+    webviewPanel: vscode.WebviewPanel,
+    mode: MdFileType
+  ): Promise<void> {
+    const content = document.getText();
+
+    if (mode === 'labnote') {
+      const labNote = parseLabNoteMd(content);
+      const dir = path.dirname(document.uri.fsPath);
+
+      // Load linked workflow files
+      const linkedWorkflows: any[] = [];
+      const wfSection = labNote.sections.find(s => s.type === 'workflows');
+      if (wfSection?.type === 'workflows') {
+        for (const item of wfSection.items) {
+          const wfPath = path.resolve(dir, item.link);
+          if (fs.existsSync(wfPath)) {
+            const wfContent = fs.readFileSync(wfPath, 'utf8');
+            linkedWorkflows.push(parseWorkflowMd(wfContent));
+          }
+        }
+      }
+
+      webviewPanel.webview.postMessage({
+        type: 'init',
+        data: { mode, labNote, linkedWorkflows },
+      });
+    } else if (mode === 'workflow') {
+      const workflow = parseWorkflowMd(content);
+      webviewPanel.webview.postMessage({
+        type: 'init',
+        data: { mode, workflow },
+      });
+    }
+  }
+
+  private async handleSave(
+    document: vscode.TextDocument,
+    data: any,
+    mode: MdFileType
+  ): Promise<void> {
+    this._suppressDocChange = true;
+    try {
+      if (mode === 'labnote' && data.labNote) {
+        data.labNote.frontMatter.last_updated_date = new Date().toISOString().split('T')[0];
+        const newContent = serializeLabNoteMd(data.labNote);
+        const edit = new vscode.WorkspaceEdit();
+        const fullRange = new vscode.Range(
+          document.positionAt(0),
+          document.positionAt(document.getText().length)
+        );
+        edit.replace(document.uri, fullRange, newContent);
+        await vscode.workspace.applyEdit(edit);
+        await document.save();
+
+        if (data.changedWorkflows) {
+          const dir = path.dirname(document.uri.fsPath);
+          for (const cw of data.changedWorkflows) {
+            if (cw.link && cw.workflow) {
+              const wfPath = path.resolve(dir, cw.link);
+              const wfContent = serializeWorkflowMd(cw.workflow);
+              fs.writeFileSync(wfPath, wfContent, 'utf8');
+            }
+          }
+        }
+      } else if (mode === 'workflow' && data.workflow) {
+        data.workflow.frontMatter.last_updated_date = new Date().toISOString().split('T')[0];
+        const newContent = serializeWorkflowMd(data.workflow);
+        const edit = new vscode.WorkspaceEdit();
+        const fullRange = new vscode.Range(
+          document.positionAt(0),
+          document.positionAt(document.getText().length)
+        );
+        edit.replace(document.uri, fullRange, newContent);
+        await vscode.workspace.applyEdit(edit);
+        await document.save();
+      }
+    } finally {
+      this._suppressDocChange = false;
+    }
+  }
+
+  private getHtmlForWebview(webview: vscode.Webview): string {
+    const distUri = vscode.Uri.joinPath(this.context.extensionUri, 'webview-section', 'dist');
+    const scriptUri = webview.asWebviewUri(vscode.Uri.joinPath(distUri, 'index.js'));
+    const styleUri = webview.asWebviewUri(vscode.Uri.joinPath(distUri, 'index.css'));
+    const nonce = getNonce();
+
+    return `<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src ${webview.cspSource} 'unsafe-inline'; script-src 'nonce-${nonce}';">
+  <link rel="stylesheet" href="${styleUri}">
+  <title>Section Editor</title>
+</head>
+<body>
+  <div id="root"></div>
+  <script nonce="${nonce}" src="${scriptUri}"></script>
+</body>
+</html>`;
+  }
+}
+
+function getNonce(): string {
+  let text = '';
+  const possible = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
+  for (let i = 0; i < 32; i++) {
+    text += possible.charAt(Math.floor(Math.random() * possible.length));
+  }
+  return text;
+}

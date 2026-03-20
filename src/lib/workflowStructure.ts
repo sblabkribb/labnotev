@@ -32,7 +32,7 @@ export function isValidReadmePath(filePath: string): boolean {
   const normalizedPath = filePath.replace(/\\/g, '/');
   const baseName = path.basename(normalizedPath).toLowerCase();
   
-  if (baseName !== 'readme.md') {
+  if (baseName !== 'readme.labnote.md') {
     return false;
   }
   
@@ -61,8 +61,7 @@ export function isValidWorkflowPath(filePath: string): boolean {
   const normalizedPath = filePath.replace(/\\/g, '/');
   const baseName = path.basename(normalizedPath).toLowerCase();
   
-  // Must be a .md file (not README.md) with 3-digit prefix
-  if (!normalizedPath.toLowerCase().endsWith('.md') || baseName === 'readme.md') {
+  if (!normalizedPath.toLowerCase().endsWith('.labnote.md') || baseName === 'readme.labnote.md') {
     return false;
   }
   
@@ -92,8 +91,7 @@ export function isValidWorkflowPath(filePath: string): boolean {
  */
 export function getNextWorkflowNumber(existingFiles: string[]): string {
   const numbers = existingFiles
-    // Only count .md files with 3-digit prefix (excluding readme.md)
-    .filter(file => /^\d{3}_.*\.md$/i.test(file) && file.toLowerCase() !== 'readme.md')
+    .filter(file => /^\d{3}_.*\.labnote\.md$/i.test(file) && file.toLowerCase() !== 'readme.labnote.md')
     .map(file => {
       const match = file.match(/^(\d{3})_/);
       return match ? parseInt(match[1], 10) : 0;
@@ -156,6 +154,8 @@ ${headerTitle}
 > 유닛 오퍼레이션 목록이 자동으로 추가됩니다.
 > F1 → "Lab Note: Add Unit Operation" 명령으로 유닛 오퍼레이션을 추가하세요.
 
+## Conclusion / Summary
+
 
 
 `;
@@ -175,7 +175,7 @@ export function createWorkflowFileName(
   const safeName = sanitizeWorkflowName(workflow.name);
   const safeDescription = userDescription ? `_${sanitizeWorkflowName(userDescription)}` : '';
   
-  return `${sequence}_${workflow.id}_${safeName}${safeDescription}.md`;
+  return `${sequence}_${workflow.id}_${safeName}${safeDescription}.labnote.md`;
 }
 
 /**
@@ -201,8 +201,7 @@ export function parseWorkflowChecklistFromReadme(readmeContent: string): Workflo
       break;
     }
     
-    // Parse checkbox items: [ ] [title](./filename.md) or [x] [title](./filename.md)
-    const checkboxMatch = line.match(/^\[([ x])\]\s*\[([^\]]+)\]\(\.\/([\w\-_.]+\.md)\)/i);
+    const checkboxMatch = line.match(/^\[([ x])\]\s*\[([^\]]+)\]\(\.\/([\w\-_.]+\.labnote\.md)\)/i);
     if (checkboxMatch) {
       items.push({
         done: checkboxMatch[1].toLowerCase() === 'x',

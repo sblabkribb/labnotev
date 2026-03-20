@@ -93,6 +93,12 @@ export const mockVscode = {
   },
   MarkdownString: vi.fn().mockImplementation((value) => ({ value })),
   workspace: {
+    getWorkspaceFolder: vi.fn(() => ({
+      uri: {
+        fsPath: '/test/workspace',
+        toString: () => 'file:///test/workspace',
+      },
+    })),
     workspaceFolders: [
       {
         uri: {
@@ -128,15 +134,24 @@ export const mockVscode = {
       toString: () => `file://${[base.fsPath, ...paths].join('/')}`,
     })),
   },
-  Range: vi.fn((startLine: number, startChar: number, endLine: number, endChar: number) => ({
-    start: { line: startLine, character: startChar },
-    end: { line: endLine, character: endChar },
-  })),
-  WorkspaceEdit: vi.fn(() => ({
-    replace: vi.fn(),
-    insert: vi.fn(),
-    delete: vi.fn(),
-  })),
+  Range: class MockRange {
+    start: { line: number; character: number };
+    end: { line: number; character: number };
+    constructor(
+      startLine: number,
+      startChar: number,
+      endLine: number,
+      endChar: number
+    ) {
+      this.start = { line: startLine, character: startChar };
+      this.end = { line: endLine, character: endChar };
+    }
+  },
+  WorkspaceEdit: class MockWorkspaceEdit {
+    replace = vi.fn();
+    insert = vi.fn();
+    delete = vi.fn();
+  },
   ExtensionContext: vi.fn(),
 };
 

@@ -36,6 +36,18 @@ describe('Extension', () => {
 
       expect(mockContext.subscriptions.length).toBeGreaterThan(0);
     });
+
+    it('should register Section Editor custom editor provider', async () => {
+      await activate(mockContext as unknown as Parameters<typeof activate>[0]);
+
+      expect(mockVscode.window.registerCustomEditorProvider).toHaveBeenCalledWith(
+        'labnotev.sectionEditor',
+        expect.any(Object),
+        expect.objectContaining({
+          webviewOptions: { retainContextWhenHidden: true },
+        })
+      );
+    });
   });
 
   describe('deactivate', () => {

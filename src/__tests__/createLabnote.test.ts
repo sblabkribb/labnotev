@@ -145,7 +145,7 @@ describe('Create Labnote Command', () => {
       
       // Use path.join to handle platform-specific path separators
       expect(result.labnoteFolder).toBe(path.join('/workspace', 'labnote', '001_Test_Experiment'));
-      expect(result.readmePath).toBe(path.join('/workspace', 'labnote', '001_Test_Experiment', 'README.md'));
+      expect(result.readmePath).toBe(path.join('/workspace', 'labnote', '001_Test_Experiment', 'README.labnote.md'));
       expect(result.imagesFolder).toBe(path.join('/workspace', 'labnote', '001_Test_Experiment', 'images'));
       expect(result.resourcesFolder).toBe(path.join('/workspace', 'labnote', '001_Test_Experiment', 'resources'));
     });

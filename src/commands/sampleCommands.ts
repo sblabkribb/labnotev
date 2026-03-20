@@ -12,16 +12,18 @@ import {
 } from '../views/SampleTreeViewProvider';
 import { findSampleDefinitionMatch, loadSamplesByType } from '../lib/sampleStorage';
 import { showProductPicker } from '../lib/productPicker';
+import type { SectionEditorProvider } from '../sectionEditorProvider';
 
 export interface SampleCommandProviders {
   sampleTreeProvider: SampleTreeViewProvider;
+  sectionEditorProvider?: SectionEditorProvider;
 }
 
 export function registerSampleCommands(
   context: vscode.ExtensionContext,
   providers: SampleCommandProviders
 ): void {
-  const { sampleTreeProvider } = providers;
+  const { sampleTreeProvider, sectionEditorProvider } = providers;
 
   // Register refresh sample tree command
   context.subscriptions.push(
@@ -36,7 +38,12 @@ export function registerSampleCommands(
       if (item && item.itemType === SampleTreeItemType.Sample) {
         const insertText = getInsertText(item);
 
-        // First try to insert into active text editor
+        const secDoc = sectionEditorProvider?.getActiveDocument();
+        if (secDoc) {
+          await sectionEditorProvider!.insertSampleIntoDocument(secDoc, insertText);
+          return;
+        }
+
         const editor = vscode.window.activeTextEditor;
         if (editor && editor.document.languageId === 'markdown') {
           await editor.edit(editBuilder => {
@@ -55,7 +62,12 @@ export function registerSampleCommands(
       if (item && item.itemType === SampleTreeItemType.Sample) {
         const insertText = getDefinitionText(item);
 
-        // Insert into active text editor
+        const secDoc = sectionEditorProvider?.getActiveDocument();
+        if (secDoc) {
+          await sectionEditorProvider!.insertSampleIntoDocument(secDoc, insertText);
+          return;
+        }
+
         const editor = vscode.window.activeTextEditor;
         if (editor && editor.document.languageId === 'markdown') {
           await editor.edit(editBuilder => {
@@ -180,10 +192,17 @@ export function registerSampleCommands(
         newDescription || null
       );
 
-      // Update markdown document if active editor contains this sample definition
-      const editor = vscode.window.activeTextEditor;
-      if (editor && editor.document.languageId === 'markdown') {
-        const docText = editor.document.getText();
+      const newDefinitionText = getDefinitionText({
+        sampleType: item.sampleType,
+        sampleId: item.sampleId,
+        alias: newAlias || null,
+        sampleDescription: newDescription || null,
+      } as SampleTreeItem);
+
+      // Try section editor first
+      const secDoc = sectionEditorProvider?.getActiveDocument();
+      if (secDoc) {
+        const docText = secDoc.getText();
         const match = findSampleDefinitionMatch(
           docText,
           item.sampleType!,
@@ -191,19 +210,33 @@ export function registerSampleCommands(
           item.alias ?? null
         );
         if (match) {
+          const edit = new vscode.WorkspaceEdit();
           const range = new vscode.Range(
-            editor.document.positionAt(match.start),
-            editor.document.positionAt(match.start + match.length)
+            secDoc.positionAt(match.start),
+            secDoc.positionAt(match.start + match.length)
           );
-          const newDefinitionText = getDefinitionText({
-            sampleType: item.sampleType,
-            sampleId: item.sampleId,
-            alias: newAlias || null,
-            sampleDescription: newDescription || null,
-          } as SampleTreeItem);
-          await editor.edit((editBuilder) => {
-            editBuilder.replace(range, newDefinitionText);
-          });
+          edit.replace(secDoc.uri, range, newDefinitionText);
+          await vscode.workspace.applyEdit(edit);
+        }
+      } else {
+        const editor = vscode.window.activeTextEditor;
+        if (editor && editor.document.languageId === 'markdown') {
+          const docText = editor.document.getText();
+          const match = findSampleDefinitionMatch(
+            docText,
+            item.sampleType!,
+            item.sampleId!,
+            item.alias ?? null
+          );
+          if (match) {
+            const range = new vscode.Range(
+              editor.document.positionAt(match.start),
+              editor.document.positionAt(match.start + match.length)
+            );
+            await editor.edit((editBuilder) => {
+              editBuilder.replace(range, newDefinitionText);
+            });
+          }
         }
       }
 
@@ -247,7 +280,24 @@ export function registerSampleCommands(
         editor.selection = new vscode.Selection(range.start, range.end);
       };
 
-      // (1) Check active editor (markdown)
+      // (1a) Check section editor
+      const secDoc = sectionEditorProvider?.getActiveDocument();
+      if (secDoc) {
+        const docText = secDoc.getText();
+        const match = findSampleDefinitionMatch(
+          docText,
+          item.sampleType,
+          item.sampleId,
+          item.alias ?? null
+        );
+        if (match) {
+          const editor = await vscode.window.showTextDocument(secDoc, { preview: false });
+          revealAndSelect(editor, match);
+          return;
+        }
+      }
+
+      // (1b) Check active text editor (markdown)
       const activeEditor = vscode.window.activeTextEditor;
       if (activeEditor && activeEditor.document.languageId === 'markdown') {
         const docText = activeEditor.document.getText();
@@ -348,12 +398,16 @@ export function registerSampleCommands(
       });
 
       if (selected) {
-        // Insert selected sample to editor
         const insertText = selected.alias
           ? `${selected.sampleId}|${selected.alias}`
           : selected.sampleId;
 
-        // First try to insert into active text editor
+        const secDoc = sectionEditorProvider?.getActiveDocument();
+        if (secDoc) {
+          await sectionEditorProvider!.insertSampleIntoDocument(secDoc, insertText);
+          return;
+        }
+
         const editor = vscode.window.activeTextEditor;
         if (editor && editor.document.languageId === 'markdown') {
           await editor.edit(editBuilder => {

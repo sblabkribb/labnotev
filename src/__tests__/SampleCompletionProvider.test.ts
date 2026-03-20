@@ -16,26 +16,47 @@ vi.mock('vscode', () => ({
   window: {
     createOutputChannel: vi.fn(() => ({ appendLine: vi.fn() })),
   },
-  CompletionItem: vi.fn().mockImplementation((label, kind) => ({
-    label,
-    kind,
-    insertText: undefined,
-    detail: undefined,
-    sortText: undefined,
-    command: undefined,
-    documentation: undefined,
-    range: undefined,
-  })),
+  CompletionItem: class MockCompletionItem {
+    label: string;
+    kind: number;
+    insertText?: string;
+    detail?: string;
+    sortText?: string;
+    command?: unknown;
+    documentation?: unknown;
+    range?: unknown;
+    constructor(label: string, kind: number) {
+      this.label = label;
+      this.kind = kind;
+    }
+  },
+  // Extend Array so tests can use Array.isArray(result) and result.find(...)
+  CompletionList: class MockCompletionList extends Array {
+    isIncomplete: boolean;
+    constructor(items: unknown[], isIncomplete: boolean) {
+      super(...items);
+      this.isIncomplete = isIncomplete;
+    }
+  },
   CompletionItemKind: {
     Reference: 1,
     Event: 2,
     Snippet: 3,
   },
   MarkdownString: vi.fn().mockImplementation((value) => ({ value })),
-  Range: vi.fn().mockImplementation((startLine, startChar, endLine, endChar) => ({
-    start: { line: startLine, character: startChar },
-    end: { line: endLine, character: endChar },
-  })),
+  Range: class MockRange {
+    start: { line: number; character: number };
+    end: { line: number; character: number };
+    constructor(
+      startLine: number,
+      startChar: number,
+      endLine: number,
+      endChar: number
+    ) {
+      this.start = { line: startLine, character: startChar };
+      this.end = { line: endLine, character: endChar };
+    }
+  },
 }));
 
 // Mock dataLoader
@@ -54,6 +75,7 @@ vi.mock('../lib/sampleStorage', () => ({
   }),
   getGlobalLabsamplesFolder: vi.fn((workspaceRoot: string) => workspaceRoot + '/resources/labsamples'),
   loadSamplesByType: vi.fn(() => ({})),
+  loadReferenceSamplesByType: vi.fn(() => ({})),
 }));
 
 describe('SampleCompletionProvider', () => {
@@ -221,8 +243,8 @@ describe('SampleCompletionProvider', () => {
         {} as any
       ) as any[];
 
-      // Find the sample completion item (not the "새 ID 생성" option)
-      const sampleItem = result.find((item: any) => item.sortText?.startsWith('0_'));
+      // Find the sample completion item (not the "새 ID 생성" option which uses 0_new)
+      const sampleItem = result.find((item: any) => item.sortText?.startsWith('1_'));
       
       expect(sampleItem).toBeDefined();
       // insertText should be "ID|Alias" without description
@@ -252,7 +274,7 @@ describe('SampleCompletionProvider', () => {
         {} as any
       ) as any[];
 
-      const sampleItem = result.find((item: any) => item.sortText?.startsWith('0_'));
+      const sampleItem = result.find((item: any) => item.sortText?.startsWith('1_'));
       
       expect(sampleItem).toBeDefined();
       expect(sampleItem.insertText).toBe('DNA-456');

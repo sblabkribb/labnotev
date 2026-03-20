@@ -254,10 +254,10 @@ export class SampleCompletionProvider implements vscode.CompletionItemProvider {
           continue;
         }
         
-        // Build insert text: "ID|Alias" or "ID|Alias:Description". For Equip, use id|alias:description when available
+        // Build insert text: "ID" or "ID|Alias" (description only in label/documentation, not in inserted text)
         let insertText = id;
         if (alias) {
-          insertText = description ? `${id}|${alias}:${description}` : `${id}|${alias}`;
+          insertText = `${id}|${alias}`;
         }
         
         const item = new vscode.CompletionItem(label, vscode.CompletionItemKind.Reference);

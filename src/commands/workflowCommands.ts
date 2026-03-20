@@ -35,16 +35,23 @@ import {
   WorkflowChecklistItem,
 } from '../lib/workflowStructure';
 import { getSeoulDateTimeString as getDateTime } from '../lib/dateUtils';
+import {
+  getActiveLabnoteEditTarget,
+  labnoteDirFromTarget,
+  getExperimenterForLabnoteFolder,
+} from '../lib/labnoteWorkflowContext';
+import type { SectionEditorProvider } from '../sectionEditorProvider';
 
 export interface WorkflowCommandProviders {
   workflowTreeProvider: WorkflowTreeViewProvider;
+  sectionEditorProvider?: SectionEditorProvider;
 }
 
 export function registerWorkflowCommands(
   context: vscode.ExtensionContext,
   providers: WorkflowCommandProviders
 ): void {
-  const { workflowTreeProvider } = providers;
+  const { workflowTreeProvider, sectionEditorProvider } = providers;
 
   // Register refresh workflow tree command
   context.subscriptions.push(
@@ -124,16 +131,9 @@ export function registerWorkflowCommands(
   // Register create workflow from tree command
   context.subscriptions.push(
     vscode.commands.registerCommand('labnotev.createWorkflowFromTree', async (item: WorkflowTreeItem | { workflowId: string; workflowName: string; workflowDescription: string; category: string }) => {
-      const editor = vscode.window.activeTextEditor;
-      if (!editor) {
-        vscode.window.showWarningMessage('README.md 파일을 열어주세요');
-        return;
-      }
-
-      const readmePath = editor.document.uri.fsPath;
-
-      if (!isValidReadmePath(readmePath)) {
-        vscode.window.showWarningMessage('labnote 폴더 내의 README.md 파일에서 실행해주세요');
+      const target = getActiveLabnoteEditTarget(sectionEditorProvider);
+      if (!target) {
+        vscode.window.showWarningMessage('README.md를 열어주세요');
         return;
       }
 
@@ -153,16 +153,12 @@ export function registerWorkflowCommands(
         placeHolder: 'e.g., Day 1 prep',
       });
 
-      // Get experimenter from README
-      const readmeContent = editor.document.getText();
-      const experimenter = parseExperimenterFromReadme(readmeContent);
+      const labnoteDir = labnoteDirFromTarget(target);
+      const experimenter = getExperimenterForLabnoteFolder(labnoteDir);
 
-      // Get existing workflow files
-      const labnoteDir = path.dirname(readmePath);
       const existingFiles = fs.readdirSync(labnoteDir)
-        .filter(file => /^\d{3}_.+\.md$/i.test(file) && file.toLowerCase() !== 'readme.md');
+        .filter(file => /^\d{3}_.+\.labnote\.md$/i.test(file) && file.toLowerCase() !== 'readme.labnote.md');
 
-      // Create workflow file
       const sequence = getNextWorkflowNumber(existingFiles);
       const workflowFileName = createWorkflowFileName(sequence, {
         id: workflowId,
@@ -177,30 +173,38 @@ export function registerWorkflowCommands(
       }, userDescription?.trim() || '', experimenter);
 
       const workflowPath = path.join(labnoteDir, workflowFileName);
+      const checklistTitle = `${sequence} ${workflowId} ${workflowName}${userDescription ? ` - ${userDescription}` : ''}`;
 
       try {
         fs.writeFileSync(workflowPath, workflowContent, 'utf8');
 
-        // Update README.md
-        const existingItems = parseWorkflowChecklistFromReadme(readmeContent);
-        const newItem: WorkflowChecklistItem = {
-          fileName: workflowFileName,
-          title: `${sequence} ${workflowId} ${workflowName}${userDescription ? ` - ${userDescription}` : ''}`,
-          done: false,
-        };
-
-        const allItems = [...existingItems, newItem];
-        const newChecklist = generateWorkflowChecklist(allItems);
-        const updatedReadme = updateReadmeWorkflowSection(readmeContent, newChecklist);
-
-        const edit = new vscode.WorkspaceEdit();
-        const fullRange = new vscode.Range(
-          editor.document.positionAt(0),
-          editor.document.positionAt(readmeContent.length)
-        );
-        edit.replace(editor.document.uri, fullRange, updatedReadme);
-        await vscode.workspace.applyEdit(edit);
-        await editor.document.save();
+        if (target.mode === 'readme') {
+          const editor = target.editor;
+          const readmeContent = editor.document.getText();
+          const existingItems = parseWorkflowChecklistFromReadme(readmeContent);
+          const newItem: WorkflowChecklistItem = {
+            fileName: workflowFileName,
+            title: checklistTitle,
+            done: false,
+          };
+          const allItems = [...existingItems, newItem];
+          const newChecklist = generateWorkflowChecklist(allItems);
+          const updatedReadme = updateReadmeWorkflowSection(readmeContent, newChecklist);
+          const edit = new vscode.WorkspaceEdit();
+          const fullRange = new vscode.Range(
+            editor.document.positionAt(0),
+            editor.document.positionAt(readmeContent.length)
+          );
+          edit.replace(editor.document.uri, fullRange, updatedReadme);
+          await vscode.workspace.applyEdit(edit);
+          await editor.document.save();
+        } else if (target.mode === 'section') {
+          await target.provider.mergeWorkflowIntoDocument(target.document, {
+            title: checklistTitle,
+            link: `./${workflowFileName}`,
+            checked: false,
+          });
+        }
 
         vscode.window.showInformationMessage(`워크플로가 생성되었습니다: ${workflowFileName}`);
       } catch (error) {
@@ -310,6 +314,33 @@ export function registerWorkflowCommands(
   // Register insert unit operation command
   context.subscriptions.push(
     vscode.commands.registerCommand('labnotev.insertUnitOperation', async (item: WorkflowTreeItem | { opId: string; opName: string; opDescription: string; opType: 'hw' | 'sw'; equipment?: string; software?: string }) => {
+      // Check section editor first
+      if (sectionEditorProvider?.getEditorMode() === 'workflow') {
+        const secDoc = sectionEditorProvider.getActiveDocument();
+        if (secDoc) {
+          const opId = item.opId || (item as any).opId;
+          const opName = item.opName || (item as any).opName;
+          const opDescription = item.opDescription || (item as any).opDescription;
+          const software = item.software || (item as any).software;
+          const opType = (item as { opType?: 'hw' | 'sw' }).opType ?? (software ? 'sw' : 'hw');
+          if (!opId || !opName) {
+            vscode.window.showErrorMessage('유닛 오퍼레이션 정보가 없습니다');
+            return;
+          }
+          const dir = path.dirname(secDoc.uri.fsPath);
+          const readmePath = path.join(dir, 'README.labnote.md');
+          let experimenter = '';
+          if (fs.existsSync(readmePath)) {
+            experimenter = parseExperimenterFromReadme(fs.readFileSync(readmePath, 'utf8'));
+          }
+          const { buildUnitOperationBlock } = await import('../sectionEditorProvider');
+          const block = buildUnitOperationBlock(opId, opName, opDescription || '', opType, experimenter);
+          await sectionEditorProvider.appendUnitOpToDocument(secDoc, block);
+          vscode.window.showInformationMessage(`유닛 오퍼레이션이 삽입되었습니다: ${opId} ${opName}`);
+          return;
+        }
+      }
+
       const editor = vscode.window.activeTextEditor;
       if (!editor) {
         vscode.window.showWarningMessage('워크플로 파일을 열어주세요');
@@ -338,7 +369,7 @@ export function registerWorkflowCommands(
 
       // Get experimenter from README
       const labnoteDir = path.dirname(workflowPath);
-      const readmePath = path.join(labnoteDir, 'README.md');
+      const readmePath = path.join(labnoteDir, 'README.labnote.md');
       let experimenter = '';
       if (fs.existsSync(readmePath)) {
         const readmeContent = fs.readFileSync(readmePath, 'utf8');

@@ -5,6 +5,89 @@
 형식은 [Keep a Changelog](https://keepachangelog.com/ko/1.1.0/)를 기반으로 하며,
 이 프로젝트는 [유의적 버전 관리](https://semver.org/lang/ko/)를 따릅니다.
 
+## [0.21.3] - 2026-02-02
+
+### 추가
+
+#### 샘플 웹 기능 (Section Editor 내 웹 기술 구현)
+- **샘플 하이라이팅**: SectionEditor의 textarea에 overlay 기법을 적용하여 샘플 ID(DNA-123, RNA-456 등)를 타입별 색상으로 실시간 하이라이트
+- **샘플 자동완성**: textarea에서 `@` 입력 시 2단계 드롭다운 표시 (타입 선택 → 기존 샘플 목록/새 ID 생성)
+  - Extension에서 `requestSamples` 메시지로 실제 샘플 DB 로드 (`loadSamplesByType`, `loadReferenceSamplesByType`)
+  - `generateSampleId` 명령을 웹뷰에서 직접 호출하여 새 ID 반환
+- **샘플 정의 네비게이션**: overlay의 하이라이트된 샘플 ID 클릭 시 정의 위치로 이동 (`moveToDefinition`), 호버 시 Tooltip 표시
+
+### 새 파일
+- `webview-section/src/components/SampleAutocomplete.tsx` - 2단계 샘플 자동완성 드롭다운
+
+---
+
+## [0.21.2] - 2026-02-02
+
+### 추가
+
+#### UX 개선
+- **날짜-시간 입력**: `@mantine/dates` + `dayjs` 기반 `DateTimePicker` 도입. Workflow의 `end_date` 필드에서 캘린더 + 시간 선택 UI 제공 (`YYYY-MM-DD HH:mm` 형식)
+- **Workflow Tail 섹션**: 워크플로 생성 시 `## Conclusion / Summary` 섹션 + 2~3줄 공란 자동 추가. `WorkflowDocument`에 `tailContent` 필드 추가, 파서/시리얼라이저에서 tail 섹션 보존
+- **유닛 오퍼레이션 별칭 (Alias)**: `### [HW01 Centrifugation] 단백질 정제 1단계` 형식으로 대괄호 뒤에 별칭 저장. 아코디언 헤더에 표시 + 편집 가능한 TextInput 추가
+- **섹션 드래그 정렬**: `@dnd-kit/core`+`@dnd-kit/sortable`로 유닛 오퍼레이션 순서를 드래그&드롭으로 변경 가능. 각 항목에 GripVertical 드래그 핸들 추가
+
+---
+
+## [0.21.1] - 2026-02-02
+
+### 수정
+
+#### 유닛 오퍼레이션 중복 삽입 버그
+- TreeView에서 유닛 오퍼레이션 삽입 시 마지막에 2개가 추가되던 문제 수정
+- 원인: `appendUnitOpToDocument`에서 `WorkspaceEdit` 적용 후 `onDidChangeTextDocument`가 `documentChanged`를, 직후 `unitOpAdded`가 동일 unitOp를 중복 전송
+- `SectionEditorProvider`에 `_suppressDocChange` 플래그 추가하여 내부 편집 시 echo loop 방지
+
+### 추가
+
+#### 자동 저장
+- 편집 시 1.5초 debounce 후 자동 저장 (`useDebouncedCallback`)
+- 저장 상태 Badge 표시: 저장됨 (green) / 저장 중... (yellow) / 변경사항 있음 (orange)
+- 상단에 자동 저장 안내 Alert 배너 추가
+- Extension에서 `saveCompleted` 메시지 반환으로 저장 완료 확인
+
+---
+
+## [0.21.0] - 2026-02-02
+
+### 추가
+
+#### Section Editor 아키텍처
+- **MD 기반 Section Editor**: `*.labnote.md` 파일의 기본 에디터로 React 19 + Mantine v8 기반 커스텀 에디터 도입
+  - Lab Note 모드: Front Matter, Experiment Objective, Related Workflows, Results 섹션 편집
+  - Workflow 모드: Front Matter, Workflow Header, Unit Operations 아코디언 편집
+- **MD 섹션 파서**: `labnoteSectionParser.ts`(Lab Note), `workflowSectionParser.ts`(Workflow)로 MD 파일을 구조화된 문서 모델로 변환 및 역변환
+- **타입 시스템**: `sectionTypes.ts`에 `LabNoteDocument`, `WorkflowDocument`, `UnitOperationBlock` 등 공유 타입 정의
+
+#### .labnote.md 확장자 전환
+- 랩노트 README: `README.md` → `README.labnote.md`
+- 워크플로: `{name}.md` → `{name}.labnote.md`
+- `package.json`에 `customEditors` (`*.labnote.md`, `priority: "default"`) 및 `languages` (`.labnote.md` → `markdown`) 설정
+- `labnoteStructure.ts`, `workflowStructure.ts`, `creationCommands.ts`, `workflowCommands.ts` 경로 일괄 변경
+
+#### 명령어 통합
+- `sampleCommands`의 `editSample`, `moveToDefinition`이 Section Editor 활성 문서에서 동작하도록 확장
+- `workflowCommands`의 `insertUnitOperation`, `createWorkflowFromTree`가 Section Editor 모드에서 `appendUnitOpToDocument`/`mergeWorkflowIntoDocument` 활용
+- `labnoteWorkflowContext.ts`로 활성 편집 대상 해석 (`text` / `section` 모드)
+
+### 제거
+- **레거시 WYSIWYG 에디터 삭제**: `webview/` 디렉토리 전체 삭제 (BlockNote 기반 에디터, 슬래시 명령, 마크다운 변환기 등)
+- `src/labNoteEditorProvider.ts` 및 관련 테스트 삭제
+
+### 새 파일
+- `src/sectionEditorProvider.ts` - Section Editor Provider
+- `src/lib/labnoteSectionParser.ts` - Lab Note MD 파서
+- `src/lib/workflowSectionParser.ts` - Workflow MD 파서
+- `src/lib/sectionTypes.ts` - 공유 타입 정의
+- `src/lib/labnoteWorkflowContext.ts` - 편집 대상 컨텍스트 해석
+- `webview-section/` - 새 React Webview 앱 (Mantine v8)
+
+---
+
 ## [0.20.2] - 2026-03-06
 
 ### 변경

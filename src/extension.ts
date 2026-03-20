@@ -10,6 +10,7 @@ import {
   registerUtilityCommands,
   registerCreationCommands,
 } from './commands';
+import { SectionEditorProvider } from './sectionEditorProvider';
 
 export async function activate(context: vscode.ExtensionContext) {
   console.log('Lab Note Editor is now active');
@@ -87,26 +88,39 @@ export async function activate(context: vscode.ExtensionContext) {
   context.subscriptions.push(workflowTreeView);
 
   // ========================================
+  // Section Editor Setup
+  // ========================================
+  const sectionEditorProvider = new SectionEditorProvider(context);
+  context.subscriptions.push(
+    vscode.window.registerCustomEditorProvider(
+      SectionEditorProvider.viewType,
+      sectionEditorProvider,
+      {
+        webviewOptions: { retainContextWhenHidden: true },
+        supportsMultipleEditorsPerDocument: false,
+      }
+    )
+  );
+
+  // ========================================
   // Register All Commands
   // ========================================
 
-  // Register sample commands
   registerSampleCommands(context, {
     sampleTreeProvider,
+    sectionEditorProvider,
   });
 
-  // Register workflow commands
   registerWorkflowCommands(context, {
     workflowTreeProvider,
+    sectionEditorProvider,
   });
 
-  // Register utility commands
   registerUtilityCommands(context, {
     sampleTreeProvider,
   });
 
-  // Register creation commands
-  registerCreationCommands(context);
+  registerCreationCommands(context, { sectionEditorProvider });
 }
 
 export async function deactivate() {

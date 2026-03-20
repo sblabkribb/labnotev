@@ -2,7 +2,7 @@
   "name": "LabnoteV",
   "displayName": "Labnote Assistant for VSCode",
   "description": "Markdown-based labnote assistant with sample tracking and workflow management",
-  "version": "0.20.2",
+  "version": "0.21.0",
   "license": "MIT",
   "publisher": "korea-biofoundry",
   "repository": {
@@ -20,10 +20,31 @@
     "Other"
   ],
   "activationEvents": [
-    "onLanguage:markdown"
+    "onLanguage:markdown",
+    "onCustomEditor:labnotev.sectionEditor"
   ],
   "main": "./dist/extension.js",
   "contributes": {
+    "customEditors": [
+      {
+        "viewType": "labnotev.sectionEditor",
+        "displayName": "Lab Note Section Editor",
+        "selector": [
+          {
+            "filenamePattern": "*.labnote.md"
+          }
+        ],
+        "priority": "default"
+      }
+    ],
+    "languages": [
+      {
+        "id": "markdown",
+        "extensions": [
+          ".labnote.md"
+        ]
+      }
+    ],
     "viewsContainers": {
       "activitybar": [
         {
@@ -336,13 +357,13 @@
     "vscode:prepublish": "npm run build",
     "build": "node esbuild.js --production && npm run build:webview",
     "build:extension": "node esbuild.js --production",
-    "build:webview": "cd webview && npm run build",
+    "build:webview": "cd webview-section && npm run build",
     "watch": "node esbuild.js --watch",
-    "dev": "concurrently \"npm run watch\" \"cd webview && npm run dev\"",
-    "install:all": "npm install && cd webview && npm install",
+    "dev": "npm run watch",
+    "install:all": "npm install && cd webview-section && npm install",
     "test": "vitest run",
     "test:watch": "vitest",
-    "test:all": "npm test && cd webview && npm test"
+    "test:all": "npm test && cd webview-section && npm test"
   },
   "devDependencies": {
     "@types/js-yaml": "^4.0.9",

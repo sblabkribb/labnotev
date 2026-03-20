@@ -80,13 +80,6 @@ last_updated_date: ${today}
 `;
 }
 
-/**
- * Create labnote folder structure paths
- * @param workspaceRoot Workspace root path
- * @param title Experiment title
- * @param existingFolders Existing labnote folder names
- * @param author Optional author name
- */
 export function createLabnoteStructure(
   workspaceRoot: string,
   title: string,
@@ -101,7 +94,7 @@ export function createLabnoteStructure(
   
   return {
     labnoteFolder,
-    readmePath: path.join(labnoteFolder, 'README.md'),
+    readmePath: path.join(labnoteFolder, 'README.labnote.md'),
     imagesFolder: path.join(labnoteFolder, 'images'),
     resourcesFolder: path.join(labnoteFolder, 'resources'),
     readmeContent: generateReadmeContent(title, author),
