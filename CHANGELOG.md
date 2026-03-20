@@ -5,6 +5,37 @@
 형식은 [Keep a Changelog](https://keepachangelog.com/ko/1.1.0/)를 기반으로 하며,
 이 프로젝트는 [유의적 버전 관리](https://semver.org/lang/ko/)를 따릅니다.
 
+## [0.22.0] - 2026-02-02
+
+### 추가
+
+#### 이미지 붙여넣기 및 썸네일 표시
+- 모든 섹션(Lab Note, Workflow)에서 Ctrl+V로 클립보드 이미지를 붙여넣기 가능
+- 이미지가 자동으로 `images/` 폴더에 저장되고 마크다운 이미지 링크(`![](images/img_xxx.png)`)가 삽입됨
+- Textarea 아래에 이미지 썸네일 자동 표시 (기존 마크다운 이미지 링크도 표시)
+- 썸네일 클릭 시 모달로 확대 보기
+
+#### 워크플로 뒤로가기 링크
+- Workflow 파일 열람 시 상단에 "Back to Lab Note" 링크 표시
+- 클릭 시 같은 디렉토리의 `README.labnote.md`로 이동
+
+#### Lab Note 템플릿에 Summary and Discussion 섹션 추가
+- 새로 생성되는 Lab Note에 `## Summary and Discussion` 섹션이 자동 포함
+
+### 변경
+
+#### Section Editor UX 개선
+- 샘플 정의 텍스트에 `- ` 접두어 자동 추가 (리스트 형식)
+- Front Matter의 Created Date, Last Updated 필드를 DateTimePicker로 변경 (기존 readonly → 편집 가능)
+- 유닛 오퍼레이션 별칭을 아코디언 헤더에 인라인 배치 (placeholder: "Add a short description here")
+- Lab Note 모드에서 Linked Workflow Unit Operations 인라인 표시 제거, 워크플로 제목 클릭으로 파일 열기
+- Meta 섹션을 구조화된 폼으로 변환 (Experimenter: TextInput, Start/End Date: DateTimePicker)
+
+### 제거
+
+#### Sample Tracking UI 숨김
+- Front Matter에서 `sample_tracking` 필드를 Section Editor UI에서 제거 (파서/시리얼라이저에서는 유지하여 기존 파일 호환성 보장)
+
 ## [0.21.4] - 2026-02-02
 
 ### 추가

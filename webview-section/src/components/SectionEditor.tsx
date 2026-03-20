@@ -1,6 +1,7 @@
 import { useRef, useEffect, useState } from 'react';
 import { Title, Paper, Stack } from '@mantine/core';
 import { SampleHighlighter, highlightSampleIds } from './SampleHighlighter';
+import { ImageThumbnails } from './ImageThumbnails';
 
 interface SectionEditorProps {
   heading: string;
@@ -9,6 +10,7 @@ interface SectionEditorProps {
   onFocus?: () => void;
   headingLevel?: 'h2' | 'h3' | 'h4';
   minRows?: number;
+  docBaseUri?: string;
 }
 
 export function SectionEditor({
@@ -18,6 +20,7 @@ export function SectionEditor({
   onFocus,
   headingLevel = 'h3',
   minRows = 4,
+  docBaseUri,
 }: SectionEditorProps) {
   const order = headingLevel === 'h2' ? 2 : headingLevel === 'h3' ? 3 : 4;
   const textareaRef = useRef<HTMLTextAreaElement>(null);
@@ -89,6 +92,7 @@ export function SectionEditor({
             style={textareaStyle}
           />
         </div>
+        {docBaseUri && <ImageThumbnails content={content} docBaseUri={docBaseUri} />}
       </Stack>
     </Paper>
   );

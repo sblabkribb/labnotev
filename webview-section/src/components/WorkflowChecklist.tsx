@@ -1,5 +1,6 @@
-import { Checkbox, Stack, Group, Text, Paper, Title } from '@mantine/core';
+import { Checkbox, Stack, Group, Text, Paper, Title, Anchor } from '@mantine/core';
 import type { WorkflowReference } from '../types';
+import { postMessage } from '../vscodeApi';
 
 interface WorkflowChecklistProps {
   items: WorkflowReference[];
@@ -14,6 +15,10 @@ export function WorkflowChecklist({ items, onChange }: WorkflowChecklistProps) {
     onChange(updated);
   };
 
+  const handleOpenWorkflow = (link: string) => {
+    postMessage({ type: 'openWorkflow', data: { link } });
+  };
+
   return (
     <Paper p="sm" withBorder>
       <Stack gap="xs">
@@ -26,8 +31,14 @@ export function WorkflowChecklist({ items, onChange }: WorkflowChecklistProps) {
             <Checkbox
               checked={item.checked}
               onChange={() => toggleItem(index)}
-              label={item.title}
             />
+            <Anchor
+              size="sm"
+              onClick={() => handleOpenWorkflow(item.link)}
+              style={{ cursor: 'pointer' }}
+            >
+              {item.title}
+            </Anchor>
             <Text size="xs" c="dimmed">({item.link})</Text>
           </Group>
         ))}

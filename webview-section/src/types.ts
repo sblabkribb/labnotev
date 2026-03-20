@@ -61,14 +61,15 @@ export interface WorkflowDocument {
 
 // Extension <-> Webview message types
 export type ExtensionToWebviewMessage =
-  | { type: 'init'; data: { mode: string; labNote?: LabNoteDocument; workflow?: WorkflowDocument; linkedWorkflows?: WorkflowDocument[] } }
+  | { type: 'init'; data: { mode: string; labNote?: LabNoteDocument; workflow?: WorkflowDocument; linkedWorkflows?: WorkflowDocument[]; parentLabNotePath?: string; docBaseUri?: string } }
   | { type: 'unitOpAdded'; data: UnitOperationBlock }
   | { type: 'sampleInserted'; data: { text: string } }
   | { type: 'textInserted'; data: { text: string } }
   | { type: 'workflowAdded'; data: WorkflowReference & { workflow?: WorkflowDocument } }
   | { type: 'sampleDefinitionCreated'; data: { definitionText: string; opIndex: number; secIndex: number } }
   | { type: 'documentChanged'; data: { labNote?: LabNoteDocument; workflow?: WorkflowDocument } }
-  | { type: 'saveCompleted' };
+  | { type: 'saveCompleted' }
+  | { type: 'imagePasted'; data: { markdownText: string } };
 
 export type WebviewToExtensionMessage =
   | { type: 'ready' }
@@ -76,4 +77,6 @@ export type WebviewToExtensionMessage =
   | { type: 'openAsText' }
   | { type: 'openImagePreview'; data: { imagePath: string; altText?: string } }
   | { type: 'createSampleDefinition'; data: { sampleType: string; opIndex: number; secIndex: number } }
-  | { type: 'navigateToSample'; data: { sampleId: string; sampleType: string } };
+  | { type: 'navigateToSample'; data: { sampleId: string; sampleType: string } }
+  | { type: 'openWorkflow'; data: { link: string } }
+  | { type: 'pasteImage'; data: { imageBase64: string; mimeType: string } };

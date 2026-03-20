@@ -165,6 +165,7 @@ export class SectionEditorProvider implements vscode.CustomTextEditorProvider {
       enableScripts: true,
       localResourceRoots: [
         vscode.Uri.joinPath(this.context.extensionUri, 'webview-section', 'dist'),
+        vscode.Uri.file(path.dirname(document.uri.fsPath)),
       ],
     };
 
@@ -216,13 +217,49 @@ export class SectionEditorProvider implements vscode.CustomTextEditorProvider {
           if (!result) break;
 
           const typeLower = reqType.toLowerCase();
-          let definitionText = `@${typeLower}:${result.id}`;
+          let definitionText = `- @${typeLower}:${result.id}`;
           if (result.alias) definitionText += `|${result.alias}`;
           if (result.description) definitionText += `:${result.description}`;
 
           webviewPanel.webview.postMessage({
             type: 'sampleDefinitionCreated',
             data: { definitionText, opIndex, secIndex },
+          });
+          break;
+        }
+
+        case 'openWorkflow': {
+          const { link } = message.data || {};
+          if (!link) break;
+          const docDir = path.dirname(document.uri.fsPath);
+          const wfPath = path.resolve(docDir, link);
+          if (fs.existsSync(wfPath)) {
+            await vscode.commands.executeCommand('vscode.open', vscode.Uri.file(wfPath));
+          } else {
+            vscode.window.showWarningMessage(`워크플로 파일을 찾을 수 없습니다: ${link}`);
+          }
+          break;
+        }
+
+        case 'pasteImage': {
+          const { imageBase64, mimeType } = message.data || {};
+          if (!imageBase64) break;
+          const docDir = path.dirname(document.uri.fsPath);
+          const imagesDir = path.join(docDir, 'images');
+          if (!fs.existsSync(imagesDir)) {
+            fs.mkdirSync(imagesDir, { recursive: true });
+          }
+          const ext = mimeType === 'image/jpeg' ? 'jpg' : mimeType === 'image/gif' ? 'gif' : mimeType === 'image/webp' ? 'webp' : 'png';
+          const timestamp = Date.now();
+          const rand = Math.random().toString(36).substring(2, 6);
+          const fileName = `img_${timestamp}_${rand}.${ext}`;
+          const filePath = path.join(imagesDir, fileName);
+          const buffer = Buffer.from(imageBase64, 'base64');
+          fs.writeFileSync(filePath, buffer);
+          const markdownText = `\n![](images/${fileName})\n`;
+          webviewPanel.webview.postMessage({
+            type: 'imagePasted',
+            data: { markdownText },
           });
           break;
         }
@@ -275,16 +312,17 @@ export class SectionEditorProvider implements vscode.CustomTextEditorProvider {
   ): Promise<void> {
     const content = document.getText();
 
+    const docDir = path.dirname(document.uri.fsPath);
+    const docBaseUri = webviewPanel.webview.asWebviewUri(vscode.Uri.file(docDir)).toString();
+
     if (mode === 'labnote') {
       const labNote = parseLabNoteMd(content);
-      const dir = path.dirname(document.uri.fsPath);
 
-      // Load linked workflow files
       const linkedWorkflows: any[] = [];
       const wfSection = labNote.sections.find(s => s.type === 'workflows');
       if (wfSection?.type === 'workflows') {
         for (const item of wfSection.items) {
-          const wfPath = path.resolve(dir, item.link);
+          const wfPath = path.resolve(docDir, item.link);
           if (fs.existsSync(wfPath)) {
             const wfContent = fs.readFileSync(wfPath, 'utf8');
             linkedWorkflows.push(parseWorkflowMd(wfContent));
@@ -294,13 +332,16 @@ export class SectionEditorProvider implements vscode.CustomTextEditorProvider {
 
       webviewPanel.webview.postMessage({
         type: 'init',
-        data: { mode, labNote, linkedWorkflows },
+        data: { mode, labNote, linkedWorkflows, docBaseUri },
       });
     } else if (mode === 'workflow') {
       const workflow = parseWorkflowMd(content);
+      const readmePath = path.join(docDir, 'README.labnote.md');
+      const parentLabNotePath = fs.existsSync(readmePath) ? 'README.labnote.md' : undefined;
+
       webviewPanel.webview.postMessage({
         type: 'init',
-        data: { mode, workflow },
+        data: { mode, workflow, parentLabNotePath, docBaseUri },
       });
     }
   }
@@ -362,7 +403,7 @@ export class SectionEditorProvider implements vscode.CustomTextEditorProvider {
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src ${webview.cspSource} 'unsafe-inline'; script-src 'nonce-${nonce}';">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src ${webview.cspSource} 'unsafe-inline'; script-src 'nonce-${nonce}'; img-src ${webview.cspSource};">
   <link rel="stylesheet" href="${styleUri}">
   <title>Section Editor</title>
 </head>

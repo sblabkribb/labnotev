@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
-import { MantineProvider, Stack, Button, Group, Title, Loader, Center, Text, Paper, Alert, Badge } from '@mantine/core';
+import { MantineProvider, Stack, Button, Group, Title, Loader, Center, Text, Paper, Alert, Badge, Anchor } from '@mantine/core';
 import { useDebouncedCallback } from '@mantine/hooks';
 import '@mantine/core/styles.css';
 import { FrontMatterForm } from './components/FrontMatterForm';
@@ -20,16 +20,15 @@ const LABNOTE_FM_FIELDS = [
   { key: 'title', label: 'Title' },
   { key: 'author', label: 'Author' },
   { key: 'experiment_type', label: 'Experiment Type', type: 'readonly' as const },
-  { key: 'sample_tracking', label: 'Sample Tracking', type: 'boolean' as const },
-  { key: 'created_date', label: 'Created Date', type: 'readonly' as const },
-  { key: 'last_updated_date', label: 'Last Updated', type: 'readonly' as const },
+  { key: 'created_date', label: 'Created Date', type: 'datetime' as const },
+  { key: 'last_updated_date', label: 'Last Updated', type: 'datetime' as const },
 ];
 
 const WORKFLOW_FM_FIELDS = [
   { key: 'title', label: 'Title' },
   { key: 'experimenter', label: 'Experimenter' },
-  { key: 'created_date', label: 'Created Date', type: 'readonly' as const },
-  { key: 'last_updated_date', label: 'Last Updated', type: 'readonly' as const },
+  { key: 'created_date', label: 'Created Date', type: 'datetime' as const },
+  { key: 'last_updated_date', label: 'Last Updated', type: 'datetime' as const },
   { key: 'end_date', label: 'End Date', type: 'datetime' as const },
 ];
 
@@ -45,6 +44,8 @@ export default function App() {
   const [workflow, setWorkflow] = useState<WorkflowDocument | null>(null);
   const [linkedWorkflows, setLinkedWorkflows] = useState<WorkflowDocument[]>([]);
   const [saveStatus, setSaveStatus] = useState<SaveStatus>('saved');
+  const [parentLabNotePath, setParentLabNotePath] = useState<string | null>(null);
+  const [docBaseUri, setDocBaseUri] = useState<string>('');
   const activeSectionRef = useRef<FocusTarget | null>(null);
   const modeRef = useRef<string | null>(null);
   const labNoteRef = useRef<LabNoteDocument | null>(null);
@@ -83,6 +84,8 @@ export default function App() {
           if (message.data.labNote) setLabNote(message.data.labNote);
           if (message.data.workflow) setWorkflow(message.data.workflow);
           if (message.data.linkedWorkflows) setLinkedWorkflows(message.data.linkedWorkflows);
+          if (message.data.parentLabNotePath) setParentLabNotePath(message.data.parentLabNotePath);
+          if (message.data.docBaseUri) setDocBaseUri(message.data.docBaseUri);
           break;
 
         case 'unitOpAdded':
@@ -175,6 +178,37 @@ export default function App() {
           break;
         }
 
+        case 'imagePasted': {
+          const imgText = message.data.markdownText;
+          const target = activeSectionRef.current;
+          if (!target) break;
+
+          if (target.area === 'labnoteSection') {
+            setLabNote(prev => {
+              if (!prev) return prev;
+              const sections = [...prev.sections];
+              const sec = sections[target.sectionIndex];
+              if (sec && 'content' in sec) {
+                sections[target.sectionIndex] = { ...sec, content: sec.content + imgText };
+              }
+              return { ...prev, sections };
+            });
+          } else if (target.area === 'unitOp') {
+            setWorkflow(prev => {
+              if (!prev) return prev;
+              const ops = [...prev.unitOperations];
+              const op = ops[target.opIndex];
+              if (!op) return prev;
+              const secs = [...op.sections];
+              secs[target.secIndex] = { ...secs[target.secIndex], content: secs[target.secIndex].content + imgText };
+              ops[target.opIndex] = { ...op, sections: secs };
+              return { ...prev, unitOperations: ops };
+            });
+          }
+          markDirty();
+          break;
+        }
+
         case 'saveCompleted':
           setSaveStatus('saved');
           break;
@@ -186,9 +220,34 @@ export default function App() {
       }
     };
 
+    const handlePaste = (e: ClipboardEvent) => {
+      if (!e.clipboardData) return;
+      const items = e.clipboardData.items;
+      for (let i = 0; i < items.length; i++) {
+        if (items[i].type.startsWith('image/')) {
+          e.preventDefault();
+          const blob = items[i].getAsFile();
+          if (!blob) return;
+          const reader = new FileReader();
+          reader.onload = () => {
+            const dataUrl = reader.result as string;
+            const base64 = dataUrl.split(',')[1];
+            const mimeType = items[i].type;
+            postMessage({ type: 'pasteImage', data: { imageBase64: base64, mimeType } });
+          };
+          reader.readAsDataURL(blob);
+          return;
+        }
+      }
+    };
+
     window.addEventListener('message', handler);
+    window.addEventListener('paste', handlePaste);
     postMessage({ type: 'ready' });
-    return () => window.removeEventListener('message', handler);
+    return () => {
+      window.removeEventListener('message', handler);
+      window.removeEventListener('paste', handlePaste);
+    };
   }, [markDirty]);
 
   const handleOpenAsText = useCallback(() => {
@@ -275,6 +334,7 @@ export default function App() {
                       content={section.content}
                       onChange={(c) => updateLabNoteSection(index, { ...section, content: c })}
                       onFocus={() => { activeSectionRef.current = { area: 'labnoteSection', sectionIndex: index }; }}
+                      docBaseUri={docBaseUri}
                     />
                   );
                 case 'workflows':
@@ -293,6 +353,7 @@ export default function App() {
                       content={section.content}
                       onChange={(c) => updateLabNoteSection(index, { ...section, content: c })}
                       onFocus={() => { activeSectionRef.current = { area: 'labnoteSection', sectionIndex: index }; }}
+                      docBaseUri={docBaseUri}
                     />
                   );
                 case 'freeform':
@@ -303,6 +364,7 @@ export default function App() {
                       content={section.content}
                       onChange={(c) => updateLabNoteSection(index, { ...section, content: c })}
                       onFocus={() => { activeSectionRef.current = { area: 'labnoteSection', sectionIndex: index }; }}
+                      docBaseUri={docBaseUri}
                     />
                   );
                 default:
@@ -310,33 +372,21 @@ export default function App() {
               }
             })}
 
-            {linkedWorkflows.length > 0 && (
-              <Paper p="sm" withBorder>
-                <Title order={3} mb="xs">Linked Workflow Unit Operations</Title>
-                {linkedWorkflows.map((wf, wi) => (
-                  <div key={wi}>
-                    <Text fw={600} mb="xs">{wf.frontMatter.title}</Text>
-                    <UnitOpAccordion
-                      unitOperations={wf.unitOperations}
-                      onChange={(ops) => {
-                        const updated = [...linkedWorkflows];
-                        updated[wi] = { ...wf, unitOperations: ops };
-                        setLinkedWorkflows(updated);
-                        markDirty();
-                      }}
-                      onSectionFocus={(opIndex, secIndex) => {
-                        activeSectionRef.current = { area: 'unitOp', opIndex, secIndex, linkedWfIndex: wi };
-                      }}
-                    />
-                  </div>
-                ))}
-              </Paper>
-            )}
           </>
         )}
 
         {mode === 'workflow' && workflow && (
           <>
+            {parentLabNotePath && (
+              <Anchor
+                size="sm"
+                onClick={() => postMessage({ type: 'openWorkflow', data: { link: parentLabNotePath } })}
+                style={{ cursor: 'pointer' }}
+              >
+                &larr; Back to Lab Note
+              </Anchor>
+            )}
+
             <Paper p="sm" withBorder>
               <Title order={3} mb="xs">Front Matter</Title>
               <FrontMatterForm
@@ -366,6 +416,7 @@ export default function App() {
                   activeSectionRef.current = { area: 'unitOp', opIndex, secIndex };
                 }}
                 onCreateSample={handleCreateSample}
+                docBaseUri={docBaseUri}
               />
             </Paper>
 
@@ -379,6 +430,7 @@ export default function App() {
                 }}
                 headingLevel="h2"
                 minRows={3}
+                docBaseUri={docBaseUri}
               />
             )}
           </>

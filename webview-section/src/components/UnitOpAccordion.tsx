@@ -1,8 +1,41 @@
 import { Accordion, Badge, Group, Text, Stack, Textarea, TextInput, Title, Paper, ActionIcon, UnstyledButton } from '@mantine/core';
+import { DateTimePicker } from '@mantine/dates';
+import dayjs from 'dayjs';
 import { DndContext, closestCenter, KeyboardSensor, PointerSensor, useSensor, useSensors, type DragEndEvent } from '@dnd-kit/core';
 import { SortableContext, verticalListSortingStrategy, useSortable, arrayMove } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 import type { UnitOperationBlock } from '../types';
+import { ImageThumbnails } from './ImageThumbnails';
+
+function parseMetaContent(content: string): Record<string, string> {
+  const result: Record<string, string> = {};
+  for (const line of content.split('\n')) {
+    const match = line.match(/^-\s*(\w+):\s*'?([^']*)'?$/);
+    if (match) result[match[1]] = match[2].trim();
+  }
+  return result;
+}
+
+function serializeMetaContent(fields: Record<string, string>): string {
+  return Object.entries(fields)
+    .filter(([, v]) => v !== undefined)
+    .map(([k, v]) => `- ${k}: '${v}'`)
+    .join('\n');
+}
+
+function parseMetaDate(value: string | undefined): Date | null {
+  if (!value || value.trim() === '') return null;
+  const parsed = dayjs(value, 'YYYY-MM-DD HH:mm');
+  if (parsed.isValid()) return parsed.toDate();
+  const dateOnly = dayjs(value, 'YYYY-MM-DD');
+  if (dateOnly.isValid()) return dateOnly.toDate();
+  return null;
+}
+
+function formatMetaDate(date: Date | null): string {
+  if (!date) return '';
+  return dayjs(date).format('YYYY-MM-DD HH:mm');
+}
 
 const SECTION_SAMPLE_TYPES: Record<string, string[]> = {
   'Input':       ['DNA', 'RNA', 'Plasmid', 'Protein', 'Primer'],
@@ -28,6 +61,7 @@ interface UnitOpAccordionProps {
   onChange: (unitOperations: UnitOperationBlock[]) => void;
   onSectionFocus?: (opIndex: number, secIndex: number) => void;
   onCreateSample?: (opIndex: number, secIndex: number, sampleType: string) => void;
+  docBaseUri?: string;
 }
 
 function GripIcon() {
@@ -50,9 +84,10 @@ interface SortableUnitOpProps {
   onUpdateAlias: (opIndex: number, alias: string) => void;
   onSectionFocus?: (opIndex: number, secIndex: number) => void;
   onCreateSample?: (opIndex: number, secIndex: number, sampleType: string) => void;
+  docBaseUri?: string;
 }
 
-function SortableUnitOp({ op, opIndex, onUpdateSection, onUpdateAlias, onSectionFocus, onCreateSample }: SortableUnitOpProps) {
+function SortableUnitOp({ op, opIndex, onUpdateSection, onUpdateAlias, onSectionFocus, onCreateSample, docBaseUri }: SortableUnitOpProps) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: op.id });
 
   const style = {
@@ -85,22 +120,70 @@ function SortableUnitOp({ op, opIndex, onUpdateSection, onUpdateAlias, onSection
               {op.opType.toUpperCase()}
             </Badge>
             <Text fw={600}>[{op.opId} {op.opName}]</Text>
-            {op.alias && <Text size="sm" c="dimmed">{op.alias}</Text>}
+            <TextInput
+              size="xs"
+              variant="unstyled"
+              placeholder="Add a short description here"
+              value={op.alias ?? ''}
+              onChange={(e) => onUpdateAlias(opIndex, e.currentTarget.value)}
+              onClick={(e) => e.stopPropagation()}
+              styles={{ input: { fontSize: '13px', color: 'var(--mantine-color-dimmed)', minWidth: 180 } }}
+            />
           </Group>
         </Accordion.Control>
         <Accordion.Panel>
           <Stack gap="xs">
-            <TextInput
-              label="별칭 (Alias)"
-              placeholder="실험 단계의 간단한 이름 (예: 단백질 정제 1단계)"
-              value={op.alias ?? ''}
-              onChange={(e) => onUpdateAlias(opIndex, e.currentTarget.value)}
-              size="sm"
-            />
             {op.opDescription && (
               <Text size="sm" c="dimmed" fs="italic">{op.opDescription}</Text>
             )}
             {op.sections.map((section, secIndex) => {
+              if (section.heading === 'Meta') {
+                const metaFields = parseMetaContent(section.content);
+                const updateMetaField = (key: string, value: string) => {
+                  const updated = { ...metaFields, [key]: value };
+                  onUpdateSection(opIndex, secIndex, serializeMetaContent(updated));
+                };
+                return (
+                  <div key={secIndex}>
+                    <Title order={5} mb={4}>Meta</Title>
+                    <Stack gap="xs">
+                      <TextInput
+                        label="Experimenter"
+                        size="sm"
+                        value={metaFields['Experimenter'] ?? ''}
+                        onChange={(e) => updateMetaField('Experimenter', e.currentTarget.value)}
+                      />
+                      <DateTimePicker
+                        label="Start Date"
+                        size="sm"
+                        value={parseMetaDate(metaFields['Start_date'])}
+                        onChange={(date) => updateMetaField('Start_date', formatMetaDate(date))}
+                        valueFormat="YYYY-MM-DD HH:mm"
+                        clearable
+                        placeholder="날짜와 시간을 선택하세요"
+                      />
+                      <DateTimePicker
+                        label="End Date"
+                        size="sm"
+                        value={parseMetaDate(metaFields['End_date'])}
+                        onChange={(date) => updateMetaField('End_date', formatMetaDate(date))}
+                        valueFormat="YYYY-MM-DD HH:mm"
+                        clearable
+                        placeholder="날짜와 시간을 선택하세요"
+                      />
+                      {op.opType === 'sw' && metaFields['Software'] !== undefined && (
+                        <TextInput
+                          label="Software"
+                          size="sm"
+                          value={metaFields['Software'] ?? ''}
+                          onChange={(e) => updateMetaField('Software', e.currentTarget.value)}
+                        />
+                      )}
+                    </Stack>
+                  </div>
+                );
+              }
+
               const sampleTypes = SECTION_SAMPLE_TYPES[section.heading];
               return (
                 <div key={secIndex}>
@@ -135,6 +218,7 @@ function SortableUnitOp({ op, opIndex, onUpdateSection, onUpdateAlias, onSection
                     minRows={2}
                     styles={{ input: { fontFamily: 'monospace', fontSize: '13px' } }}
                   />
+                  {docBaseUri && <ImageThumbnails content={section.content} docBaseUri={docBaseUri} />}
                 </div>
               );
             })}
@@ -145,7 +229,7 @@ function SortableUnitOp({ op, opIndex, onUpdateSection, onUpdateAlias, onSection
   );
 }
 
-export function UnitOpAccordion({ unitOperations, onChange, onSectionFocus, onCreateSample }: UnitOpAccordionProps) {
+export function UnitOpAccordion({ unitOperations, onChange, onSectionFocus, onCreateSample, docBaseUri }: UnitOpAccordionProps) {
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 8 } }),
     useSensor(KeyboardSensor)
@@ -204,6 +288,7 @@ export function UnitOpAccordion({ unitOperations, onChange, onSectionFocus, onCr
               onUpdateAlias={updateAlias}
               onSectionFocus={onSectionFocus}
               onCreateSample={onCreateSample}
+              docBaseUri={docBaseUri}
             />
           ))}
         </Accordion>
