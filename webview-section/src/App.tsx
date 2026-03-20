@@ -226,13 +226,13 @@ export default function App() {
       for (let i = 0; i < items.length; i++) {
         if (items[i].type.startsWith('image/')) {
           e.preventDefault();
+          const mimeType = items[i].type;
           const blob = items[i].getAsFile();
           if (!blob) return;
           const reader = new FileReader();
           reader.onload = () => {
             const dataUrl = reader.result as string;
             const base64 = dataUrl.split(',')[1];
-            const mimeType = items[i].type;
             postMessage({ type: 'pasteImage', data: { imageBase64: base64, mimeType } });
           };
           reader.readAsDataURL(blob);

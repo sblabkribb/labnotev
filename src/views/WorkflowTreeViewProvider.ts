@@ -307,7 +307,7 @@ export class WorkflowTreeViewProvider implements vscode.TreeDataProvider<Workflo
     const grouped = groupWorkflowsByCategory(this.workflows);
     const categories = Object.keys(grouped).sort((a, b) => {
       // Sort by DBTL order
-      const order = ['Design', 'Build', 'Test', 'Learn'];
+      const order = ['Design', 'Build', 'Test', 'Learn', 'General'];
       return order.indexOf(a) - order.indexOf(b);
     });
 

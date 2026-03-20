@@ -46,15 +46,19 @@ export async function createSampleWithPrompt(
     }
   }
   if (alias === null && description === null) {
-    alias = await vscode.window.showInputBox({
+    const aliasInput = await vscode.window.showInputBox({
       prompt: `새 ${sampleType} 샘플의 별칭을 입력하세요`,
       placeHolder: '예: Sample-A',
-    }) ?? null;
-    if (alias === undefined) return null;
-    description = await vscode.window.showInputBox({
+    });
+    if (aliasInput === undefined) return null;
+    alias = aliasInput || null;
+
+    const descInput = await vscode.window.showInputBox({
       prompt: '설명을 입력하세요 (선택 사항)',
       placeHolder: '예: 실험 1에서 사용된 샘플',
-    }) ?? null;
+    });
+    if (descInput === undefined) return null;
+    description = descInput || null;
   }
 
   await sampleTreeProvider.addSample(scope, sampleType, newSampleId, alias, description);

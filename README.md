@@ -1,4 +1,4 @@
-# Labnote Assistant
+# Labnote Assistant (LabnoteV)
 
 VS Code에서 실험 노트를 마크다운으로 작성할 수 있도록 돕는 확장입니다. 샘플 정의/참조, 워크플로 연결, 유닛 오퍼레이션 템플릿, 이미지 관리 기능을 통해 실험 기록을 일관된 형식으로 정리할 수 있습니다.
 

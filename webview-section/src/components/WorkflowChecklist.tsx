@@ -24,7 +24,7 @@ export function WorkflowChecklist({ items, onChange }: WorkflowChecklistProps) {
       <Stack gap="xs">
         <Title order={3}>🗂️ Related Workflows</Title>
         {items.length === 0 && (
-          <Text c="dimmed" size="sm">워크플로가 없습니다. F1 → "Add Workflow" 명령으로 추가하세요.</Text>
+          <Text c="dimmed" size="sm">워크플로가 없습니다. F1 → "Add Workflow" 명령 또는 트리뷰메뉴에서 워크플로를 선택해서 추가하세요.</Text>
         )}
         {items.map((item, index) => (
           <Group key={index} gap="xs">

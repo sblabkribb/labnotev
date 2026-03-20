@@ -42,6 +42,7 @@ const CATEGORY_PREFIXES: Record<string, string> = {
   'Build': 'WB',
   'Test': 'WT',
   'Learn': 'WL',
+  'General': 'WG',
 };
 
 /**

@@ -5,6 +5,28 @@
 형식은 [Keep a Changelog](https://keepachangelog.com/ko/1.1.0/)를 기반으로 하며,
 이 프로젝트는 [유의적 버전 관리](https://semver.org/lang/ko/)를 따릅니다.
 
+## [0.22.1] - 2026-02-02
+
+### 추가
+
+#### General 카테고리 및 Blank Workflow 템플릿
+- DBTL(Design/Build/Test/Learn)에 속하지 않는 범용 워크플로를 위한 "General" 카테고리 추가
+- `WG010 Blank Workflow` 템플릿 추가 (트리뷰 및 커맨드 팔레트에서 선택 가능)
+- ID 접두어 `WG` 자동 생성 지원
+
+### 수정
+
+#### 이미지 붙여넣기 버그 수정
+- Ctrl+V 이미지 붙여넣기가 동작하지 않던 버그 수정 (`DataTransferItemList` 비동기 접근 문제)
+
+#### 샘플 생성 취소 버그 수정
+- 새 샘플 생성 시 별칭/설명 InputBox에서 Esc를 눌러도 취소되지 않던 버그 수정
+
+### 변경
+
+#### 워크플로 안내 문구 개선
+- Related Workflows 빈 상태 안내 문구에 트리뷰 메뉴 사용법 추가
+
 ## [0.22.0] - 2026-02-02
 
 ### 추가
