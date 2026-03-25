@@ -133,7 +133,7 @@ export function registerWorkflowCommands(
     vscode.commands.registerCommand('labnotev.createWorkflowFromTree', async (item: WorkflowTreeItem | { workflowId: string; workflowName: string; workflowDescription: string; category: string }) => {
       const target = getActiveLabnoteEditTarget(sectionEditorProvider);
       if (!target) {
-        vscode.window.showWarningMessage('README.md를 열어주세요');
+        vscode.window.showWarningMessage('README.labnote.md를 열어주세요');
         return;
       }
 

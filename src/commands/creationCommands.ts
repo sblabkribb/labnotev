@@ -161,7 +161,7 @@ export function registerCreationCommands(
     vscode.commands.registerCommand('labnotev.addWorkflow', async () => {
       const target = getActiveLabnoteEditTarget(sectionEditorProvider);
       if (!target) {
-        vscode.window.showWarningMessage('README.md를 열어주세요');
+        vscode.window.showWarningMessage('README.labnote.md를 열어주세요');
         return;
       }
 
@@ -267,27 +267,6 @@ export function registerCreationCommands(
   // Register add unit operation command
   context.subscriptions.push(
     vscode.commands.registerCommand('labnotev.addUnitOperation', async () => {
-      console.log('[LabNoteV] addUnitOperation command started');
-
-      const editor = vscode.window.activeTextEditor;
-      if (!editor) {
-        console.log('[LabNoteV] No active editor');
-        vscode.window.showWarningMessage('워크플로 파일을 열어주세요');
-        return;
-      }
-
-      const workflowPath = editor.document.uri.fsPath;
-      console.log('[LabNoteV] Workflow path:', workflowPath);
-
-      // Validate path
-      const validPath = isValidWorkflowPath(workflowPath);
-      console.log('[LabNoteV] isValidWorkflowPath:', validPath);
-
-      if (!validPath) {
-        vscode.window.showWarningMessage('labnote 폴더 내의 워크플로 파일에서 실행해주세요');
-        return;
-      }
-
       // Select category (Hardware or Software)
       const categoryChoice = await vscode.window.showQuickPick([
         { label: 'Hardware', description: '실험 장비 및 자동화 하드웨어' },
@@ -301,11 +280,10 @@ export function registerCreationCommands(
       }
 
       const category = categoryChoice.label as 'Hardware' | 'Software';
-      console.log('[LabNoteV] Selected category:', category);
+      const opType = category === 'Hardware' ? 'hw' : 'sw';
 
       // Load unit operations from JSON resources
-      const operations = loadUnitOperations(context.extensionPath, category === 'Hardware' ? 'hw' : 'sw');
-      console.log('[LabNoteV] Operations count:', operations.length);
+      const operations = loadUnitOperations(context.extensionPath, opType);
 
       if (operations.length === 0) {
         vscode.window.showErrorMessage('유닛 오퍼레이션 카탈로그를 로드할 수 없습니다');
@@ -328,6 +306,40 @@ export function registerCreationCommands(
         return;
       }
 
+      const op = selectedOp.operation;
+
+      // Section Editor path
+      if (sectionEditorProvider?.getEditorMode() === 'workflow') {
+        const secDoc = sectionEditorProvider.getActiveDocument();
+        if (secDoc) {
+          const dir = path.dirname(secDoc.uri.fsPath);
+          const readmePath = path.join(dir, 'README.labnote.md');
+          let experimenter = '';
+          if (fs.existsSync(readmePath)) {
+            experimenter = parseExperimenterFromReadme(fs.readFileSync(readmePath, 'utf8'));
+          }
+          const { buildUnitOperationBlock } = await import('../sectionEditorProvider');
+          const block = buildUnitOperationBlock(op.id, op.name, op.description || '', opType as 'hw' | 'sw', experimenter);
+          await sectionEditorProvider.appendUnitOpToDocument(secDoc, block);
+          vscode.window.showInformationMessage(`유닛 오퍼레이션이 삽입되었습니다: ${op.id} ${op.name}`);
+          return;
+        }
+      }
+
+      // Text editor path
+      const editor = vscode.window.activeTextEditor;
+      if (!editor) {
+        vscode.window.showWarningMessage('워크플로 파일을 열어주세요');
+        return;
+      }
+
+      const workflowPath = editor.document.uri.fsPath;
+
+      if (!isValidWorkflowPath(workflowPath)) {
+        vscode.window.showWarningMessage('labnote 폴더 내의 워크플로 파일에서 실행해주세요');
+        return;
+      }
+
       // Optional description
       const userDescription = await vscode.window.showInputBox({
         prompt: '유닛 오퍼레이션 설명 (선택 사항)',
@@ -342,9 +354,7 @@ export function registerCreationCommands(
         experimenter = parseExperimenterFromReadme(readmeContent);
       }
 
-      // Generate unit operation template
       const dateTime = getDateTime(new Date());
-      const op = selectedOp.operation;
       const descriptionPart = userDescription ? ` ${userDescription.trim()}` : '';
       const isSw = category === 'Software';
 
@@ -421,22 +431,13 @@ export function registerCreationCommands(
 
 `;
 
-      console.log('[LabNoteV] Template length:', template.length);
-      console.log('[LabNoteV] Inserting at position:', editor.selection.active.line, editor.selection.active.character);
-
-      // Insert at cursor position
       try {
-        const success = await editor.edit(editBuilder => {
+        await editor.edit(editBuilder => {
           editBuilder.insert(editor.selection.active, template);
         });
-        console.log('[LabNoteV] Edit success:', success);
-
         await editor.document.save();
-        console.log('[LabNoteV] Document saved');
-
         vscode.window.showInformationMessage(`유닛 오퍼레이션이 삽입되었습니다: ${op.id} ${op.name}`);
       } catch (error) {
-        console.error('[LabNoteV] Error inserting template:', error);
         vscode.window.showErrorMessage(`유닛 오퍼레이션 삽입 실패: ${error}`);
       }
     })

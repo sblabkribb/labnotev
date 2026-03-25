@@ -60,6 +60,7 @@ interface UnitOpAccordionProps {
   unitOperations: UnitOperationBlock[];
   onChange: (unitOperations: UnitOperationBlock[]) => void;
   onSectionFocus?: (opIndex: number, secIndex: number) => void;
+  onCursorActivity?: (pos: number) => void;
   onCreateSample?: (opIndex: number, secIndex: number, sampleType: string) => void;
   docBaseUri?: string;
 }
@@ -83,11 +84,12 @@ interface SortableUnitOpProps {
   onUpdateSection: (opIndex: number, secIndex: number, content: string) => void;
   onUpdateAlias: (opIndex: number, alias: string) => void;
   onSectionFocus?: (opIndex: number, secIndex: number) => void;
+  onCursorActivity?: (pos: number) => void;
   onCreateSample?: (opIndex: number, secIndex: number, sampleType: string) => void;
   docBaseUri?: string;
 }
 
-function SortableUnitOp({ op, opIndex, onUpdateSection, onUpdateAlias, onSectionFocus, onCreateSample, docBaseUri }: SortableUnitOpProps) {
+function SortableUnitOp({ op, opIndex, onUpdateSection, onUpdateAlias, onSectionFocus, onCursorActivity, onCreateSample, docBaseUri }: SortableUnitOpProps) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: op.id });
 
   const style = {
@@ -212,8 +214,10 @@ function SortableUnitOp({ op, opIndex, onUpdateSection, onUpdateAlias, onSection
                   </Group>
                   <Textarea
                     value={section.content}
-                    onChange={(e) => onUpdateSection(opIndex, secIndex, e.currentTarget.value)}
-                    onFocus={() => onSectionFocus?.(opIndex, secIndex)}
+                    onChange={(e) => { onUpdateSection(opIndex, secIndex, e.currentTarget.value); onCursorActivity?.(e.currentTarget.selectionStart); }}
+                    onFocus={(e) => { onSectionFocus?.(opIndex, secIndex); onCursorActivity?.(e.currentTarget.selectionStart); }}
+                    onClick={(e) => onCursorActivity?.(e.currentTarget.selectionStart)}
+                    onKeyUp={(e) => onCursorActivity?.(e.currentTarget.selectionStart)}
                     autosize
                     minRows={2}
                     styles={{ input: { fontFamily: 'monospace', fontSize: '13px' } }}
@@ -229,7 +233,7 @@ function SortableUnitOp({ op, opIndex, onUpdateSection, onUpdateAlias, onSection
   );
 }
 
-export function UnitOpAccordion({ unitOperations, onChange, onSectionFocus, onCreateSample, docBaseUri }: UnitOpAccordionProps) {
+export function UnitOpAccordion({ unitOperations, onChange, onSectionFocus, onCursorActivity, onCreateSample, docBaseUri }: UnitOpAccordionProps) {
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 8 } }),
     useSensor(KeyboardSensor)
@@ -287,6 +291,7 @@ export function UnitOpAccordion({ unitOperations, onChange, onSectionFocus, onCr
               onUpdateSection={updateSection}
               onUpdateAlias={updateAlias}
               onSectionFocus={onSectionFocus}
+              onCursorActivity={onCursorActivity}
               onCreateSample={onCreateSample}
               docBaseUri={docBaseUri}
             />

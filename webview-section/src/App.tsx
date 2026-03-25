@@ -33,8 +33,8 @@ const WORKFLOW_FM_FIELDS = [
 ];
 
 type FocusTarget =
-  | { area: 'labnoteSection'; sectionIndex: number }
-  | { area: 'unitOp'; opIndex: number; secIndex: number; linkedWfIndex?: number };
+  | { area: 'labnoteSection'; sectionIndex: number; cursorPos?: number }
+  | { area: 'unitOp'; opIndex: number; secIndex: number; linkedWfIndex?: number; cursorPos?: number };
 
 type SaveStatus = 'saved' | 'saving' | 'unsaved';
 
@@ -47,6 +47,11 @@ export default function App() {
   const [parentLabNotePath, setParentLabNotePath] = useState<string | null>(null);
   const [docBaseUri, setDocBaseUri] = useState<string>('');
   const activeSectionRef = useRef<FocusTarget | null>(null);
+  const updateCursorPos = (pos: number) => {
+    if (activeSectionRef.current) {
+      activeSectionRef.current = { ...activeSectionRef.current, cursorPos: pos };
+    }
+  };
   const modeRef = useRef<string | null>(null);
   const labNoteRef = useRef<LabNoteDocument | null>(null);
   const workflowRef = useRef<WorkflowDocument | null>(null);
@@ -116,6 +121,10 @@ export default function App() {
           const text = message.data.text;
           const target = activeSectionRef.current;
           if (!target) break;
+          const insertAt = (original: string) => {
+            const pos = target.cursorPos ?? original.length;
+            return original.slice(0, pos) + text + original.slice(pos);
+          };
 
           if (target.area === 'labnoteSection') {
             setLabNote(prev => {
@@ -123,7 +132,7 @@ export default function App() {
               const sections = [...prev.sections];
               const sec = sections[target.sectionIndex];
               if (sec && 'content' in sec) {
-                sections[target.sectionIndex] = { ...sec, content: sec.content + text };
+                sections[target.sectionIndex] = { ...sec, content: insertAt(sec.content) };
               }
               return { ...prev, sections };
             });
@@ -137,7 +146,7 @@ export default function App() {
                 const op = ops[target.opIndex];
                 if (!op) return prev;
                 const secs = [...op.sections];
-                secs[target.secIndex] = { ...secs[target.secIndex], content: secs[target.secIndex].content + text };
+                secs[target.secIndex] = { ...secs[target.secIndex], content: insertAt(secs[target.secIndex].content) };
                 ops[target.opIndex] = { ...op, sections: secs };
                 updated[target.linkedWfIndex!] = { ...wf, unitOperations: ops };
                 return updated;
@@ -149,7 +158,7 @@ export default function App() {
                 const op = ops[target.opIndex];
                 if (!op) return prev;
                 const secs = [...op.sections];
-                secs[target.secIndex] = { ...secs[target.secIndex], content: secs[target.secIndex].content + text };
+                secs[target.secIndex] = { ...secs[target.secIndex], content: insertAt(secs[target.secIndex].content) };
                 ops[target.opIndex] = { ...op, sections: secs };
                 return { ...prev, unitOperations: ops };
               });
@@ -161,6 +170,7 @@ export default function App() {
 
         case 'sampleDefinitionCreated': {
           const { definitionText, opIndex, secIndex } = message.data;
+          const curTarget = activeSectionRef.current;
           setWorkflow(prev => {
             if (!prev) return prev;
             const ops = [...prev.unitOperations];
@@ -169,8 +179,9 @@ export default function App() {
             const sections = [...op.sections];
             const sec = sections[secIndex];
             if (!sec) return prev;
-            const separator = sec.content.trim() ? '\n' : '';
-            sections[secIndex] = { ...sec, content: sec.content + separator + definitionText };
+            const pos = curTarget?.cursorPos ?? sec.content.length;
+            const separator = pos > 0 && sec.content[pos - 1] !== '\n' ? '\n' : '';
+            sections[secIndex] = { ...sec, content: sec.content.slice(0, pos) + separator + definitionText + sec.content.slice(pos) };
             ops[opIndex] = { ...op, sections };
             return { ...prev, unitOperations: ops };
           });
@@ -182,6 +193,10 @@ export default function App() {
           const imgText = message.data.markdownText;
           const target = activeSectionRef.current;
           if (!target) break;
+          const insertImg = (original: string) => {
+            const pos = target.cursorPos ?? original.length;
+            return original.slice(0, pos) + imgText + original.slice(pos);
+          };
 
           if (target.area === 'labnoteSection') {
             setLabNote(prev => {
@@ -189,7 +204,7 @@ export default function App() {
               const sections = [...prev.sections];
               const sec = sections[target.sectionIndex];
               if (sec && 'content' in sec) {
-                sections[target.sectionIndex] = { ...sec, content: sec.content + imgText };
+                sections[target.sectionIndex] = { ...sec, content: insertImg(sec.content) };
               }
               return { ...prev, sections };
             });
@@ -200,7 +215,7 @@ export default function App() {
               const op = ops[target.opIndex];
               if (!op) return prev;
               const secs = [...op.sections];
-              secs[target.secIndex] = { ...secs[target.secIndex], content: secs[target.secIndex].content + imgText };
+              secs[target.secIndex] = { ...secs[target.secIndex], content: insertImg(secs[target.secIndex].content) };
               ops[target.opIndex] = { ...op, sections: secs };
               return { ...prev, unitOperations: ops };
             });
@@ -334,6 +349,7 @@ export default function App() {
                       content={section.content}
                       onChange={(c) => updateLabNoteSection(index, { ...section, content: c })}
                       onFocus={() => { activeSectionRef.current = { area: 'labnoteSection', sectionIndex: index }; }}
+                      onCursorActivity={updateCursorPos}
                       docBaseUri={docBaseUri}
                     />
                   );
@@ -353,6 +369,7 @@ export default function App() {
                       content={section.content}
                       onChange={(c) => updateLabNoteSection(index, { ...section, content: c })}
                       onFocus={() => { activeSectionRef.current = { area: 'labnoteSection', sectionIndex: index }; }}
+                      onCursorActivity={updateCursorPos}
                       docBaseUri={docBaseUri}
                     />
                   );
@@ -364,6 +381,7 @@ export default function App() {
                       content={section.content}
                       onChange={(c) => updateLabNoteSection(index, { ...section, content: c })}
                       onFocus={() => { activeSectionRef.current = { area: 'labnoteSection', sectionIndex: index }; }}
+                      onCursorActivity={updateCursorPos}
                       docBaseUri={docBaseUri}
                     />
                   );
@@ -415,6 +433,7 @@ export default function App() {
                 onSectionFocus={(opIndex, secIndex) => {
                   activeSectionRef.current = { area: 'unitOp', opIndex, secIndex };
                 }}
+                onCursorActivity={updateCursorPos}
                 onCreateSample={handleCreateSample}
                 docBaseUri={docBaseUri}
               />

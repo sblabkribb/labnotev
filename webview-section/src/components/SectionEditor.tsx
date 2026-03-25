@@ -8,6 +8,7 @@ interface SectionEditorProps {
   content: string;
   onChange: (content: string) => void;
   onFocus?: () => void;
+  onCursorActivity?: (pos: number) => void;
   headingLevel?: 'h2' | 'h3' | 'h4';
   minRows?: number;
   docBaseUri?: string;
@@ -18,6 +19,7 @@ export function SectionEditor({
   content,
   onChange,
   onFocus,
+  onCursorActivity,
   headingLevel = 'h3',
   minRows = 4,
   docBaseUri,
@@ -30,6 +32,12 @@ export function SectionEditor({
   useEffect(() => {
     setHasSamples(highlightSampleIds(content));
   }, [content]);
+
+  const reportCursor = () => {
+    if (textareaRef.current && onCursorActivity) {
+      onCursorActivity(textareaRef.current.selectionStart);
+    }
+  };
 
   const syncScroll = () => {
     if (textareaRef.current && overlayRef.current) {
@@ -86,8 +94,10 @@ export function SectionEditor({
           <textarea
             ref={textareaRef}
             value={content}
-            onChange={(e) => onChange(e.currentTarget.value)}
-            onFocus={onFocus}
+            onChange={(e) => { onChange(e.currentTarget.value); reportCursor(); }}
+            onFocus={() => { onFocus?.(); reportCursor(); }}
+            onClick={reportCursor}
+            onKeyUp={reportCursor}
             onScroll={syncScroll}
             style={textareaStyle}
           />

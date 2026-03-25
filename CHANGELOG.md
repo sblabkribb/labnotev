@@ -5,6 +5,28 @@
 형식은 [Keep a Changelog](https://keepachangelog.com/ko/1.1.0/)를 기반으로 하며,
 이 프로젝트는 [유의적 버전 관리](https://semver.org/lang/ko/)를 따릅니다.
 
+## [0.24.0] - 2026-02-02
+
+### 수정
+
+#### 샘플/이미지 삽입 시 커서 위치 지원
+- Section Editor에서 샘플 정의, 텍스트 삽입, 이미지 붙여넣기 시 항상 텍스트 끝에 추가되던 문제 수정
+- textarea 내 커서 위치를 실시간 추적하여 해당 위치에 삽입되도록 개선
+- SectionEditor, UnitOpAccordion 모두 커서 위치 추적 지원
+
+#### addUnitOperation 명령어 Section Editor 호환
+- 커맨드 팔레트의 `Labnote: Add Unit Operation` 명령이 Section Editor에서 동작하지 않던 문제 수정
+- Section Editor(워크플로 모드)가 활성화된 경우 `buildUnitOperationBlock` → `appendUnitOpToDocument` 경로로 삽입
+
+### 변경
+
+#### 경고 메시지 파일명 수정
+- 워크플로 생성 시 안내 메시지의 `README.md`를 `README.labnote.md`로 수정 (2곳)
+
+#### GitHub Actions Node.js 24 지원
+- actions/checkout v4 → v5, actions/setup-node v4 → v5, softprops/action-gh-release v1 → v2
+- node-version 20 → 22, webview 경로를 webview-section으로 수정
+
 ## [0.23.1] - 2026-02-02
 
 ### 변경
