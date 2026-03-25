@@ -5,6 +5,22 @@
 형식은 [Keep a Changelog](https://keepachangelog.com/ko/1.1.0/)를 기반으로 하며,
 이 프로젝트는 [유의적 버전 관리](https://semver.org/lang/ko/)를 따릅니다.
 
+## [0.26.0] - 2026-03-26
+
+### 추가
+
+#### 마크다운 테이블 편집 지원
+- **테이블 삽입 다이얼로그**: 섹션 제목 옆 테이블 아이콘 클릭 → 행/열 수 지정 → 마크다운 테이블 템플릿 자동 생성 및 커서 위치에 삽입
+- **Tab/Shift+Tab 셀 이동**: 테이블 내에서 Tab 키로 다음 셀, Shift+Tab으로 이전 셀로 이동. 마지막 셀에서 Tab 시 새 행 자동 추가. 테이블 밖에서는 기본 동작 유지
+- **스프레드시트 붙여넣기 변환**: Excel, Google Sheets 등에서 복사한 탭 구분(TSV) 데이터를 Ctrl+V로 붙여넣으면 마크다운 테이블로 자동 변환
+- **테이블 컬럼 정렬**: Ctrl+Shift+F 또는 툴바 정렬 버튼으로 테이블 컬럼을 최대 너비에 맞춰 자동 정렬 (CJK 문자 너비 고려)
+- Escape 키로 textarea 포커스 해제 지원 (Tab 키 가로챔에 대한 접근성 보장)
+
+### 새 파일
+- `webview-section/src/utils/markdownTable.ts` - 테이블 유틸리티 함수 (생성, 변환, 정렬, 셀 탐색)
+- `webview-section/src/components/TableInsertModal.tsx` - 테이블 삽입 다이얼로그 컴포넌트
+- `webview-section/src/__tests__/markdownTable.test.ts` - 유틸리티 함수 28개 테스트
+
 ## [0.25.0] - 2026-02-02
 
 ### 변경
