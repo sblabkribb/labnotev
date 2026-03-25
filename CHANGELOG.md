@@ -5,6 +5,17 @@
 형식은 [Keep a Changelog](https://keepachangelog.com/ko/1.1.0/)를 기반으로 하며,
 이 프로젝트는 [유의적 버전 관리](https://semver.org/lang/ko/)를 따릅니다.
 
+## [0.25.0] - 2026-02-02
+
+### 변경
+
+#### 날짜/시간 입력 UI 분리
+- DateTimePicker를 DatePickerInput(날짜 달력) + TimeInput(시간 선택) 조합으로 분리
+- 날짜는 달력 클릭으로 빠르게 선택, 시간은 별도 입력란으로 선택적 입력
+- 시간을 입력하지 않으면 날짜만 저장 (YYYY-MM-DD), 시간 입력 시 YYYY-MM-DD HH:mm 형식
+- Front Matter (Created Date, Last Updated, End Date)와 Unit Operation Meta (Start Date, End Date) 모두 적용
+- 공통 DateTimeField 컴포넌트로 통합 관리
+
 ## [0.24.0] - 2026-02-02
 
 ### 수정

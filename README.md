@@ -41,7 +41,7 @@ VS Code에서 실험 노트를 마크다운으로 작성할 수 있도록 돕는
 #### Lab Note 모드 (`README.labnote.md`)
 
 - **Front Matter 폼**: Title, Author, Experiment Type, Created Date, Last Updated를 입력 폼으로 편집
-  - 날짜 필드는 DateTimePicker로 캘린더/시간 선택 가능
+  - 날짜 필드는 DatePickerInput(달력 클릭) + TimeInput(시간 선택적 입력)으로 분리 제공
 - **Experiment Objective**: 실험 목적을 자유롭게 작성하는 textarea
 - **Related Workflows**: 연결된 워크플로 체크리스트
   - 워크플로 제목 클릭 시 해당 워크플로 `.labnote.md` 파일을 Section Editor로 열기
@@ -56,7 +56,7 @@ VS Code에서 실험 노트를 마크다운으로 작성할 수 있도록 돕는
 - **Unit Operations**: 유닛 오퍼레이션 목록을 아코디언 UI로 표시
   - 드래그 앤 드롭으로 순서 변경
   - 유닛 오퍼레이션 이름 옆에 별칭(alias) 인라인 편집 가능
-  - Meta 섹션: Experimenter(텍스트 입력), Start/End Date(DateTimePicker)를 구조화된 폼으로 표시
+  - Meta 섹션: Experimenter(텍스트 입력), Start/End Date(날짜 달력 + 시간 선택)를 구조화된 폼으로 표시
   - 일반 섹션(Input, Output, Method 등): textarea로 자유롭게 편집
   - 섹션별 샘플 정의 버튼: `+DNA`, `+RNA`, `+Plasmid`, `+Protein`, `+Primer`, `+Reagent`, `+Labware`, `+Equip`
 - **Conclusion / Summary**: 워크플로 전체 요약 작성 영역
@@ -171,7 +171,7 @@ VS Code에서 실험 노트를 마크다운으로 작성할 수 있도록 돕는
 
 ### 날짜 관리
 
-- **Section Editor**: Front Matter의 Created Date, Last Updated, End Date를 DateTimePicker로 편집
+- **Section Editor**: Front Matter의 Created Date, Last Updated, End Date를 날짜 달력 + 시간 선택 입력으로 편집
 - **텍스트 에디터**: 키보드 단축키로 날짜 삽입/업데이트
   - `Ctrl+Shift+D` / `Cmd+Shift+D`: 날짜/시간 삽입
   - `Ctrl+Shift+U` / `Cmd+Shift+U`: 날짜 필드 업데이트

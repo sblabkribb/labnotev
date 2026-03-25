@@ -1,26 +1,11 @@
 import { TextInput, Switch, Group, Stack } from '@mantine/core';
-import { DateTimePicker } from '@mantine/dates';
-import dayjs from 'dayjs';
+import { DateTimeField } from './DateTimeField';
 import '@mantine/dates/styles.css';
 
 interface FrontMatterFormProps {
   data: Record<string, unknown>;
   fields: { key: string; label: string; type?: 'text' | 'boolean' | 'readonly' | 'datetime' }[];
   onChange: (key: string, value: unknown) => void;
-}
-
-function parseDateTimeString(value: unknown): Date | null {
-  if (!value || String(value).trim() === '') return null;
-  const parsed = dayjs(String(value), 'YYYY-MM-DD HH:mm');
-  if (parsed.isValid()) return parsed.toDate();
-  const dateOnly = dayjs(String(value), 'YYYY-MM-DD');
-  if (dateOnly.isValid()) return dateOnly.toDate();
-  return null;
-}
-
-function formatDateTime(date: Date | null): string {
-  if (!date) return '';
-  return dayjs(date).format('YYYY-MM-DD HH:mm');
 }
 
 export function FrontMatterForm({ data, fields, onChange }: FrontMatterFormProps) {
@@ -41,14 +26,11 @@ export function FrontMatterForm({ data, fields, onChange }: FrontMatterFormProps
         }
         if (field.type === 'datetime') {
           return (
-            <DateTimePicker
+            <DateTimeField
               key={field.key}
               label={field.label}
-              value={parseDateTimeString(value)}
-              onChange={(date) => onChange(field.key, formatDateTime(date))}
-              valueFormat="YYYY-MM-DD HH:mm"
-              clearable
-              placeholder="날짜와 시간을 선택하세요"
+              value={String(value ?? '')}
+              onChange={(v) => onChange(field.key, v)}
             />
           );
         }

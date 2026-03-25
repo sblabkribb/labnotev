@@ -1,11 +1,10 @@
 import { Accordion, Badge, Group, Text, Stack, Textarea, TextInput, Title, Paper, ActionIcon, UnstyledButton } from '@mantine/core';
-import { DateTimePicker } from '@mantine/dates';
-import dayjs from 'dayjs';
 import { DndContext, closestCenter, KeyboardSensor, PointerSensor, useSensor, useSensors, type DragEndEvent } from '@dnd-kit/core';
 import { SortableContext, verticalListSortingStrategy, useSortable, arrayMove } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 import type { UnitOperationBlock } from '../types';
 import { ImageThumbnails } from './ImageThumbnails';
+import { DateTimeField } from './DateTimeField';
 
 function parseMetaContent(content: string): Record<string, string> {
   const result: Record<string, string> = {};
@@ -21,20 +20,6 @@ function serializeMetaContent(fields: Record<string, string>): string {
     .filter(([, v]) => v !== undefined)
     .map(([k, v]) => `- ${k}: '${v}'`)
     .join('\n');
-}
-
-function parseMetaDate(value: string | undefined): Date | null {
-  if (!value || value.trim() === '') return null;
-  const parsed = dayjs(value, 'YYYY-MM-DD HH:mm');
-  if (parsed.isValid()) return parsed.toDate();
-  const dateOnly = dayjs(value, 'YYYY-MM-DD');
-  if (dateOnly.isValid()) return dateOnly.toDate();
-  return null;
-}
-
-function formatMetaDate(date: Date | null): string {
-  if (!date) return '';
-  return dayjs(date).format('YYYY-MM-DD HH:mm');
 }
 
 const SECTION_SAMPLE_TYPES: Record<string, string[]> = {
@@ -155,23 +140,17 @@ function SortableUnitOp({ op, opIndex, onUpdateSection, onUpdateAlias, onSection
                         value={metaFields['Experimenter'] ?? ''}
                         onChange={(e) => updateMetaField('Experimenter', e.currentTarget.value)}
                       />
-                      <DateTimePicker
+                      <DateTimeField
                         label="Start Date"
                         size="sm"
-                        value={parseMetaDate(metaFields['Start_date'])}
-                        onChange={(date) => updateMetaField('Start_date', formatMetaDate(date))}
-                        valueFormat="YYYY-MM-DD HH:mm"
-                        clearable
-                        placeholder="날짜와 시간을 선택하세요"
+                        value={metaFields['Start_date'] ?? ''}
+                        onChange={(v) => updateMetaField('Start_date', v)}
                       />
-                      <DateTimePicker
+                      <DateTimeField
                         label="End Date"
                         size="sm"
-                        value={parseMetaDate(metaFields['End_date'])}
-                        onChange={(date) => updateMetaField('End_date', formatMetaDate(date))}
-                        valueFormat="YYYY-MM-DD HH:mm"
-                        clearable
-                        placeholder="날짜와 시간을 선택하세요"
+                        value={metaFields['End_date'] ?? ''}
+                        onChange={(v) => updateMetaField('End_date', v)}
                       />
                       {op.opType === 'sw' && metaFields['Software'] !== undefined && (
                         <TextInput
