@@ -41,7 +41,7 @@ VS Code에서 실험 노트를 마크다운으로 작성할 수 있도록 돕는
 #### Lab Note 모드 (`README.labnote.md`)
 
 - **Front Matter 폼**: Title, Author, Experiment Type, Created Date, Last Updated를 입력 폼으로 편집
-  - 날짜 필드는 DatePickerInput(달력 클릭) + TimeInput(시간 선택적 입력)으로 분리 제공
+  - 날짜 필드는 DatePickerInput(달력 클릭) + 시간 입력(숫자 자동 포맷팅, Now 버튼)으로 제공
 - **Experiment Objective**: 실험 목적을 자유롭게 작성하는 textarea
 - **Related Workflows**: 연결된 워크플로 체크리스트
   - 워크플로 제목 클릭 시 해당 워크플로 `.labnote.md` 파일을 Section Editor로 열기
@@ -66,6 +66,7 @@ VS Code에서 실험 노트를 마크다운으로 작성할 수 있도록 돕는
 - **자동 저장**: 편집 후 1.5초 뒤 자동 저장, 상단에 저장 상태 배지 표시 (저장됨/변경사항 있음/저장 중)
 - **이미지 붙여넣기**: 모든 textarea(Conclusion/Summary 포함)에서 `Ctrl+V`로 클립보드 이미지 붙여넣기 가능
   - 이미지가 `images/` 폴더에 자동 저장되고 마크다운 이미지 링크가 삽입됨
+  - 삽입 후 커서가 삽입된 텍스트 끝에 자동 위치 (샘플/텍스트 삽입 시에도 동일)
   - textarea 아래에 이미지 썸네일이 자동 표시되며, 클릭 시 모달로 확대 보기
 - **textarea 자동 높이 조절**: 모든 SectionEditor의 textarea가 내용에 따라 자동 확장 (스크롤바 없음)
 - **샘플 ID 하이라이팅**: textarea 내 샘플 ID를 타입별 색상으로 강조 표시
@@ -177,7 +178,9 @@ VS Code에서 실험 노트를 마크다운으로 작성할 수 있도록 돕는
 
 ### 날짜 관리
 
-- **Section Editor**: Front Matter의 Created Date, Last Updated, End Date를 날짜 달력 + 시간 선택 입력으로 편집
+- **Section Editor**: Front Matter의 Created Date, Last Updated, End Date를 날짜 달력 + 시간 입력으로 편집
+  - 시간 필드에 숫자만 입력해도 자동 포맷팅 (예: `1430` → `14:30`, `930` → `09:30`)
+  - "Now" 버튼(시계 아이콘)으로 현재 날짜+시간을 즉시 설정
 - **텍스트 에디터**: 키보드 단축키로 날짜 삽입/업데이트
   - `Ctrl+Shift+D` / `Cmd+Shift+D`: 날짜/시간 삽입
   - `Ctrl+Shift+U` / `Cmd+Shift+U`: 날짜 필드 업데이트

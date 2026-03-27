@@ -5,6 +5,19 @@
 형식은 [Keep a Changelog](https://keepachangelog.com/ko/1.1.0/)를 기반으로 하며,
 이 프로젝트는 [유의적 버전 관리](https://semver.org/lang/ko/)를 따릅니다.
 
+## [0.28.0] - 2026-03-27
+
+### 개선
+
+#### 이미지/샘플 삽입 후 커서 위치 복원
+- 이미지 붙여넣기, 샘플/텍스트 삽입 후 커서가 삽입된 텍스트의 끝에 위치하고 textarea에 포커스가 유지되도록 개선
+- SectionEditor에 `requestFocusAt` prop 추가, App.tsx에서 `pendingCursor` 상태를 통해 커서 위치를 SectionEditor에 전달
+
+#### 시간 입력 개선
+- Mantine TimeInput을 TextInput으로 교체하여 숫자만 입력해도 자동 포맷팅 (예: `1430` → `14:30`, `930` → `09:30`)
+- "Now" 버튼(시계 아이콘) 추가: 클릭 시 현재 날짜+시간을 즉시 설정
+- onBlur 또는 Enter 키로 입력 확정 시 자동 포맷팅 적용
+
 ## [0.27.0] - 2026-03-27
 
 ### 추가

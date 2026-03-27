@@ -48,10 +48,22 @@ export default function App() {
   const [parentLabNotePath, setParentLabNotePath] = useState<string | null>(null);
   const [docBaseUri, setDocBaseUri] = useState<string>('');
   const activeSectionRef = useRef<FocusTarget | null>(null);
+  const [pendingCursor, setPendingCursor] = useState<{ pos: number; tick: number } | null>(null);
   const updateCursorPos = (pos: number) => {
     if (activeSectionRef.current) {
       activeSectionRef.current = { ...activeSectionRef.current, cursorPos: pos };
     }
+  };
+
+  const getCursorForArea = (area: string, extra?: Record<string, number>) => {
+    const active = activeSectionRef.current;
+    if (!pendingCursor || !active || active.area !== area) return undefined;
+    if (extra) {
+      for (const [k, v] of Object.entries(extra)) {
+        if ((active as any)[k] !== v) return undefined;
+      }
+    }
+    return pendingCursor;
   };
   const modeRef = useRef<string | null>(null);
   const labNoteRef = useRef<LabNoteDocument | null>(null);
@@ -122,6 +134,7 @@ export default function App() {
           const text = message.data.text;
           const target = activeSectionRef.current;
           if (!target) break;
+          const actualPos = target.cursorPos ?? 0;
           const insertAt = (original: string) => {
             const pos = target.cursorPos ?? original.length;
             return original.slice(0, pos) + text + original.slice(pos);
@@ -170,6 +183,7 @@ export default function App() {
               return { ...prev, tailContent: insertAt(prev.tailContent ?? '') };
             });
           }
+          setPendingCursor({ pos: actualPos + text.length, tick: Date.now() });
           markDirty();
           break;
         }
@@ -199,6 +213,7 @@ export default function App() {
           const imgText = message.data.markdownText;
           const target = activeSectionRef.current;
           if (!target) break;
+          const actualPos = target.cursorPos ?? 0;
           const insertImg = (original: string) => {
             const pos = target.cursorPos ?? original.length;
             return original.slice(0, pos) + imgText + original.slice(pos);
@@ -231,6 +246,7 @@ export default function App() {
               return { ...prev, tailContent: insertImg(prev.tailContent ?? '') };
             });
           }
+          setPendingCursor({ pos: actualPos + imgText.length, tick: Date.now() });
           markDirty();
           break;
         }
@@ -362,6 +378,7 @@ export default function App() {
                       onFocus={() => { activeSectionRef.current = { area: 'labnoteSection', sectionIndex: index }; }}
                       onCursorActivity={updateCursorPos}
                       docBaseUri={docBaseUri}
+                      requestFocusAt={getCursorForArea('labnoteSection', { sectionIndex: index })}
                     />
                   );
                 case 'workflows':
@@ -382,6 +399,7 @@ export default function App() {
                       onFocus={() => { activeSectionRef.current = { area: 'labnoteSection', sectionIndex: index }; }}
                       onCursorActivity={updateCursorPos}
                       docBaseUri={docBaseUri}
+                      requestFocusAt={getCursorForArea('labnoteSection', { sectionIndex: index })}
                     />
                   );
                 case 'freeform':
@@ -394,6 +412,7 @@ export default function App() {
                       onFocus={() => { activeSectionRef.current = { area: 'labnoteSection', sectionIndex: index }; }}
                       onCursorActivity={updateCursorPos}
                       docBaseUri={docBaseUri}
+                      requestFocusAt={getCursorForArea('labnoteSection', { sectionIndex: index })}
                     />
                   );
                 default:
@@ -463,6 +482,7 @@ export default function App() {
                 headingLevel="h2"
                 minRows={3}
                 docBaseUri={docBaseUri}
+                requestFocusAt={getCursorForArea('tailContent')}
               />
             )}
           </>

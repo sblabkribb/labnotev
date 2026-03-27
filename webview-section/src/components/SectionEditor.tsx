@@ -21,6 +21,7 @@ interface SectionEditorProps {
   headingLevel?: 'h2' | 'h3' | 'h4';
   minRows?: number;
   docBaseUri?: string;
+  requestFocusAt?: { pos: number; tick: number } | null;
 }
 
 export function SectionEditor({
@@ -32,6 +33,7 @@ export function SectionEditor({
   headingLevel = 'h3',
   minRows = 4,
   docBaseUri,
+  requestFocusAt,
 }: SectionEditorProps) {
   const order = headingLevel === 'h2' ? 2 : headingLevel === 'h3' ? 3 : 4;
   const textareaRef = useRef<HTMLTextAreaElement>(null);
@@ -49,6 +51,17 @@ export function SectionEditor({
     ta.style.height = 'auto';
     ta.style.height = ta.scrollHeight + 'px';
   }, [content]);
+
+  useEffect(() => {
+    if (!requestFocusAt) return;
+    const ta = textareaRef.current;
+    if (!ta) return;
+    requestAnimationFrame(() => {
+      ta.focus();
+      ta.selectionStart = ta.selectionEnd = requestFocusAt.pos;
+      reportCursor();
+    });
+  }, [requestFocusAt?.tick]);
 
   const reportCursor = () => {
     if (textareaRef.current && onCursorActivity) {
