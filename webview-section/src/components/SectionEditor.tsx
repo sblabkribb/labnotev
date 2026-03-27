@@ -43,6 +43,13 @@ export function SectionEditor({
     setHasSamples(highlightSampleIds(content));
   }, [content]);
 
+  useEffect(() => {
+    const ta = textareaRef.current;
+    if (!ta) return;
+    ta.style.height = 'auto';
+    ta.style.height = ta.scrollHeight + 'px';
+  }, [content]);
+
   const reportCursor = () => {
     if (textareaRef.current && onCursorActivity) {
       onCursorActivity(textareaRef.current.selectionStart);
@@ -171,7 +178,8 @@ export function SectionEditor({
     padding: '8px',
     border: '1px solid var(--mantine-color-default-border)',
     borderRadius: '4px',
-    resize: 'vertical',
+    resize: 'none',
+    overflow: 'hidden',
     minHeight: `${minRows * 1.55 * 13 + 16}px`,
     background: hasSamples ? 'transparent' : undefined,
     position: hasSamples ? 'relative' : undefined,

@@ -5,6 +5,22 @@
 형식은 [Keep a Changelog](https://keepachangelog.com/ko/1.1.0/)를 기반으로 하며,
 이 프로젝트는 [유의적 버전 관리](https://semver.org/lang/ko/)를 따릅니다.
 
+## [0.27.0] - 2026-03-27
+
+### 추가
+
+#### Conclusion/Summary 이미지 붙여넣기 지원
+- Workflow 모드의 Conclusion / Summary 섹션에서 Ctrl+V 이미지 붙여넣기 지원
+- 텍스트/샘플 삽입도 Conclusion / Summary 섹션에서 동작하도록 개선
+- `FocusTarget` 타입에 `tailContent` 영역 추가, `imagePasted`/`sampleInserted`/`textInserted` 핸들러에 분기 추가
+
+### 변경
+
+#### SectionEditor textarea 자동 높이 조절
+- 모든 SectionEditor의 textarea가 내용에 따라 자동으로 높이 확장 (스크롤바 없음)
+- UnitOpAccordion의 Mantine `<Textarea autosize />`와 동일한 사용 경험 제공
+- raw textarea에 scrollHeight 기반 auto-resize useEffect 적용
+
 ## [0.26.0] - 2026-03-26
 
 ### 추가

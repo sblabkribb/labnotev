@@ -34,7 +34,8 @@ const WORKFLOW_FM_FIELDS = [
 
 type FocusTarget =
   | { area: 'labnoteSection'; sectionIndex: number; cursorPos?: number }
-  | { area: 'unitOp'; opIndex: number; secIndex: number; linkedWfIndex?: number; cursorPos?: number };
+  | { area: 'unitOp'; opIndex: number; secIndex: number; linkedWfIndex?: number; cursorPos?: number }
+  | { area: 'tailContent'; cursorPos?: number };
 
 type SaveStatus = 'saved' | 'saving' | 'unsaved';
 
@@ -163,6 +164,11 @@ export default function App() {
                 return { ...prev, unitOperations: ops };
               });
             }
+          } else if (target.area === 'tailContent') {
+            setWorkflow(prev => {
+              if (!prev) return prev;
+              return { ...prev, tailContent: insertAt(prev.tailContent ?? '') };
+            });
           }
           markDirty();
           break;
@@ -218,6 +224,11 @@ export default function App() {
               secs[target.secIndex] = { ...secs[target.secIndex], content: insertImg(secs[target.secIndex].content) };
               ops[target.opIndex] = { ...op, sections: secs };
               return { ...prev, unitOperations: ops };
+            });
+          } else if (target.area === 'tailContent') {
+            setWorkflow(prev => {
+              if (!prev) return prev;
+              return { ...prev, tailContent: insertImg(prev.tailContent ?? '') };
             });
           }
           markDirty();
@@ -447,6 +458,8 @@ export default function App() {
                   setWorkflow({ ...workflow, tailContent: c });
                   markDirty();
                 }}
+                onFocus={() => { activeSectionRef.current = { area: 'tailContent' }; }}
+                onCursorActivity={updateCursorPos}
                 headingLevel="h2"
                 minRows={3}
                 docBaseUri={docBaseUri}
