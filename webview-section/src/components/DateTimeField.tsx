@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Group, ActionIcon, Text, TextInput, Tooltip } from '@mantine/core';
 import { DatePickerInput } from '@mantine/dates';
 import dayjs from 'dayjs';
@@ -33,29 +33,19 @@ function combine(date: string | null, time: string): string {
   return date;
 }
 
+/** Build a masked display string from raw digits (0–4 digits). */
+function digitsToDisplay(digits: string): string {
+  if (digits.length <= 2) return digits;
+  return digits.slice(0, 2) + ':' + digits.slice(2);
+}
+
+/** Validate and format 4 digits into HH:MM, or return '' if invalid. */
 export function formatTimeInput(raw: string): string {
-  if (raw.includes(':')) {
-    const [hStr, mStr] = raw.split(':');
-    const h = parseInt(hStr, 10);
-    const m = parseInt(mStr || '0', 10);
-    if (isNaN(h) || h > 23 || isNaN(m) || m > 59) return '';
-    return `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`;
-  }
   const digits = raw.replace(/[^0-9]/g, '');
-  if (!digits) return '';
-  if (digits.length <= 2) {
-    const h = parseInt(digits, 10);
-    if (h > 23) return '';
-    return `${String(h).padStart(2, '0')}:00`;
-  }
-  if (digits.length === 3) {
-    const h = parseInt(digits[0], 10);
-    const m = parseInt(digits.slice(1), 10);
-    if (h > 23 || m > 59) return '';
-    return `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`;
-  }
-  const h = parseInt(digits.slice(0, 2), 10);
-  const m = parseInt(digits.slice(2, 4), 10);
+  if (digits.length < 3) return '';
+  const d = digits.length === 3 ? '0' + digits : digits.slice(0, 4);
+  const h = parseInt(d.slice(0, 2), 10);
+  const m = parseInt(d.slice(2, 4), 10);
   if (h > 23 || m > 59) return '';
   return `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`;
 }
@@ -69,23 +59,54 @@ export function DateTimeField({
 }: DateTimeFieldProps) {
   const { date, time } = parseParts(value);
   const [localTime, setLocalTime] = useState(time);
+  const [editing, setEditing] = useState(false);
+  const prevTimeRef = useRef(time);
 
   useEffect(() => {
-    setLocalTime(time);
-  }, [time]);
+    if (!editing) setLocalTime(time);
+  }, [time, editing]);
 
   const handleDateChange = (newDate: string | null) => {
     onChange(combine(newDate, time));
   };
 
-  const commitTime = () => {
+  const handleTimeFocus = () => {
+    prevTimeRef.current = localTime;
+    setEditing(true);
+    setLocalTime('');
+  };
+
+  const handleTimeChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const digits = e.currentTarget.value.replace(/[^0-9]/g, '').slice(0, 4);
+    const display = digitsToDisplay(digits);
+    setLocalTime(display);
+
+    if (digits.length === 4) {
+      const h = parseInt(digits.slice(0, 2), 10);
+      const m = parseInt(digits.slice(2, 4), 10);
+      if (h <= 23 && m <= 59) {
+        const formatted = `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`;
+        onChange(combine(date, formatted));
+        setEditing(false);
+        e.currentTarget.blur();
+      }
+    }
+  };
+
+  const handleTimeBlur = () => {
+    setEditing(false);
     const formatted = formatTimeInput(localTime);
-    setLocalTime(formatted);
-    onChange(combine(date, formatted));
+    if (formatted) {
+      setLocalTime(formatted);
+      onChange(combine(date, formatted));
+    } else {
+      setLocalTime(prevTimeRef.current);
+    }
   };
 
   const handleTimeClear = () => {
     setLocalTime('');
+    setEditing(false);
     onChange(combine(date, ''));
   };
 
@@ -94,6 +115,7 @@ export function DateTimeField({
     const newDate = date ?? now.format('YYYY-MM-DD');
     const newTime = now.format('HH:mm');
     setLocalTime(newTime);
+    setEditing(false);
     onChange(combine(newDate, newTime));
   };
 
@@ -113,11 +135,12 @@ export function DateTimeField({
         <TextInput
           size={size}
           value={localTime}
-          onChange={(e) => setLocalTime(e.currentTarget.value)}
-          onBlur={commitTime}
-          onKeyDown={(e) => { if (e.key === 'Enter') commitTime(); }}
+          onChange={handleTimeChange}
+          onFocus={handleTimeFocus}
+          onBlur={handleTimeBlur}
           placeholder="HH:MM"
           style={{ width: 100 }}
+          maxLength={5}
         />
         <Tooltip label="현재 시간" position="bottom" withArrow>
           <ActionIcon
@@ -129,7 +152,7 @@ export function DateTimeField({
             <ClockIcon />
           </ActionIcon>
         </Tooltip>
-        {localTime && (
+        {localTime && !editing && (
           <ActionIcon
             variant="subtle"
             size="xs"

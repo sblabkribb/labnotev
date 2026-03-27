@@ -53,6 +53,11 @@ export function ImageThumbnails({ content, docBaseUri }: ImageThumbnailsProps) {
               style={{ maxHeight: 100, maxWidth: 160, display: 'block', borderRadius: 2 }}
               onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
             />
+            {img.alt !== img.path && (
+              <Text size="xs" c="dimmed" ta="center" truncate style={{ maxWidth: 160 }}>
+                {img.alt}
+              </Text>
+            )}
           </div>
         ))}
       </Group>
