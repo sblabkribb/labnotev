@@ -1,10 +1,13 @@
-import { Accordion, Badge, Group, Text, Stack, Textarea, TextInput, Title, Paper, ActionIcon, UnstyledButton } from '@mantine/core';
+import { useRef, useEffect, useState } from 'react';
+import { Accordion, Badge, Group, Text, Stack, TextInput, Title, Paper, ActionIcon, Tooltip, UnstyledButton } from '@mantine/core';
 import { DndContext, closestCenter, KeyboardSensor, PointerSensor, useSensor, useSensors, type DragEndEvent } from '@dnd-kit/core';
 import { SortableContext, verticalListSortingStrategy, useSortable, arrayMove } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 import type { UnitOperationBlock } from '../types';
 import { ImageThumbnails } from './ImageThumbnails';
 import { DateTimeField } from './DateTimeField';
+import { TableInsertModal } from './TableInsertModal';
+import { useTableEditing } from '../hooks/useTableEditing';
 
 function parseMetaContent(content: string): Record<string, string> {
   const result: Record<string, string> = {};
@@ -63,6 +66,137 @@ function GripIcon() {
   );
 }
 
+interface UnitOpSectionTextareaProps {
+  heading: string;
+  content: string;
+  sampleTypes?: string[];
+  onChange: (content: string) => void;
+  onFocus?: () => void;
+  onCursorActivity?: (pos: number) => void;
+  onCreateSample?: (type: string) => void;
+  docBaseUri?: string;
+}
+
+function UnitOpSectionTextarea({
+  heading, content, sampleTypes, onChange, onFocus, onCursorActivity, onCreateSample, docBaseUri,
+}: UnitOpSectionTextareaProps) {
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const [tableModalOpen, setTableModalOpen] = useState(false);
+
+  const reportCursor = () => {
+    if (textareaRef.current && onCursorActivity) {
+      onCursorActivity(textareaRef.current.selectionStart);
+    }
+  };
+
+  const {
+    handleTableInsert,
+    handleAlignTable,
+    handleKeyDown,
+    handlePaste,
+    cursorInTable,
+  } = useTableEditing(textareaRef, content, onChange, reportCursor);
+
+  useEffect(() => {
+    const ta = textareaRef.current;
+    if (!ta) return;
+    ta.style.height = 'auto';
+    ta.style.height = ta.scrollHeight + 'px';
+  }, [content]);
+
+  return (
+    <div>
+      <Group gap="xs" mb={4} justify="space-between">
+        <Group gap="xs">
+          <Title order={5}>{heading}</Title>
+          {sampleTypes && sampleTypes.map(type => (
+            <UnstyledButton
+              key={type}
+              onClick={() => onCreateSample?.(type)}
+              style={{ lineHeight: 1 }}
+            >
+              <Badge
+                size="xs"
+                variant="light"
+                style={{
+                  cursor: 'pointer',
+                  backgroundColor: `${SAMPLE_TYPE_COLORS[type] || '#666'}15`,
+                  color: SAMPLE_TYPE_COLORS[type] || '#666',
+                  border: `1px solid ${SAMPLE_TYPE_COLORS[type] || '#666'}40`,
+                }}
+              >
+                +{type}
+              </Badge>
+            </UnstyledButton>
+          ))}
+        </Group>
+        <Group gap={4}>
+          <Tooltip label="테이블 삽입" position="bottom" withArrow>
+            <ActionIcon variant="subtle" size="xs" onClick={() => setTableModalOpen(true)} aria-label="테이블 삽입">
+              <TableIcon />
+            </ActionIcon>
+          </Tooltip>
+          <Tooltip label="테이블 정렬 (Ctrl+Shift+F)" position="bottom" withArrow>
+            <ActionIcon variant="subtle" size="xs" onClick={handleAlignTable} disabled={!cursorInTable} aria-label="테이블 정렬">
+              <AlignIcon />
+            </ActionIcon>
+          </Tooltip>
+        </Group>
+      </Group>
+      <textarea
+        ref={textareaRef}
+        value={content}
+        onChange={(e) => { onChange(e.currentTarget.value); reportCursor(); }}
+        onFocus={() => { onFocus?.(); reportCursor(); }}
+        onClick={reportCursor}
+        onKeyUp={reportCursor}
+        onKeyDown={handleKeyDown}
+        onPaste={handlePaste}
+        style={{
+          fontFamily: 'monospace',
+          fontSize: '13px',
+          lineHeight: '1.55',
+          width: '100%',
+          padding: '8px',
+          border: '1px solid var(--mantine-color-default-border)',
+          borderRadius: '4px',
+          resize: 'none',
+          overflow: 'hidden',
+          minHeight: `${2 * 1.55 * 13 + 16}px`,
+        }}
+      />
+      {docBaseUri && <ImageThumbnails content={content} docBaseUri={docBaseUri} />}
+      <TableInsertModal
+        opened={tableModalOpen}
+        onClose={() => setTableModalOpen(false)}
+        onInsert={handleTableInsert}
+      />
+    </div>
+  );
+}
+
+function TableIcon() {
+  return (
+    <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" strokeLinejoin="round">
+      <rect x="1.5" y="2.5" width="13" height="11" rx="1" />
+      <line x1="1.5" y1="6" x2="14.5" y2="6" />
+      <line x1="1.5" y1="10" x2="14.5" y2="10" />
+      <line x1="6" y1="2.5" x2="6" y2="13.5" />
+      <line x1="10.5" y1="2.5" x2="10.5" y2="13.5" />
+    </svg>
+  );
+}
+
+function AlignIcon() {
+  return (
+    <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" strokeLinejoin="round">
+      <line x1="2" y1="4" x2="14" y2="4" />
+      <line x1="2" y1="8" x2="14" y2="8" />
+      <line x1="2" y1="12" x2="10" y2="12" />
+    </svg>
+  );
+}
+
 interface SortableUnitOpProps {
   op: UnitOperationBlock;
   opIndex: number;
@@ -114,7 +248,7 @@ function SortableUnitOp({ op, opIndex, onUpdateSection, onUpdateAlias, onSection
               value={op.alias ?? ''}
               onChange={(e) => onUpdateAlias(opIndex, e.currentTarget.value)}
               onClick={(e) => e.stopPropagation()}
-              styles={{ input: { fontSize: '13px', color: 'var(--mantine-color-dimmed)', minWidth: 180 } }}
+              styles={{ input: { fontSize: '13px', color: op.alias ? 'var(--mantine-color-text)' : 'var(--mantine-color-dimmed)', minWidth: 180 } }}
             />
           </Group>
         </Accordion.Control>
@@ -167,42 +301,17 @@ function SortableUnitOp({ op, opIndex, onUpdateSection, onUpdateAlias, onSection
 
               const sampleTypes = SECTION_SAMPLE_TYPES[section.heading];
               return (
-                <div key={secIndex}>
-                  <Group gap="xs" mb={4}>
-                    <Title order={5}>{section.heading}</Title>
-                    {sampleTypes && sampleTypes.map(type => (
-                      <UnstyledButton
-                        key={type}
-                        onClick={() => onCreateSample?.(opIndex, secIndex, type)}
-                        style={{ lineHeight: 1 }}
-                      >
-                        <Badge
-                          size="xs"
-                          variant="light"
-                          style={{
-                            cursor: 'pointer',
-                            backgroundColor: `${SAMPLE_TYPE_COLORS[type] || '#666'}15`,
-                            color: SAMPLE_TYPE_COLORS[type] || '#666',
-                            border: `1px solid ${SAMPLE_TYPE_COLORS[type] || '#666'}40`,
-                          }}
-                        >
-                          +{type}
-                        </Badge>
-                      </UnstyledButton>
-                    ))}
-                  </Group>
-                  <Textarea
-                    value={section.content}
-                    onChange={(e) => { onUpdateSection(opIndex, secIndex, e.currentTarget.value); onCursorActivity?.(e.currentTarget.selectionStart); }}
-                    onFocus={(e) => { onSectionFocus?.(opIndex, secIndex); onCursorActivity?.(e.currentTarget.selectionStart); }}
-                    onClick={(e) => onCursorActivity?.(e.currentTarget.selectionStart)}
-                    onKeyUp={(e) => onCursorActivity?.(e.currentTarget.selectionStart)}
-                    autosize
-                    minRows={2}
-                    styles={{ input: { fontFamily: 'monospace', fontSize: '13px' } }}
-                  />
-                  {docBaseUri && <ImageThumbnails content={section.content} docBaseUri={docBaseUri} />}
-                </div>
+                <UnitOpSectionTextarea
+                  key={secIndex}
+                  heading={section.heading}
+                  content={section.content}
+                  sampleTypes={sampleTypes}
+                  onChange={(c) => onUpdateSection(opIndex, secIndex, c)}
+                  onFocus={() => onSectionFocus?.(opIndex, secIndex)}
+                  onCursorActivity={onCursorActivity}
+                  onCreateSample={onCreateSample ? (type: string) => onCreateSample(opIndex, secIndex, type) : undefined}
+                  docBaseUri={docBaseUri}
+                />
               );
             })}
           </Stack>

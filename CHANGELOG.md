@@ -5,6 +5,29 @@
 형식은 [Keep a Changelog](https://keepachangelog.com/ko/1.1.0/)를 기반으로 하며,
 이 프로젝트는 [유의적 버전 관리](https://semver.org/lang/ko/)를 따릅니다.
 
+## [0.30.0] - 2026-03-28
+
+### 추가
+
+#### UnitOp 섹션 테이블 편집 지원
+- 유닛 오퍼레이션의 모든 일반 섹션(Meta 제외)에 SectionEditor와 동일한 마크다운 테이블 기능 추가
+  - 테이블 삽입 다이얼로그, Tab/Shift+Tab 셀 이동, TSV 붙여넣기 변환, Ctrl+Shift+F 컬럼 정렬
+- `useTableEditing` 커스텀 훅으로 테이블 편집 로직을 추출하여 SectionEditor와 UnitOpAccordion에서 공유
+- 각 섹션 제목 옆에 테이블 삽입/정렬 아이콘 버튼 배치
+- Mantine `<Textarea>`를 raw `<textarea>` + auto-resize로 교체하여 일관된 편집 경험 제공
+
+### 변경
+
+#### Conclusion / Summary → Conclusions and Discussion 이름 변경
+- 워크플로 생성 시 tail 섹션 heading을 `## Conclusions and Discussion`으로 변경
+- Section Editor UI 표시 heading도 동일하게 변경 (기존 워크플로 파일은 파서가 heading과 무관하게 처리하므로 호환성 유지)
+
+#### UnitOp 별칭 텍스트 색상 개선
+- 유닛 오퍼레이션 별칭(alias) 입력 시 텍스트가 기본 색상(검은색)으로 표시되도록 변경 (기존: 항상 dimmed)
+
+### 새 파일
+- `webview-section/src/hooks/useTableEditing.ts` -- 테이블 편집 커스텀 훅
+
 ## [0.29.0] - 2026-03-27
 
 ### 개선

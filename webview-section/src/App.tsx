@@ -471,7 +471,7 @@ export default function App() {
 
             {workflow.tailContent !== undefined && (
               <SectionEditor
-                heading="📝 Conclusion / Summary"
+                heading="📝 Conclusions and Discussion"
                 content={workflow.tailContent}
                 onChange={(c) => {
                   setWorkflow({ ...workflow, tailContent: c });

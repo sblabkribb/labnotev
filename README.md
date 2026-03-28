@@ -59,12 +59,12 @@ VS Code에서 실험 노트를 마크다운으로 작성할 수 있도록 돕는
   - Meta 섹션: Experimenter(텍스트 입력), Start/End Date(날짜 달력 + 시간 선택)를 구조화된 폼으로 표시
   - 일반 섹션(Input, Output, Method 등): textarea로 자유롭게 편집
   - 섹션별 샘플 정의 버튼: `+DNA`, `+RNA`, `+Plasmid`, `+Protein`, `+Primer`, `+Reagent`, `+Labware`, `+Equip`
-- **Conclusion / Summary**: 워크플로 전체 요약 작성 영역
+- **Conclusions and Discussion**: 워크플로 전체 요약 및 논의 작성 영역
 
 #### 공통 기능
 
 - **자동 저장**: 편집 후 1.5초 뒤 자동 저장, 상단에 저장 상태 배지 표시 (저장됨/변경사항 있음/저장 중)
-- **이미지 붙여넣기**: 모든 textarea(Conclusion/Summary 포함)에서 `Ctrl+V`로 클립보드 이미지 붙여넣기 가능
+- **이미지 붙여넣기**: 모든 textarea(Conclusions and Discussion 포함)에서 `Ctrl+V`로 클립보드 이미지 붙여넣기 가능
   - 이미지가 `images/` 폴더에 자동 저장되고 마크다운 이미지 링크가 삽입됨
   - 삽입 후 커서가 삽입된 텍스트 끝에 자동 위치 (샘플/텍스트 삽입 시에도 동일)
   - textarea 아래에 이미지 썸네일이 자동 표시되며, `![제목]()` 형식으로 제목을 입력하면 썸네일 아래에 표시
@@ -72,7 +72,7 @@ VS Code에서 실험 노트를 마크다운으로 작성할 수 있도록 돕는
 - **textarea 자동 높이 조절**: 모든 SectionEditor의 textarea가 내용에 따라 자동 확장 (스크롤바 없음)
 - **샘플 ID 하이라이팅**: textarea 내 샘플 ID를 타입별 색상으로 강조 표시
   - 하이라이팅된 샘플 ID 클릭 시 해당 정의 위치로 이동
-- **마크다운 테이블 편집 지원**: textarea에서 마크다운 테이블을 쉽게 작성할 수 있는 보조 기능
+- **마크다운 테이블 편집 지원**: 모든 textarea(SectionEditor, UnitOp 섹션 포함)에서 마크다운 테이블을 쉽게 작성할 수 있는 보조 기능
   - 섹션 제목 옆 테이블 아이콘 클릭 → 행/열 수 지정 → 테이블 템플릿 삽입
   - 테이블 내에서 Tab으로 다음 셀, Shift+Tab으로 이전 셀 이동 (마지막 셀에서 Tab → 새 행 추가)
   - Excel/Google Sheets에서 복사한 데이터를 붙여넣으면 마크다운 테이블로 자동 변환

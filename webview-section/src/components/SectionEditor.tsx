@@ -1,16 +1,9 @@
-import { useRef, useEffect, useState, useCallback } from 'react';
+import { useRef, useEffect, useState } from 'react';
 import { Title, Paper, Stack, Group, ActionIcon, Tooltip } from '@mantine/core';
 import { SampleHighlighter, highlightSampleIds } from './SampleHighlighter';
 import { ImageThumbnails } from './ImageThumbnails';
 import { TableInsertModal } from './TableInsertModal';
-import {
-  isInsideTable,
-  getNextCellPosition,
-  getPrevCellPosition,
-  alignTableColumns,
-  looksLikeTsv,
-  tsvToMarkdownTable,
-} from '../utils/markdownTable';
+import { useTableEditing } from '../hooks/useTableEditing';
 
 interface SectionEditorProps {
   heading: string;
@@ -69,119 +62,20 @@ export function SectionEditor({
     }
   };
 
+  const {
+    handleTableInsert,
+    handleAlignTable,
+    handleKeyDown,
+    handlePaste,
+    cursorInTable,
+  } = useTableEditing(textareaRef, content, onChange, reportCursor);
+
   const syncScroll = () => {
     if (textareaRef.current && overlayRef.current) {
       overlayRef.current.scrollTop = textareaRef.current.scrollTop;
       overlayRef.current.scrollLeft = textareaRef.current.scrollLeft;
     }
   };
-
-  const insertTextAtCursor = useCallback((text: string) => {
-    const ta = textareaRef.current;
-    if (!ta) return;
-    const pos = ta.selectionStart;
-    const prefix = pos > 0 && content[pos - 1] !== '\n' ? '\n' : '';
-    const newContent = content.slice(0, pos) + prefix + text + content.slice(pos);
-    onChange(newContent);
-    requestAnimationFrame(() => {
-      const newPos = pos + prefix.length + text.length;
-      ta.selectionStart = ta.selectionEnd = newPos;
-      ta.focus();
-      reportCursor();
-    });
-  }, [content, onChange]);
-
-  const handleTableInsert = useCallback((tableMarkdown: string) => {
-    insertTextAtCursor(tableMarkdown);
-  }, [insertTextAtCursor]);
-
-  const handleAlignTable = useCallback(() => {
-    const ta = textareaRef.current;
-    if (!ta) return;
-    const result = alignTableColumns(content, ta.selectionStart);
-    if (!result) return;
-    onChange(result.text);
-    requestAnimationFrame(() => {
-      ta.selectionStart = ta.selectionEnd = result.newCursorPos;
-      ta.focus();
-      reportCursor();
-    });
-  }, [content, onChange]);
-
-  const handleKeyDown = useCallback((e: React.KeyboardEvent<HTMLTextAreaElement>) => {
-    const ta = e.currentTarget;
-    const pos = ta.selectionStart;
-
-    // Escape: blur textarea for accessibility
-    if (e.key === 'Escape') {
-      ta.blur();
-      return;
-    }
-
-    // Ctrl+Shift+F: align table columns
-    if (e.key === 'f' && e.ctrlKey && e.shiftKey && !e.altKey) {
-      if (isInsideTable(content, pos)) {
-        e.preventDefault();
-        handleAlignTable();
-        return;
-      }
-    }
-
-    // Tab / Shift+Tab: cell navigation inside tables
-    if (e.key === 'Tab' && !e.ctrlKey && !e.altKey) {
-      if (!isInsideTable(content, pos)) return;
-      e.preventDefault();
-
-      if (e.shiftKey) {
-        const prev = getPrevCellPosition(content, pos);
-        if (prev !== null) {
-          ta.selectionStart = ta.selectionEnd = prev;
-          reportCursor();
-        }
-      } else {
-        const next = getNextCellPosition(content, pos);
-        if (next) {
-          if (next.newText) {
-            onChange(next.newText);
-            requestAnimationFrame(() => {
-              ta.selectionStart = ta.selectionEnd = next.pos;
-              reportCursor();
-            });
-          } else {
-            ta.selectionStart = ta.selectionEnd = next.pos;
-            reportCursor();
-          }
-        }
-      }
-    }
-  }, [content, onChange, handleAlignTable]);
-
-  const handlePaste = useCallback((e: React.ClipboardEvent<HTMLTextAreaElement>) => {
-    const text = e.clipboardData.getData('text/plain');
-    if (!text || !looksLikeTsv(text)) return;
-
-    const table = tsvToMarkdownTable(text);
-    if (!table) return;
-
-    e.preventDefault();
-    const ta = e.currentTarget;
-    const pos = ta.selectionStart;
-    const end = ta.selectionEnd;
-    const prefix = pos > 0 && content[pos - 1] !== '\n' ? '\n' : '';
-    const newContent = content.slice(0, pos) + prefix + table + content.slice(end);
-    onChange(newContent);
-    requestAnimationFrame(() => {
-      const newPos = pos + prefix.length + table.length;
-      ta.selectionStart = ta.selectionEnd = newPos;
-      reportCursor();
-    });
-  }, [content, onChange]);
-
-  const cursorInTable = (() => {
-    const ta = textareaRef.current;
-    if (!ta) return false;
-    return isInsideTable(content, ta.selectionStart);
-  })();
 
   const textareaStyle: React.CSSProperties = {
     fontFamily: 'monospace',
