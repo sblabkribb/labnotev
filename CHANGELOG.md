@@ -5,6 +5,17 @@
 형식은 [Keep a Changelog](https://keepachangelog.com/ko/1.1.0/)를 기반으로 하며,
 이 프로젝트는 [유의적 버전 관리](https://semver.org/lang/ko/)를 따릅니다.
 
+## [0.32.0] - 2026-03-28
+
+### 추가
+
+#### 다크 모드 지원
+- 에디터 오른쪽 상단에 다크/라이트 모드 토글 버튼(달/해 아이콘) 추가
+- Mantine `forceColorScheme`으로 모든 UI 컴포넌트(Paper, Badge, Alert, Modal, Select 등)에 일괄 적용
+- raw textarea의 배경·글자색을 Mantine CSS 변수(`--mantine-color-body`, `--mantine-color-text`)로 연동
+- 사용자 선택이 `localStorage`에 저장되어 새로고침·재열기 후에도 유지
+- body 배경색 전환 시 부드러운 transition 적용
+
 ## [0.31.0] - 2026-03-28
 
 ### 추가

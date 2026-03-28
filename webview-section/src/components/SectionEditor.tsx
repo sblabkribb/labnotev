@@ -90,11 +90,11 @@ export function SectionEditor({
     resize: 'none',
     overflow: 'hidden',
     minHeight: `${minRows * 1.55 * 13 + 16}px`,
-    background: hasSamples ? 'transparent' : undefined,
+    background: hasSamples ? 'transparent' : 'var(--mantine-color-body)',
     position: hasSamples ? 'relative' : undefined,
     zIndex: hasSamples ? 2 : undefined,
     caretColor: 'var(--mantine-color-text)',
-    color: hasSamples ? 'transparent' : undefined,
+    color: hasSamples ? 'transparent' : 'var(--mantine-color-text)',
   };
 
   const overlayStyle: React.CSSProperties = {

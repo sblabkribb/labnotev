@@ -1,7 +1,13 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
-import { MantineProvider, Stack, Button, Group, Title, Loader, Center, Text, Paper, Alert, Badge, Anchor } from '@mantine/core';
+import { MantineProvider, Stack, Button, Group, Title, Loader, Center, Text, Paper, Alert, Badge, Anchor, ActionIcon, Tooltip } from '@mantine/core';
 import { useDebouncedCallback } from '@mantine/hooks';
 import '@mantine/core/styles.css';
+
+type ColorScheme = 'light' | 'dark';
+function loadColorScheme(): ColorScheme {
+  try { const v = localStorage.getItem('labnotev-color-scheme'); if (v === 'dark') return 'dark'; } catch {}
+  return 'light';
+}
 import { FrontMatterForm } from './components/FrontMatterForm';
 import { SectionEditor } from './components/SectionEditor';
 import { WorkflowChecklist } from './components/WorkflowChecklist';
@@ -51,6 +57,15 @@ export default function App() {
   const [pendingCursor, setPendingCursor] = useState<{ pos: number; tick: number } | null>(null);
   const [availableTypes, setAvailableTypes] = useState<string[]>([]);
   const [productSearchResult, setProductSearchResult] = useState<{ alias: string; description: string } | null>(null);
+  const [colorScheme, setColorScheme] = useState<ColorScheme>(loadColorScheme);
+
+  const toggleColorScheme = useCallback(() => {
+    setColorScheme(prev => {
+      const next = prev === 'light' ? 'dark' : 'light';
+      try { localStorage.setItem('labnotev-color-scheme', next); } catch {}
+      return next;
+    });
+  }, []);
   const updateCursorPos = (pos: number) => {
     if (activeSectionRef.current) {
       activeSectionRef.current = { ...activeSectionRef.current, cursorPos: pos };
@@ -325,7 +340,7 @@ export default function App() {
 
   if (!mode) {
     return (
-      <MantineProvider>
+      <MantineProvider forceColorScheme={colorScheme}>
         <Center h="100vh">
           <Loader />
         </Center>
@@ -354,7 +369,7 @@ export default function App() {
   };
 
   return (
-    <MantineProvider>
+    <MantineProvider forceColorScheme={colorScheme}>
       <Stack p="md" gap="md">
         <Group justify="space-between">
           <Group gap="sm">
@@ -369,9 +384,16 @@ export default function App() {
               {saveStatus === 'saved' ? '저장됨' : saveStatus === 'saving' ? '저장 중...' : '변경사항 있음'}
             </Badge>
           </Group>
-          <Button size="xs" variant="subtle" onClick={handleOpenAsText}>
-            텍스트로 열기
-          </Button>
+          <Group gap="xs">
+            <Tooltip label={colorScheme === 'light' ? '다크 모드' : '라이트 모드'} position="bottom" withArrow>
+              <ActionIcon variant="subtle" size="md" onClick={toggleColorScheme} aria-label="테마 전환">
+                {colorScheme === 'light' ? <MoonIcon /> : <SunIcon />}
+              </ActionIcon>
+            </Tooltip>
+            <Button size="xs" variant="subtle" onClick={handleOpenAsText}>
+              텍스트로 열기
+            </Button>
+          </Group>
         </Group>
 
         <Alert variant="light" color="blue" styles={{ root: { padding: '8px 12px' } }}>
@@ -527,5 +549,29 @@ export default function App() {
         )}
       </Stack>
     </MantineProvider>
+  );
+}
+
+function MoonIcon() {
+  return (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z" />
+    </svg>
+  );
+}
+
+function SunIcon() {
+  return (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <circle cx="12" cy="12" r="5" />
+      <line x1="12" y1="1" x2="12" y2="3" />
+      <line x1="12" y1="21" x2="12" y2="23" />
+      <line x1="4.22" y1="4.22" x2="5.64" y2="5.64" />
+      <line x1="18.36" y1="18.36" x2="19.78" y2="19.78" />
+      <line x1="1" y1="12" x2="3" y2="12" />
+      <line x1="21" y1="12" x2="23" y2="12" />
+      <line x1="4.22" y1="19.78" x2="5.64" y2="18.36" />
+      <line x1="18.36" y1="5.64" x2="19.78" y2="4.22" />
+    </svg>
   );
 }

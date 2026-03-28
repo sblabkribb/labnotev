@@ -147,6 +147,8 @@ function UnitOpSectionTextarea({
           resize: 'none',
           overflow: 'hidden',
           minHeight: `${2 * 1.55 * 13 + 16}px`,
+          background: 'var(--mantine-color-body)',
+          color: 'var(--mantine-color-text)',
         }}
       />
       {docBaseUri && <ImageThumbnails content={content} docBaseUri={docBaseUri} />}
