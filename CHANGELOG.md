@@ -5,6 +5,34 @@
 형식은 [Keep a Changelog](https://keepachangelog.com/ko/1.1.0/)를 기반으로 하며,
 이 프로젝트는 [유의적 버전 관리](https://semver.org/lang/ko/)를 따릅니다.
 
+## [0.31.0] - 2026-03-28
+
+### 추가
+
+#### 샘플 생성 모달 통합
+- 유닛 오퍼레이션의 섹션별 개별 샘플 타입 버튼(`+DNA`, `+RNA` 등)을 단일 `+Sample` 버튼으로 통합
+- 웹뷰 모달(`SampleCreateModal`)에서 타입 선택, 별칭, 설명을 한 번에 입력하여 샘플 생성
+  - 기본 8종(DNA, RNA, Plasmid, Reagent, Primer, Protein, Equip, Labware) + 커스텀 타입을 드롭다운으로 제공
+  - Reagent/Labware 선택 시 "제품 검색" 버튼 표시 (기존 QuickPick 연동)
+  - "새 타입 추가" 옵션으로 커스텀 샘플 타입 정의 가능 (워크스페이스 설정 `labnotev.customSampleTypes`에 저장)
+- 기존 TreeView 삽입 및 텍스트 에디터 `@` 자동완성은 변경 없음
+
+#### 커스텀 타입 본문 참조 지원
+- 커스텀 타입(예: `Oligo-1711234567890`)이 본문에서 하이라이팅, 추출, 저장되도록 지원
+  - 웹뷰 `SampleHighlighter`: `availableTypes` prop 기반 동적 정규식 생성으로 커스텀 타입 하이라이팅
+  - `sampleStorage.ts`: `extractSampleInfoFromText`에 `additionalTypes` 파라미터 추가, 커스텀 타입 추출/저장
+  - `sampleDecorations.ts`: `getDecoration()` 함수로 커스텀 타입 데코레이션 동적 생성 (기본 회색)
+  - 에디터 내 커스텀 타입 샘플 ID도 색상 데코레이션으로 표시
+
+### 변경
+
+#### 샘플 모달 UI 개선
+- Output 섹션에서 샘플 추가 아이콘 제거 (Output은 샘플 정의가 아닌 결과 기술 영역)
+- 모달 설명란을 `TextInput`에서 `Textarea`(autosize, 2~6줄)로 변경하여 여러 줄 입력 가능
+
+### 새 파일
+- `webview-section/src/components/SampleCreateModal.tsx` -- 샘플 생성 모달 컴포넌트
+
 ## [0.30.0] - 2026-03-28
 
 ### 추가

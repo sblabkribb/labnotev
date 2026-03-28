@@ -61,7 +61,7 @@ export interface WorkflowDocument {
 
 // Extension <-> Webview message types
 export type ExtensionToWebviewMessage =
-  | { type: 'init'; data: { mode: string; labNote?: LabNoteDocument; workflow?: WorkflowDocument; linkedWorkflows?: WorkflowDocument[]; parentLabNotePath?: string; docBaseUri?: string } }
+  | { type: 'init'; data: { mode: string; labNote?: LabNoteDocument; workflow?: WorkflowDocument; linkedWorkflows?: WorkflowDocument[]; parentLabNotePath?: string; docBaseUri?: string; availableTypes?: string[] } }
   | { type: 'unitOpAdded'; data: UnitOperationBlock }
   | { type: 'sampleInserted'; data: { text: string } }
   | { type: 'textInserted'; data: { text: string } }
@@ -69,14 +69,18 @@ export type ExtensionToWebviewMessage =
   | { type: 'sampleDefinitionCreated'; data: { definitionText: string; opIndex: number; secIndex: number } }
   | { type: 'documentChanged'; data: { labNote?: LabNoteDocument; workflow?: WorkflowDocument } }
   | { type: 'saveCompleted' }
-  | { type: 'imagePasted'; data: { markdownText: string } };
+  | { type: 'imagePasted'; data: { markdownText: string } }
+  | { type: 'productSearchResult'; data: { alias: string; description: string } }
+  | { type: 'customTypesUpdated'; data: { availableTypes: string[] } };
 
 export type WebviewToExtensionMessage =
   | { type: 'ready' }
   | { type: 'save'; data: any }
   | { type: 'openAsText' }
   | { type: 'openImagePreview'; data: { imagePath: string; altText?: string } }
-  | { type: 'createSampleDefinition'; data: { sampleType: string; opIndex: number; secIndex: number } }
+  | { type: 'createSampleFromModal'; data: { sampleType: string; alias: string; description: string; opIndex: number; secIndex: number } }
+  | { type: 'searchProducts'; data: { sampleType: string } }
+  | { type: 'addCustomType'; data: { typeName: string } }
   | { type: 'navigateToSample'; data: { sampleId: string; sampleType: string } }
   | { type: 'openWorkflow'; data: { link: string } }
   | { type: 'pasteImage'; data: { imageBase64: string; mimeType: string } };

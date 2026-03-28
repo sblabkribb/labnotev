@@ -8,7 +8,7 @@ import {
   updateAllDatesInLine,
   updateAllDateFields,
 } from '../lib/dateUtils';
-import { sampleDecorations } from '../lib/sampleDecorations';
+import { sampleDecorations, getDecoration } from '../lib/sampleDecorations';
 import { ImagePreviewPanel } from '../views/ImagePreviewPanel';
 import { ImageLinkProvider } from '../lib/imageLinkProvider';
 import { saveSamplesFromDocument, getGlobalLabsamplesFolder } from '../lib/sampleStorage';
@@ -353,19 +353,18 @@ export function registerUtilityCommands(
       return;
     }
 
-    const decorationsByType: Record<SampleType, vscode.DecorationOptions[]> = {} as Record<SampleType, vscode.DecorationOptions[]>;
+    const customTypes = vscode.workspace.getConfiguration('labnotev').get<string[]>('customSampleTypes', []);
+    const allTypes: string[] = [...SAMPLE_TYPES, ...customTypes.filter(t => !(SAMPLE_TYPES as readonly string[]).includes(t))];
+    const decorationsByType: Record<string, vscode.DecorationOptions[]> = {};
 
-    // Initialize decoration arrays for each type
-    for (const type of SAMPLE_TYPES) {
+    for (const type of allTypes) {
       decorationsByType[type] = [];
     }
 
-    // Scan document for sample IDs (always enabled - uses Sample TreeView)
-    // Pattern: TYPE-{digits} or TYPE-{digits}-{digits}... (e.g. DNA-123, Equip-123-456)
     for (let lineNum = 0; lineNum < document.lineCount; lineNum++) {
       const line = document.lineAt(lineNum);
 
-      for (const type of SAMPLE_TYPES) {
+      for (const type of allTypes) {
         const pattern = new RegExp(`\\b${type}-\\d+(?:-\\d+)*\\b`, 'g');
         let match;
 
@@ -378,9 +377,8 @@ export function registerUtilityCommands(
       }
     }
 
-    // Apply decorations for each type (empty arrays will clear decorations)
-    for (const type of SAMPLE_TYPES) {
-      editor.setDecorations(sampleDecorations[type], decorationsByType[type]);
+    for (const type of allTypes) {
+      editor.setDecorations(getDecoration(type), decorationsByType[type]);
     }
   }
 
@@ -410,7 +408,8 @@ export function registerUtilityCommands(
       try {
         const workspaceRoot = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath;
         const globalLabsamplesFolder = workspaceRoot ? getGlobalLabsamplesFolder(workspaceRoot) : undefined;
-        saveSamplesFromDocument(document.uri.fsPath, document.getText(), globalLabsamplesFolder);
+        const customTypes = vscode.workspace.getConfiguration('labnotev').get<string[]>('customSampleTypes', []);
+        saveSamplesFromDocument(document.uri.fsPath, document.getText(), globalLabsamplesFolder, customTypes);
         sampleTreeProvider.refresh();
       } catch (error) {
         console.error('[LabNote] Failed to save sample info:', error);

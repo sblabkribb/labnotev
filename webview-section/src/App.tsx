@@ -49,6 +49,8 @@ export default function App() {
   const [docBaseUri, setDocBaseUri] = useState<string>('');
   const activeSectionRef = useRef<FocusTarget | null>(null);
   const [pendingCursor, setPendingCursor] = useState<{ pos: number; tick: number } | null>(null);
+  const [availableTypes, setAvailableTypes] = useState<string[]>([]);
+  const [productSearchResult, setProductSearchResult] = useState<{ alias: string; description: string } | null>(null);
   const updateCursorPos = (pos: number) => {
     if (activeSectionRef.current) {
       activeSectionRef.current = { ...activeSectionRef.current, cursorPos: pos };
@@ -104,6 +106,7 @@ export default function App() {
           if (message.data.linkedWorkflows) setLinkedWorkflows(message.data.linkedWorkflows);
           if (message.data.parentLabNotePath) setParentLabNotePath(message.data.parentLabNotePath);
           if (message.data.docBaseUri) setDocBaseUri(message.data.docBaseUri);
+          if (message.data.availableTypes) setAvailableTypes(message.data.availableTypes);
           break;
 
         case 'unitOpAdded':
@@ -209,6 +212,16 @@ export default function App() {
           break;
         }
 
+        case 'productSearchResult': {
+          setProductSearchResult(message.data);
+          break;
+        }
+
+        case 'customTypesUpdated': {
+          setAvailableTypes(message.data.availableTypes);
+          break;
+        }
+
         case 'imagePasted': {
           const imgText = message.data.markdownText;
           const target = activeSectionRef.current;
@@ -296,8 +309,18 @@ export default function App() {
     postMessage({ type: 'openAsText' });
   }, []);
 
-  const handleCreateSample = useCallback((opIndex: number, secIndex: number, sampleType: string) => {
-    postMessage({ type: 'createSampleDefinition', data: { sampleType, opIndex, secIndex } });
+  const handleCreateSample = useCallback((opIndex: number, secIndex: number, sampleType: string, alias: string, description: string) => {
+    setProductSearchResult(null);
+    postMessage({ type: 'createSampleFromModal', data: { sampleType, alias, description, opIndex, secIndex } });
+  }, []);
+
+  const handleSearchProducts = useCallback((sampleType: string) => {
+    setProductSearchResult(null);
+    postMessage({ type: 'searchProducts', data: { sampleType } });
+  }, []);
+
+  const handleAddCustomType = useCallback((typeName: string) => {
+    postMessage({ type: 'addCustomType', data: { typeName } });
   }, []);
 
   if (!mode) {
@@ -379,6 +402,7 @@ export default function App() {
                       onCursorActivity={updateCursorPos}
                       docBaseUri={docBaseUri}
                       requestFocusAt={getCursorForArea('labnoteSection', { sectionIndex: index })}
+                      availableTypes={availableTypes}
                     />
                   );
                 case 'workflows':
@@ -400,6 +424,7 @@ export default function App() {
                       onCursorActivity={updateCursorPos}
                       docBaseUri={docBaseUri}
                       requestFocusAt={getCursorForArea('labnoteSection', { sectionIndex: index })}
+                      availableTypes={availableTypes}
                     />
                   );
                 case 'freeform':
@@ -413,6 +438,7 @@ export default function App() {
                       onCursorActivity={updateCursorPos}
                       docBaseUri={docBaseUri}
                       requestFocusAt={getCursorForArea('labnoteSection', { sectionIndex: index })}
+                      availableTypes={availableTypes}
                     />
                   );
                 default:
@@ -465,6 +491,10 @@ export default function App() {
                 }}
                 onCursorActivity={updateCursorPos}
                 onCreateSample={handleCreateSample}
+                onSearchProducts={handleSearchProducts}
+                productSearchResult={productSearchResult}
+                availableTypes={availableTypes}
+                onAddCustomType={handleAddCustomType}
                 docBaseUri={docBaseUri}
               />
             </Paper>
@@ -483,6 +513,7 @@ export default function App() {
                 minRows={3}
                 docBaseUri={docBaseUri}
                 requestFocusAt={getCursorForArea('tailContent')}
+                availableTypes={availableTypes}
               />
             )}
           </>

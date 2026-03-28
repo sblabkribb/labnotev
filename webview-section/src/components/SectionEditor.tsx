@@ -15,6 +15,7 @@ interface SectionEditorProps {
   minRows?: number;
   docBaseUri?: string;
   requestFocusAt?: { pos: number; tick: number } | null;
+  availableTypes?: string[];
 }
 
 export function SectionEditor({
@@ -27,6 +28,7 @@ export function SectionEditor({
   minRows = 4,
   docBaseUri,
   requestFocusAt,
+  availableTypes,
 }: SectionEditorProps) {
   const order = headingLevel === 'h2' ? 2 : headingLevel === 'h3' ? 3 : 4;
   const textareaRef = useRef<HTMLTextAreaElement>(null);
@@ -35,8 +37,8 @@ export function SectionEditor({
   const [tableModalOpen, setTableModalOpen] = useState(false);
 
   useEffect(() => {
-    setHasSamples(highlightSampleIds(content));
-  }, [content]);
+    setHasSamples(highlightSampleIds(content, availableTypes));
+  }, [content, availableTypes]);
 
   useEffect(() => {
     const ta = textareaRef.current;
@@ -146,7 +148,7 @@ export function SectionEditor({
         <div style={{ position: 'relative' }}>
           {hasSamples && (
             <div ref={overlayRef} style={overlayStyle}>
-              <SampleHighlighter text={content} interactive />
+              <SampleHighlighter text={content} interactive availableTypes={availableTypes} />
             </div>
           )}
           <textarea

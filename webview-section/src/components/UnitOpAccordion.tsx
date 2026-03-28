@@ -1,5 +1,5 @@
 import { useRef, useEffect, useState } from 'react';
-import { Accordion, Badge, Group, Text, Stack, TextInput, Title, Paper, ActionIcon, Tooltip, UnstyledButton } from '@mantine/core';
+import { Accordion, Badge, Group, Text, Stack, TextInput, Title, Paper, ActionIcon, Tooltip } from '@mantine/core';
 import { DndContext, closestCenter, KeyboardSensor, PointerSensor, useSensor, useSensors, type DragEndEvent } from '@dnd-kit/core';
 import { SortableContext, verticalListSortingStrategy, useSortable, arrayMove } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
@@ -7,6 +7,7 @@ import type { UnitOperationBlock } from '../types';
 import { ImageThumbnails } from './ImageThumbnails';
 import { DateTimeField } from './DateTimeField';
 import { TableInsertModal } from './TableInsertModal';
+import { SampleCreateModal } from './SampleCreateModal';
 import { useTableEditing } from '../hooks/useTableEditing';
 
 function parseMetaContent(content: string): Record<string, string> {
@@ -25,23 +26,11 @@ function serializeMetaContent(fields: Record<string, string>): string {
     .join('\n');
 }
 
-const SECTION_SAMPLE_TYPES: Record<string, string[]> = {
-  'Input':       ['DNA', 'RNA', 'Plasmid', 'Protein', 'Primer'],
-  'Reagent':     ['Reagent'],
-  'Consumables': ['Labware'],
-  'Equipment':   ['Equip'],
-  'Output':      ['DNA', 'RNA', 'Plasmid', 'Protein'],
-};
-
-const SAMPLE_TYPE_COLORS: Record<string, string> = {
-  DNA: '#e74c3c',
-  RNA: '#3498db',
-  Plasmid: '#9b59b6',
-  Protein: '#e67e22',
-  Primer: '#c0392b',
-  Reagent: '#f39c12',
-  Labware: '#7f8c8d',
-  Equip: '#95a5a6',
+const SECTION_HAS_SAMPLES: Record<string, boolean> = {
+  'Input': true,
+  'Reagent': true,
+  'Consumables': true,
+  'Equipment': true,
 };
 
 interface UnitOpAccordionProps {
@@ -49,7 +38,11 @@ interface UnitOpAccordionProps {
   onChange: (unitOperations: UnitOperationBlock[]) => void;
   onSectionFocus?: (opIndex: number, secIndex: number) => void;
   onCursorActivity?: (pos: number) => void;
-  onCreateSample?: (opIndex: number, secIndex: number, sampleType: string) => void;
+  onCreateSample?: (opIndex: number, secIndex: number, sampleType: string, alias: string, description: string) => void;
+  onSearchProducts?: (sampleType: string) => void;
+  productSearchResult?: { alias: string; description: string } | null;
+  availableTypes?: string[];
+  onAddCustomType?: (typeName: string) => void;
   docBaseUri?: string;
 }
 
@@ -69,19 +62,25 @@ function GripIcon() {
 interface UnitOpSectionTextareaProps {
   heading: string;
   content: string;
-  sampleTypes?: string[];
+  showSampleButton?: boolean;
   onChange: (content: string) => void;
   onFocus?: () => void;
   onCursorActivity?: (pos: number) => void;
-  onCreateSample?: (type: string) => void;
+  onCreateSample?: (sampleType: string, alias: string, description: string) => void;
+  onSearchProducts?: (sampleType: string) => void;
+  productSearchResult?: { alias: string; description: string } | null;
+  availableTypes?: string[];
+  onAddCustomType?: (typeName: string) => void;
   docBaseUri?: string;
 }
 
 function UnitOpSectionTextarea({
-  heading, content, sampleTypes, onChange, onFocus, onCursorActivity, onCreateSample, docBaseUri,
+  heading, content, showSampleButton, onChange, onFocus, onCursorActivity,
+  onCreateSample, onSearchProducts, productSearchResult, availableTypes, onAddCustomType, docBaseUri,
 }: UnitOpSectionTextareaProps) {
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const [tableModalOpen, setTableModalOpen] = useState(false);
+  const [sampleModalOpen, setSampleModalOpen] = useState(false);
 
   const reportCursor = () => {
     if (textareaRef.current && onCursorActivity) {
@@ -107,30 +106,15 @@ function UnitOpSectionTextarea({
   return (
     <div>
       <Group gap="xs" mb={4} justify="space-between">
-        <Group gap="xs">
-          <Title order={5}>{heading}</Title>
-          {sampleTypes && sampleTypes.map(type => (
-            <UnstyledButton
-              key={type}
-              onClick={() => onCreateSample?.(type)}
-              style={{ lineHeight: 1 }}
-            >
-              <Badge
-                size="xs"
-                variant="light"
-                style={{
-                  cursor: 'pointer',
-                  backgroundColor: `${SAMPLE_TYPE_COLORS[type] || '#666'}15`,
-                  color: SAMPLE_TYPE_COLORS[type] || '#666',
-                  border: `1px solid ${SAMPLE_TYPE_COLORS[type] || '#666'}40`,
-                }}
-              >
-                +{type}
-              </Badge>
-            </UnstyledButton>
-          ))}
-        </Group>
+        <Title order={5}>{heading}</Title>
         <Group gap={4}>
+          {showSampleButton && onCreateSample && (
+            <Tooltip label="샘플 추가" position="bottom" withArrow>
+              <ActionIcon variant="subtle" size="xs" onClick={() => setSampleModalOpen(true)} aria-label="샘플 추가">
+                <SampleIcon />
+              </ActionIcon>
+            </Tooltip>
+          )}
           <Tooltip label="테이블 삽입" position="bottom" withArrow>
             <ActionIcon variant="subtle" size="xs" onClick={() => setTableModalOpen(true)} aria-label="테이블 삽입">
               <TableIcon />
@@ -171,7 +155,28 @@ function UnitOpSectionTextarea({
         onClose={() => setTableModalOpen(false)}
         onInsert={handleTableInsert}
       />
+      {showSampleButton && onCreateSample && (
+        <SampleCreateModal
+          opened={sampleModalOpen}
+          onClose={() => setSampleModalOpen(false)}
+          onSubmit={onCreateSample}
+          onSearchProducts={onSearchProducts}
+          productSearchResult={productSearchResult}
+          availableTypes={availableTypes ?? []}
+          onAddCustomType={onAddCustomType}
+        />
+      )}
     </div>
+  );
+}
+
+function SampleIcon() {
+  return (
+    <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M6 2v5l-3 5.5a1 1 0 00.9 1.5h8.2a1 1 0 00.9-1.5L10 7V2" />
+      <line x1="5" y1="2" x2="11" y2="2" />
+      <line x1="5" y1="9" x2="11" y2="9" />
+    </svg>
   );
 }
 
@@ -204,11 +209,15 @@ interface SortableUnitOpProps {
   onUpdateAlias: (opIndex: number, alias: string) => void;
   onSectionFocus?: (opIndex: number, secIndex: number) => void;
   onCursorActivity?: (pos: number) => void;
-  onCreateSample?: (opIndex: number, secIndex: number, sampleType: string) => void;
+  onCreateSample?: (opIndex: number, secIndex: number, sampleType: string, alias: string, description: string) => void;
+  onSearchProducts?: (sampleType: string) => void;
+  productSearchResult?: { alias: string; description: string } | null;
+  availableTypes?: string[];
+  onAddCustomType?: (typeName: string) => void;
   docBaseUri?: string;
 }
 
-function SortableUnitOp({ op, opIndex, onUpdateSection, onUpdateAlias, onSectionFocus, onCursorActivity, onCreateSample, docBaseUri }: SortableUnitOpProps) {
+function SortableUnitOp({ op, opIndex, onUpdateSection, onUpdateAlias, onSectionFocus, onCursorActivity, onCreateSample, onSearchProducts, productSearchResult, availableTypes, onAddCustomType, docBaseUri }: SortableUnitOpProps) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: op.id });
 
   const style = {
@@ -299,17 +308,21 @@ function SortableUnitOp({ op, opIndex, onUpdateSection, onUpdateAlias, onSection
                 );
               }
 
-              const sampleTypes = SECTION_SAMPLE_TYPES[section.heading];
+              const hasSamples = SECTION_HAS_SAMPLES[section.heading] ?? false;
               return (
                 <UnitOpSectionTextarea
                   key={secIndex}
                   heading={section.heading}
                   content={section.content}
-                  sampleTypes={sampleTypes}
+                  showSampleButton={hasSamples}
                   onChange={(c) => onUpdateSection(opIndex, secIndex, c)}
                   onFocus={() => onSectionFocus?.(opIndex, secIndex)}
                   onCursorActivity={onCursorActivity}
-                  onCreateSample={onCreateSample ? (type: string) => onCreateSample(opIndex, secIndex, type) : undefined}
+                  onCreateSample={onCreateSample ? (type: string, alias: string, desc: string) => onCreateSample(opIndex, secIndex, type, alias, desc) : undefined}
+                  onSearchProducts={onSearchProducts}
+                  productSearchResult={productSearchResult}
+                  availableTypes={availableTypes}
+                  onAddCustomType={onAddCustomType}
                   docBaseUri={docBaseUri}
                 />
               );
@@ -321,7 +334,7 @@ function SortableUnitOp({ op, opIndex, onUpdateSection, onUpdateAlias, onSection
   );
 }
 
-export function UnitOpAccordion({ unitOperations, onChange, onSectionFocus, onCursorActivity, onCreateSample, docBaseUri }: UnitOpAccordionProps) {
+export function UnitOpAccordion({ unitOperations, onChange, onSectionFocus, onCursorActivity, onCreateSample, onSearchProducts, productSearchResult, availableTypes, onAddCustomType, docBaseUri }: UnitOpAccordionProps) {
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 8 } }),
     useSensor(KeyboardSensor)
@@ -381,6 +394,10 @@ export function UnitOpAccordion({ unitOperations, onChange, onSectionFocus, onCu
               onSectionFocus={onSectionFocus}
               onCursorActivity={onCursorActivity}
               onCreateSample={onCreateSample}
+              onSearchProducts={onSearchProducts}
+              productSearchResult={productSearchResult}
+              availableTypes={availableTypes}
+              onAddCustomType={onAddCustomType}
               docBaseUri={docBaseUri}
             />
           ))}

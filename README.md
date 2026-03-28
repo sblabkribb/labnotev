@@ -26,8 +26,8 @@ VS Code에서 실험 노트를 마크다운으로 작성할 수 있도록 돕는
    - HW: Input, Reagent, Consumables, Equipment, Method, Output, Results & Discussions
    - SW: Input, Output, Parameters, QC Metrics, Method, Environment, Discussion
 9. 샘플 정의
-   - 각 유닛 오퍼레이션의 섹션 제목 옆에 샘플 타입 버튼(`+DNA`, `+RNA`, `+Protein` 등)이 표시됨
-   - 버튼 클릭 → 별칭/설명 입력 → 해당 textarea에 `- @type:ID|별칭:설명` 형식으로 자동 삽입
+   - 각 유닛 오퍼레이션의 섹션 제목 옆 `+Sample` 버튼 클릭 → 모달에서 타입/별칭/설명 입력 → 해당 textarea에 `- @type:ID|별칭:설명` 형식으로 자동 삽입
+   - 커스텀 타입도 모달에서 직접 정의하여 사용 가능
    - 또는 Activity Bar의 Sample TreeView에서 타입 우클릭 → Add Sample로 생성 후 Insert Definition으로 삽입
 10. 문서는 편집 시 **자동 저장**되며, 상단 배지에 저장 상태가 표시됨
     - "텍스트로 열기" 버튼으로 원본 마크다운을 텍스트 에디터에서 확인 가능
@@ -58,7 +58,9 @@ VS Code에서 실험 노트를 마크다운으로 작성할 수 있도록 돕는
   - 유닛 오퍼레이션 이름 옆에 별칭(alias) 인라인 편집 가능
   - Meta 섹션: Experimenter(텍스트 입력), Start/End Date(날짜 달력 + 시간 선택)를 구조화된 폼으로 표시
   - 일반 섹션(Input, Output, Method 등): textarea로 자유롭게 편집
-  - 섹션별 샘플 정의 버튼: `+DNA`, `+RNA`, `+Plasmid`, `+Protein`, `+Primer`, `+Reagent`, `+Labware`, `+Equip`
+  - `+Sample` 버튼으로 샘플 생성 모달 열기: 타입 선택(기본 8종 + 커스텀), 별칭, 설명을 한 번에 입력
+  - Reagent/Labware 선택 시 제품 검색 버튼으로 참조 DB에서 제품 선택 가능
+  - "새 타입 추가"로 커스텀 샘플 타입 정의 가능 (워크스페이스 설정에 저장)
 - **Conclusions and Discussion**: 워크플로 전체 요약 및 논의 작성 영역
 
 #### 공통 기능
@@ -70,7 +72,7 @@ VS Code에서 실험 노트를 마크다운으로 작성할 수 있도록 돕는
   - textarea 아래에 이미지 썸네일이 자동 표시되며, `![제목]()` 형식으로 제목을 입력하면 썸네일 아래에 표시
   - 썸네일 클릭 시 모달로 확대 보기
 - **textarea 자동 높이 조절**: 모든 SectionEditor의 textarea가 내용에 따라 자동 확장 (스크롤바 없음)
-- **샘플 ID 하이라이팅**: textarea 내 샘플 ID를 타입별 색상으로 강조 표시
+- **샘플 ID 하이라이팅**: textarea 내 샘플 ID를 타입별 색상으로 강조 표시 (커스텀 타입 포함)
   - 하이라이팅된 샘플 ID 클릭 시 해당 정의 위치로 이동
 - **마크다운 테이블 편집 지원**: 모든 textarea(SectionEditor, UnitOp 섹션 포함)에서 마크다운 테이블을 쉽게 작성할 수 있는 보조 기능
   - 섹션 제목 옆 테이블 아이콘 클릭 → 행/열 수 지정 → 테이블 템플릿 삽입
@@ -85,9 +87,10 @@ VS Code에서 실험 노트를 마크다운으로 작성할 수 있도록 돕는
 
 #### Section Editor에서의 샘플 관리
 
-- **섹션별 정의 버튼**: 유닛 오퍼레이션의 각 섹션 제목 옆에 샘플 타입 버튼이 표시됨
-  - 버튼 클릭 → 별칭/설명 입력 → `- @type:ID|별칭:설명` 형식으로 textarea에 삽입
-  - Reagent/Labware는 참조 DB에서 제품을 검색하여 선택 가능
+- **샘플 생성 모달**: 유닛 오퍼레이션의 각 섹션 제목 옆 `+Sample` 버튼 클릭 시 모달 표시
+  - 타입 드롭다운(기본 8종 + 커스텀), 별칭, 설명(여러 줄 입력 가능)을 한 번에 입력하여 `- @type:ID|별칭:설명` 형식으로 삽입
+  - Reagent/Labware는 "제품 검색" 버튼으로 참조 DB에서 제품을 검색하여 선택 가능
+  - "새 타입 추가"로 커스텀 샘플 타입을 정의하면 본문에서 하이라이팅 및 추출/저장 가능
 - **하이라이팅**: textarea 내 샘플 ID가 타입별 색상으로 강조
 - **네비게이션**: 하이라이팅된 샘플 ID 클릭 시 정의 위치로 이동
 

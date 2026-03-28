@@ -5,7 +5,8 @@ import { parseLabNoteMd, serializeLabNoteMd } from './lib/labnoteSectionParser';
 import { parseWorkflowMd, serializeWorkflowMd } from './lib/workflowSectionParser';
 import type { UnitOperationBlock, WorkflowReference } from './lib/sectionTypes';
 import { getSeoulDateTimeString } from './lib/dateUtils';
-import { createSampleWithPrompt } from './commands/sampleCommands';
+import { SAMPLE_TYPES, generateSampleId } from './lib/sampleUtils';
+import { showProductPicker } from './lib/productPicker';
 import type { SampleTreeViewProvider } from './views/SampleTreeViewProvider';
 
 export type MdFileType = 'labnote' | 'workflow' | 'unknown';
@@ -17,6 +18,11 @@ export function detectMdFileType(content: string): MdFileType {
   if (/experiment_type:\s*labnote/i.test(yaml)) return 'labnote';
   if (/experimenter:/i.test(yaml)) return 'workflow';
   return 'unknown';
+}
+
+function getAvailableTypes(): string[] {
+  const custom = vscode.workspace.getConfiguration('labnotev').get<string[]>('customSampleTypes', []);
+  return [...SAMPLE_TYPES, ...custom.filter(t => !(SAMPLE_TYPES as readonly string[]).includes(t))];
 }
 
 export function buildUnitOperationBlock(
@@ -209,21 +215,51 @@ export class SectionEditorProvider implements vscode.CustomTextEditorProvider {
           break;
         }
 
-        case 'createSampleDefinition': {
-          const { sampleType: reqType, opIndex, secIndex } = message.data || {};
+        case 'createSampleFromModal': {
+          const { sampleType: reqType, alias, description, opIndex, secIndex } = message.data || {};
           if (!reqType || !this._sampleTreeProvider) break;
 
-          const result = await createSampleWithPrompt(reqType, this._sampleTreeProvider);
-          if (!result) break;
+          const newId = generateSampleId(reqType);
+          await this._sampleTreeProvider.addSample('local', reqType, newId, alias || null, description || null);
 
           const typeLower = reqType.toLowerCase();
-          let definitionText = `- @${typeLower}:${result.id}`;
-          if (result.alias) definitionText += `|${result.alias}`;
-          if (result.description) definitionText += `:${result.description}`;
+          let definitionText = `- @${typeLower}:${newId}`;
+          if (alias) definitionText += `|${alias}`;
+          if (description) definitionText += `:${description}`;
 
           webviewPanel.webview.postMessage({
             type: 'sampleDefinitionCreated',
             data: { definitionText, opIndex, secIndex },
+          });
+          break;
+        }
+
+        case 'searchProducts': {
+          const { sampleType } = message.data || {};
+          if (!sampleType) break;
+          const docUri = document.uri;
+          const picked = await showProductPicker(sampleType, docUri);
+          if (picked) {
+            webviewPanel.webview.postMessage({
+              type: 'productSearchResult',
+              data: { alias: picked.alias || '', description: picked.description || '' },
+            });
+          }
+          break;
+        }
+
+        case 'addCustomType': {
+          const { typeName } = message.data || {};
+          if (!typeName) break;
+          const config = vscode.workspace.getConfiguration('labnotev');
+          const existing = config.get<string[]>('customSampleTypes', []);
+          if (!existing.includes(typeName)) {
+            const updated = [...existing, typeName];
+            await config.update('customSampleTypes', updated, vscode.ConfigurationTarget.Workspace);
+          }
+          webviewPanel.webview.postMessage({
+            type: 'customTypesUpdated',
+            data: { availableTypes: getAvailableTypes() },
           });
           break;
         }
@@ -332,7 +368,7 @@ export class SectionEditorProvider implements vscode.CustomTextEditorProvider {
 
       webviewPanel.webview.postMessage({
         type: 'init',
-        data: { mode, labNote, linkedWorkflows, docBaseUri },
+        data: { mode, labNote, linkedWorkflows, docBaseUri, availableTypes: getAvailableTypes() },
       });
     } else if (mode === 'workflow') {
       const workflow = parseWorkflowMd(content);
@@ -341,7 +377,7 @@ export class SectionEditorProvider implements vscode.CustomTextEditorProvider {
 
       webviewPanel.webview.postMessage({
         type: 'init',
-        data: { mode, workflow, parentLabNotePath, docBaseUri },
+        data: { mode, workflow, parentLabNotePath, docBaseUri, availableTypes: getAvailableTypes() },
       });
     }
   }

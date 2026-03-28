@@ -1,8 +1,12 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import { Tooltip } from '@mantine/core';
 import { postMessage } from '../vscodeApi';
 
-const SAMPLE_PATTERN = /\b(DNA|RNA|Plasmid|Protein|Cell|Media|Reagent|Labware|Enzyme|Buffer|Kit|Standard|Primer|Vector|Antibody|Strain|Equip)-\d+(?:\|[^\s|]+)?/g;
+const BUILTIN_TYPES = [
+  'DNA', 'RNA', 'Plasmid', 'Protein', 'Cell', 'Media',
+  'Reagent', 'Labware', 'Enzyme', 'Buffer', 'Kit', 'Standard',
+  'Primer', 'Vector', 'Antibody', 'Strain', 'Equip',
+];
 
 const SAMPLE_COLORS: Record<string, string> = {
   DNA: '#e74c3c',
@@ -24,29 +28,39 @@ const SAMPLE_COLORS: Record<string, string> = {
   Equip: '#7f8c8d',
 };
 
+const DEFAULT_CUSTOM_COLOR = '#607D8B';
+
+function buildSamplePattern(availableTypes?: string[]): RegExp {
+  const allTypes = new Set([...BUILTIN_TYPES, ...(availableTypes ?? [])]);
+  const typeStr = [...allTypes].map(t => t.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')).join('|');
+  return new RegExp(`\\b(${typeStr})-\\d+(?:\\|[^\\s|]+)?`, 'g');
+}
+
 interface SampleHighlighterProps {
   text: string;
   interactive?: boolean;
+  availableTypes?: string[];
 }
 
 function handleSampleClick(sampleId: string, sampleType: string) {
   postMessage({ type: 'navigateToSample', data: { sampleId, sampleType } });
 }
 
-export function SampleHighlighter({ text, interactive = false }: SampleHighlighterProps) {
+export function SampleHighlighter({ text, interactive = false, availableTypes }: SampleHighlighterProps) {
   const parts: React.ReactNode[] = [];
   let lastIndex = 0;
   let match: RegExpExecArray | null;
 
-  const regex = new RegExp(SAMPLE_PATTERN.source, 'g');
-  while ((match = regex.exec(text)) !== null) {
+  const regex = useMemo(() => buildSamplePattern(availableTypes), [availableTypes]);
+  const pattern = new RegExp(regex.source, 'g');
+  while ((match = pattern.exec(text)) !== null) {
     if (match.index > lastIndex) {
       parts.push(text.slice(lastIndex, match.index));
     }
     const sampleType = match[1];
     const fullMatch = match[0];
     const sampleId = fullMatch.split('|')[0];
-    const color = SAMPLE_COLORS[sampleType] || '#666';
+    const color = SAMPLE_COLORS[sampleType] || DEFAULT_CUSTOM_COLOR;
 
     const spanStyle: React.CSSProperties = {
       color,
@@ -85,7 +99,7 @@ export function SampleHighlighter({ text, interactive = false }: SampleHighlight
       parts.push(span);
     }
 
-    lastIndex = regex.lastIndex;
+    lastIndex = pattern.lastIndex;
   }
 
   if (lastIndex < text.length) {
@@ -95,6 +109,6 @@ export function SampleHighlighter({ text, interactive = false }: SampleHighlight
   return <>{parts}</>;
 }
 
-export function highlightSampleIds(text: string): boolean {
-  return SAMPLE_PATTERN.test(text);
+export function highlightSampleIds(text: string, availableTypes?: string[]): boolean {
+  return buildSamplePattern(availableTypes).test(text);
 }

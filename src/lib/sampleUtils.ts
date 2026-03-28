@@ -32,7 +32,7 @@ let lastTimestamp = 0;
  * Ensures uniqueness even when called multiple times in the same millisecond
  * Format: {TYPE}-{timestamp} or {TYPE}-{timestamp}-{counter} if same millisecond
  */
-export function generateSampleId(type: SampleType): string {
+export function generateSampleId(type: string): string {
   const timestamp = Date.now();
   if (timestamp === lastTimestamp) {
     idCounter++;

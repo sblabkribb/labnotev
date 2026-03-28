@@ -43,11 +43,12 @@ export type SampleDatabase = Record<string, Record<string, SampleRecord>>;
  * - ID: description (legacy format)
  * - ID (ID only)
  */
-export function extractSampleInfoFromText(text: string): SampleInfo[] {
+export function extractSampleInfoFromText(text: string, additionalTypes?: string[]): SampleInfo[] {
   const samples: SampleInfo[] = [];
   const foundIds = new Set<string>();
 
-  for (const type of SAMPLE_TYPES) {
+  const allTypes: string[] = [...SAMPLE_TYPES, ...(additionalTypes ?? []).filter(t => !(SAMPLE_TYPES as readonly string[]).includes(t))];
+  for (const type of allTypes) {
     // Pattern to match sample ID with optional @type: prefix, alias and description
     // Matches: optional @type: prefix + TYPE-digits followed by optional |alias:description or |alias or : description
     // Alias: [^:\n|]+ allows spaces and special chars (e.g. ™); stops at : or | so ID|alias:description is unambiguous
@@ -320,13 +321,14 @@ export function saveSamplesByType(
 export function saveSamplesFromDocument(
   documentPath: string,
   documentText: string,
-  globalLabsamplesFolder?: string
+  globalLabsamplesFolder?: string,
+  additionalTypes?: string[]
 ): void {
   const labsamplesFolder = getLabsamplesFolder(documentPath);
   const sourceFile = path.basename(documentPath);
 
   // Extract samples from document
-  const samples = extractSampleInfoFromText(documentText);
+  const samples = extractSampleInfoFromText(documentText, additionalTypes);
 
   if (samples.length === 0) {
     return;
