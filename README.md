@@ -15,7 +15,7 @@ VS Code에서 실험 노트를 마크다운으로 작성할 수 있도록 돕는
    - `resources/`: 샘플/워크플로 등 실험 관련 데이터 폴더
 5. Experiment Objective 섹션에 실험 목적을 작성
 6. 워크플로 추가
-   - 왼쪽 Activity Bar의 플라스크 아이콘 클릭 → 워크플로 트리뷰에서 원하는 워크플로의 `[Create]` 버튼 클릭
+   - 왼쪽 Activity Bar의 플라스크 아이콘 클릭 → 워크플로 트리뷰에서 원하는 워크플로의 `[Labnote: Create Workflow]` 버튼 클릭
    - 또는 명령 팔레트에서 `Labnote: Create Workflow` 입력
    - 생성된 워크플로는 Related Workflows 섹션에 자동으로 체크리스트 형태로 연결됨
 7. 워크플로 제목을 클릭하면 해당 워크플로 `.labnote.md` 파일이 Section Editor로 열림
@@ -26,10 +26,13 @@ VS Code에서 실험 노트를 마크다운으로 작성할 수 있도록 돕는
    - HW: Input, Reagent, Consumables, Equipment, Method, Output, Results & Discussions
    - SW: Input, Output, Parameters, QC Metrics, Method, Environment, Discussion
 9. 샘플 정의
-   - 각 유닛 오퍼레이션의 섹션 제목 옆 `+Sample` 버튼 클릭 → 모달에서 타입/별칭/설명 입력 → 해당 textarea에 `- @type:ID|별칭:설명` 형식으로 자동 삽입
+   - 각 유닛오퍼레이션의 섹션 제목 옆 `+Sample` 버튼 클릭 → 모달에서 타입/별칭/설명 입력 → 해당 textarea에 `- @type:ID|별칭:설명` 형식으로 자동 삽입
    - 커스텀 타입도 모달에서 직접 정의하여 사용 가능
    - 또는 Activity Bar의 Sample TreeView에서 타입 우클릭 → Add Sample로 생성 후 Insert Definition으로 삽입
-10. 문서는 편집 시 **자동 저장**되며, 상단 배지에 저장 상태가 표시됨
+10. 샘플 참조
+   - 샘플 삽입할 유닛오퍼레이션의 임의의 섹션에 커서를 위치
+   - 왼쪽 Activity Bar의 Sample TreeView에서 `[Insert to Editor]` 버튼 클릭
+11. 문서는 편집 시 **자동 저장**되며, 상단 배지에 저장 상태가 표시됨
     - "텍스트로 열기" 버튼으로 원본 마크다운을 텍스트 에디터에서 확인 가능
 
 ## 주요 기능
@@ -81,6 +84,7 @@ VS Code에서 실험 노트를 마크다운으로 작성할 수 있도록 돕는
   - Ctrl+Shift+F 또는 정렬 버튼으로 테이블 컬럼 자동 정렬 (한글 등 CJK 문자 너비 고려)
 - **다크 모드**: 에디터 오른쪽 상단의 달/해 아이콘으로 다크/라이트 모드 전환 (설정은 자동 저장)
 - **텍스트로 열기**: 상단 버튼으로 원본 마크다운을 VS Code 텍스트 에디터로 열기
+- **에디터 전환 버튼**: `.labnote.md` 파일을 텍스트 에디터로 열었을 때, 에디터 타이틀 바 오른쪽 상단에 Section Editor 전환 버튼이 표시됨
 
 ### 샘플 ID 관리
 
@@ -252,6 +256,10 @@ VS Code `settings.json`에 다음을 추가합니다:
   }
 }
 ```
+
+**방법 3: 에디터 타이틀 바 버튼 사용**
+
+`.labnote.md` 파일이 텍스트 에디터로 열려 있을 때, 에디터 타이틀 바 오른쪽 상단에 Section Editor 전환 아이콘 버튼이 표시됩니다. 클릭하면 Section Editor로 전환됩니다.
 
 일반적으로는 확장 설치 시 자동으로 Section Editor가 기본 편집기로 등록되지만, 다른 마크다운 확장과 충돌할 경우 위 설정이 필요할 수 있습니다.
 

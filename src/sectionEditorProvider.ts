@@ -6,6 +6,7 @@ import { parseWorkflowMd, serializeWorkflowMd } from './lib/workflowSectionParse
 import type { UnitOperationBlock, WorkflowReference } from './lib/sectionTypes';
 import { getSeoulDateTimeString } from './lib/dateUtils';
 import { SAMPLE_TYPES, generateSampleId } from './lib/sampleUtils';
+import { findSampleDefinitionMatch } from './lib/sampleStorage';
 import { showProductPicker } from './lib/productPicker';
 import type { SampleTreeViewProvider } from './views/SampleTreeViewProvider';
 
@@ -205,13 +206,25 @@ export class SectionEditorProvider implements vscode.CustomTextEditorProvider {
 
         case 'navigateToSample': {
           const { sampleId, sampleType } = message.data || {};
-          if (sampleId && sampleType) {
-            await vscode.commands.executeCommand(
-              'labnotev.moveToDefinition',
-              sampleType,
-              sampleId
-            );
+          if (!sampleId || !sampleType) break;
+
+          const docText = document.getText();
+          const defMatch = findSampleDefinitionMatch(docText, sampleType, sampleId);
+          if (defMatch) {
+            const loc = this.findSectionForOffset(docText, defMatch.start, mode);
+            if (loc) {
+              webviewPanel.webview.postMessage({
+                type: 'scrollToSample',
+                data: loc,
+              });
+              break;
+            }
           }
+          await vscode.commands.executeCommand(
+            'labnotev.moveToDefinition',
+            sampleType,
+            sampleId
+          );
           break;
         }
 
@@ -426,6 +439,44 @@ export class SectionEditorProvider implements vscode.CustomTextEditorProvider {
     } finally {
       this._suppressDocChange = false;
     }
+  }
+
+  private findSectionForOffset(
+    docText: string,
+    offset: number,
+    mode: MdFileType
+  ): { area: string; sectionIndex?: number; opIndex?: number; secIndex?: number; localOffset: number } | null {
+    if (mode === 'labnote') {
+      const labNote = parseLabNoteMd(docText);
+      for (let i = 0; i < labNote.sections.length; i++) {
+        const sec = labNote.sections[i];
+        if (sec.type === 'objective' || sec.type === 'results' || sec.type === 'freeform') {
+          const idx = docText.indexOf(sec.content);
+          if (idx >= 0 && offset >= idx && offset < idx + sec.content.length) {
+            return { area: 'section', sectionIndex: i, localOffset: offset - idx };
+          }
+        }
+      }
+    } else if (mode === 'workflow') {
+      const workflow = parseWorkflowMd(docText);
+      for (let opI = 0; opI < workflow.unitOperations.length; opI++) {
+        const op = workflow.unitOperations[opI];
+        for (let secI = 0; secI < op.sections.length; secI++) {
+          const sec = op.sections[secI];
+          const idx = docText.indexOf(sec.content);
+          if (idx >= 0 && offset >= idx && offset < idx + sec.content.length) {
+            return { area: 'unitOp', opIndex: opI, secIndex: secI, localOffset: offset - idx };
+          }
+        }
+      }
+      if (workflow.tailContent) {
+        const idx = docText.indexOf(workflow.tailContent);
+        if (idx >= 0 && offset >= idx && offset < idx + workflow.tailContent.length) {
+          return { area: 'tail', localOffset: offset - idx };
+        }
+      }
+    }
+    return null;
   }
 
   private getHtmlForWebview(webview: vscode.Webview): string {

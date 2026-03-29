@@ -122,6 +122,15 @@ export async function activate(context: vscode.ExtensionContext) {
   });
 
   registerCreationCommands(context, { sectionEditorProvider });
+
+  context.subscriptions.push(
+    vscode.commands.registerCommand('labnotev.openWithSectionEditor', () => {
+      const uri = vscode.window.activeTextEditor?.document.uri;
+      if (uri) {
+        vscode.commands.executeCommand('vscode.openWith', uri, 'labnotev.sectionEditor');
+      }
+    })
+  );
 }
 
 export async function deactivate() {

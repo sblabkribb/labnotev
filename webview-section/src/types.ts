@@ -71,7 +71,8 @@ export type ExtensionToWebviewMessage =
   | { type: 'saveCompleted' }
   | { type: 'imagePasted'; data: { markdownText: string } }
   | { type: 'productSearchResult'; data: { alias: string; description: string } }
-  | { type: 'customTypesUpdated'; data: { availableTypes: string[] } };
+  | { type: 'customTypesUpdated'; data: { availableTypes: string[] } }
+  | { type: 'scrollToSample'; data: { area: string; sectionIndex?: number; opIndex?: number; secIndex?: number; localOffset: number } };
 
 export type WebviewToExtensionMessage =
   | { type: 'ready' }

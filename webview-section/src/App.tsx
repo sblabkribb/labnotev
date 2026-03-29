@@ -287,6 +287,19 @@ export default function App() {
           if (message.data.labNote) setLabNote(message.data.labNote);
           if (message.data.workflow) setWorkflow(message.data.workflow);
           break;
+
+        case 'scrollToSample': {
+          const { area, sectionIndex, opIndex, secIndex, localOffset } = message.data;
+          if (area === 'section' && sectionIndex !== undefined) {
+            activeSectionRef.current = { area: 'labnoteSection', sectionIndex };
+          } else if (area === 'unitOp' && opIndex !== undefined && secIndex !== undefined) {
+            activeSectionRef.current = { area: 'unitOp', opIndex, secIndex };
+          } else if (area === 'tail') {
+            activeSectionRef.current = { area: 'tailContent' };
+          }
+          setPendingCursor({ pos: localOffset, tick: Date.now() });
+          break;
+        }
       }
     };
 
@@ -518,6 +531,7 @@ export default function App() {
                 availableTypes={availableTypes}
                 onAddCustomType={handleAddCustomType}
                 docBaseUri={docBaseUri}
+                getCursorForSection={(opI, secI) => getCursorForArea('unitOp', { opIndex: opI, secIndex: secI })}
               />
             </Paper>
 

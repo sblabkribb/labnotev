@@ -279,9 +279,25 @@ export function registerSampleCommands(
 
   // Register move to definition command
   context.subscriptions.push(
-    vscode.commands.registerCommand('labnotev.moveToDefinition', async (item: SampleTreeItem) => {
-      if (!item || item.itemType !== SampleTreeItemType.Sample || !item.sampleType || !item.sampleId) {
-        return;
+    vscode.commands.registerCommand('labnotev.moveToDefinition', async (itemOrType: SampleTreeItem | string, maybeId?: string) => {
+      let sampleType: string;
+      let sampleId: string;
+      let alias: string | null = null;
+      let scope: 'local' | 'global' | undefined;
+
+      if (typeof itemOrType === 'string') {
+        sampleType = itemOrType;
+        sampleId = maybeId!;
+        if (!sampleType || !sampleId) return;
+      } else {
+        const item = itemOrType;
+        if (!item || item.itemType !== SampleTreeItemType.Sample || !item.sampleType || !item.sampleId) {
+          return;
+        }
+        sampleType = item.sampleType;
+        sampleId = item.sampleId;
+        alias = item.alias ?? null;
+        scope = item.scope;
       }
 
       const revealAndSelect = (editor: vscode.TextEditor, match: { start: number; length: number }) => {
@@ -297,12 +313,7 @@ export function registerSampleCommands(
       const secDoc = sectionEditorProvider?.getActiveDocument();
       if (secDoc) {
         const docText = secDoc.getText();
-        const match = findSampleDefinitionMatch(
-          docText,
-          item.sampleType,
-          item.sampleId,
-          item.alias ?? null
-        );
+        const match = findSampleDefinitionMatch(docText, sampleType, sampleId, alias);
         if (match) {
           const editor = await vscode.window.showTextDocument(secDoc, { preview: false });
           revealAndSelect(editor, match);
@@ -314,54 +325,33 @@ export function registerSampleCommands(
       const activeEditor = vscode.window.activeTextEditor;
       if (activeEditor && activeEditor.document.languageId === 'markdown') {
         const docText = activeEditor.document.getText();
-        const match = findSampleDefinitionMatch(
-          docText,
-          item.sampleType,
-          item.sampleId,
-          item.alias ?? null
-        );
+        const match = findSampleDefinitionMatch(docText, sampleType, sampleId, alias);
         if (match) {
           revealAndSelect(activeEditor, match);
           return;
         }
       }
 
-      // (2) Search in source files
-      const folder = item.scope === 'local' ? sampleTreeProvider.getLocalFolder() : sampleTreeProvider.getGlobalFolder();
-      const samples = loadSamplesByType(folder, item.sampleType);
-      const record = samples[item.sampleId];
-      const sources = record?.sources;
-      if (!sources || sources.length === 0) {
-        vscode.window.showInformationMessage('정의를 찾을 수 없습니다.');
-        return;
-      }
-
-      if (item.scope === 'local') {
-        const documentFolder = sampleTreeProvider.getDocumentFolder();
-        for (const source of sources) {
-          const fullPath = path.join(documentFolder, source);
-          if (!fs.existsSync(fullPath)) continue;
-          try {
-            const doc = await vscode.workspace.openTextDocument(fullPath);
-            const text = doc.getText();
-            const match = findSampleDefinitionMatch(text, item.sampleType, item.sampleId, item.alias ?? null);
-            if (match) {
-              const editor = await vscode.window.showTextDocument(doc, { preview: false });
-              revealAndSelect(editor, match);
-              return;
-            }
-          } catch {
-            // skip
-          }
+      // (2) Search in source files (only when scope is available from TreeView)
+      if (scope) {
+        const folder = scope === 'local' ? sampleTreeProvider.getLocalFolder() : sampleTreeProvider.getGlobalFolder();
+        const samples = loadSamplesByType(folder, sampleType);
+        const record = samples[sampleId];
+        const sources = record?.sources;
+        if (!sources || sources.length === 0) {
+          vscode.window.showInformationMessage('정의를 찾을 수 없습니다.');
+          return;
         }
-      } else {
-        for (const source of sources) {
-          const uris = await vscode.workspace.findFiles(`**/${source}`);
-          for (const uri of uris) {
+
+        if (scope === 'local') {
+          const documentFolder = sampleTreeProvider.getDocumentFolder();
+          for (const source of sources) {
+            const fullPath = path.join(documentFolder, source);
+            if (!fs.existsSync(fullPath)) continue;
             try {
-              const doc = await vscode.workspace.openTextDocument(uri);
+              const doc = await vscode.workspace.openTextDocument(fullPath);
               const text = doc.getText();
-              const match = findSampleDefinitionMatch(text, item.sampleType, item.sampleId, item.alias ?? null);
+              const match = findSampleDefinitionMatch(text, sampleType, sampleId, alias);
               if (match) {
                 const editor = await vscode.window.showTextDocument(doc, { preview: false });
                 revealAndSelect(editor, match);
@@ -369,6 +359,24 @@ export function registerSampleCommands(
               }
             } catch {
               // skip
+            }
+          }
+        } else {
+          for (const source of sources) {
+            const uris = await vscode.workspace.findFiles(`**/${source}`);
+            for (const uri of uris) {
+              try {
+                const doc = await vscode.workspace.openTextDocument(uri);
+                const text = doc.getText();
+                const match = findSampleDefinitionMatch(text, sampleType, sampleId, alias);
+                if (match) {
+                  const editor = await vscode.window.showTextDocument(doc, { preview: false });
+                  revealAndSelect(editor, match);
+                  return;
+                }
+              } catch {
+                // skip
+              }
             }
           }
         }

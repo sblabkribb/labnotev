@@ -2,7 +2,7 @@
   "name": "LabnoteV",
   "displayName": "Labnote Assistant for VSCode",
   "description": "Markdown-based labnote assistant with sample tracking and workflow management",
-  "version": "0.32.0",
+  "version": "0.33.0",
   "license": "MIT",
   "publisher": "korea-biofoundry",
   "repository": {
@@ -202,9 +202,21 @@
         "command": "labnotev.moveSampleToLocal",
         "title": "Labnote: Move to Local",
         "icon": "$(folder)"
+      },
+      {
+        "command": "labnotev.openWithSectionEditor",
+        "title": "Labnote: Section Editor로 열기",
+        "icon": "$(notebook-render-output)"
       }
     ],
     "menus": {
+      "editor/title": [
+        {
+          "command": "labnotev.openWithSectionEditor",
+          "when": "resourceFilename =~ /\\.labnote\\.md$/ && activeCustomEditorId != labnotev.sectionEditor",
+          "group": "navigation"
+        }
+      ],
       "view/title": [
         {
           "command": "labnotev.searchSample",

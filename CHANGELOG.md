@@ -5,6 +5,26 @@
 형식은 [Keep a Changelog](https://keepachangelog.com/ko/1.1.0/)를 기반으로 하며,
 이 프로젝트는 [유의적 버전 관리](https://semver.org/lang/ko/)를 따릅니다.
 
+## [0.33.0] - 2026-03-29
+
+### 추가
+
+#### 샘플 하이라이팅 및 정의 네비게이션
+- UnitOp textarea에 샘플 ID 하이라이팅 오버레이 추가 (SectionEditor와 동일한 기법)
+  - 샘플이 포함된 textarea에서 타입별 색상으로 강조 표시
+  - 하이라이팅된 샘플 ID 클릭 시 동일 문서 내 정의 위치로 스크롤/포커스
+- Section Editor 내 정의 네비게이션: 샘플 클릭 시 텍스트 에디터를 열지 않고 웹뷰 내부에서 해당 textarea로 이동
+  - Extension 측에서 `findSampleDefinitionMatch()`로 정의 위치를 찾고 섹션 매핑 후 웹뷰에 `scrollToSample` 메시지 전송
+  - 같은 문서에서 발견되지 않으면 기존 `moveToDefinition` 커맨드로 다른 파일에서 검색
+- `moveToDefinition` 커맨드가 `SampleTreeItem` 객체뿐 아니라 `(string, string)` 두 인자 호출도 지원
+
+#### 에디터 타이틀 바 Section Editor 전환 버튼
+- `.labnote.md` 파일을 텍스트 에디터로 열었을 때 에디터 타이틀 바 오른쪽 상단에 Section Editor 전환 아이콘 버튼 표시
+- 버튼 클릭 시 `vscode.openWith`로 Section Editor로 전환
+
+### 수정
+- `SortableUnitOp` 컴포넌트에 `getCursorForSection` prop이 전달되지 않아 워크플로 파일 렌더링 시 발생하던 오류 수정
+
 ## [0.32.0] - 2026-03-28
 
 ### 추가
