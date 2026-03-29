@@ -84,7 +84,9 @@ VS Code에서 실험 노트를 마크다운으로 작성할 수 있도록 돕는
   - Ctrl+Shift+F 또는 정렬 버튼으로 테이블 컬럼 자동 정렬 (한글 등 CJK 문자 너비 고려)
 - **다크 모드**: 에디터 오른쪽 상단의 달/해 아이콘으로 다크/라이트 모드 전환 (설정은 자동 저장)
 - **텍스트로 열기**: 상단 버튼으로 원본 마크다운을 VS Code 텍스트 에디터로 열기
-- **에디터 전환 버튼**: `.labnote.md` 파일을 텍스트 에디터로 열었을 때, 에디터 타이틀 바 오른쪽 상단에 Section Editor 전환 버튼이 표시됨
+- **에디터 3-way 전환 버튼**: 에디터 타이틀 바 오른쪽 상단에서 Text Editor, Section Editor, Preview 간 전환 가능
+  - Text Editor / Preview 모드: 플라스크 아이콘 클릭 → Section Editor로 전환
+  - Section Editor 모드: Markdown 편집기 아이콘 / 미리보기 아이콘 클릭 → 해당 모드로 전환
 
 ### 샘플 ID 관리
 
@@ -259,7 +261,7 @@ VS Code `settings.json`에 다음을 추가합니다:
 
 **방법 3: 에디터 타이틀 바 버튼 사용**
 
-`.labnote.md` 파일이 텍스트 에디터로 열려 있을 때, 에디터 타이틀 바 오른쪽 상단에 Section Editor 전환 아이콘 버튼이 표시됩니다. 클릭하면 Section Editor로 전환됩니다.
+`.labnote.md` 파일이 텍스트 에디터나 미리보기로 열려 있을 때, 에디터 타이틀 바 오른쪽 상단에 플라스크 아이콘의 Section Editor 전환 버튼이 표시됩니다. 클릭하면 Section Editor로 전환됩니다. Section Editor에서는 Markdown 편집기 및 미리보기 전환 버튼이 표시됩니다.
 
 일반적으로는 확장 설치 시 자동으로 Section Editor가 기본 편집기로 등록되지만, 다른 마크다운 확장과 충돌할 경우 위 설정이 필요할 수 있습니다.
 

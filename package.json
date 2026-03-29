@@ -2,7 +2,7 @@
   "name": "LabnoteV",
   "displayName": "Labnote Assistant for VSCode",
   "description": "Markdown-based labnote assistant with sample tracking and workflow management",
-  "version": "0.33.0",
+  "version": "0.34.0",
   "license": "MIT",
   "publisher": "korea-biofoundry",
   "repository": {
@@ -206,7 +206,20 @@
       {
         "command": "labnotev.openWithSectionEditor",
         "title": "Labnote: Section Editor로 열기",
-        "icon": "$(notebook-render-output)"
+        "icon": {
+          "light": "resources/icons/flask.svg",
+          "dark": "resources/icons/flask.svg"
+        }
+      },
+      {
+        "command": "labnotev.openAsTextEditor",
+        "title": "Labnote: Markdown 편집기로 열기",
+        "icon": "$(go-to-file)"
+      },
+      {
+        "command": "labnotev.openPreview",
+        "title": "Labnote: 미리보기 열기",
+        "icon": "$(open-preview)"
       }
     ],
     "menus": {
@@ -214,6 +227,16 @@
         {
           "command": "labnotev.openWithSectionEditor",
           "when": "resourceFilename =~ /\\.labnote\\.md$/ && activeCustomEditorId != labnotev.sectionEditor",
+          "group": "navigation"
+        },
+        {
+          "command": "labnotev.openAsTextEditor",
+          "when": "resourceFilename =~ /\\.labnote\\.md$/ && activeCustomEditorId == labnotev.sectionEditor",
+          "group": "navigation"
+        },
+        {
+          "command": "labnotev.openPreview",
+          "when": "resourceFilename =~ /\\.labnote\\.md$/ && activeCustomEditorId == labnotev.sectionEditor",
           "group": "navigation"
         }
       ],

@@ -5,6 +5,20 @@
 형식은 [Keep a Changelog](https://keepachangelog.com/ko/1.1.0/)를 기반으로 하며,
 이 프로젝트는 [유의적 버전 관리](https://semver.org/lang/ko/)를 따릅니다.
 
+## [0.34.0] - 2026-03-29
+
+### 추가
+
+#### 에디터 3-way 전환 버튼
+- Section Editor 모드에서 에디터 타이틀 바에 "Markdown 편집기로 열기"(`$(go-to-file)`) 및 "미리보기 열기"(`$(open-preview)`) 전환 버튼 추가
+- Text Editor / Preview 모드에서는 Section Editor 전환 버튼(플라스크 아이콘) 표시
+- 각 모드에서 나머지 두 모드로 한 번의 클릭으로 전환 가능
+
+### 수정
+- Preview 모드에서 Section Editor 전환 버튼이 작동하지 않던 문제 수정 (3단계 URI fallback 적용: activeTextEditor → sectionEditorProvider → lastLabnoteUri)
+- Section Editor 전환 버튼 아이콘을 플라스크 아이콘(`resources/icons/flask.svg`)으로 교체
+- 이미지 붙여넣기 시 커서 위치에 불필요한 줄바꿈이 삽입되던 문제 수정 (`\n![](...)` → `![](...)`)
+
 ## [0.33.0] - 2026-03-29
 
 ### 추가

@@ -305,7 +305,7 @@ export class SectionEditorProvider implements vscode.CustomTextEditorProvider {
           const filePath = path.join(imagesDir, fileName);
           const buffer = Buffer.from(imageBase64, 'base64');
           fs.writeFileSync(filePath, buffer);
-          const markdownText = `\n![](images/${fileName})\n`;
+          const markdownText = `![](images/${fileName})`;
           webviewPanel.webview.postMessage({
             type: 'imagePasted',
             data: { markdownText },

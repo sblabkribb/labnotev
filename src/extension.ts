@@ -62,12 +62,18 @@ export async function activate(context: vscode.ExtensionContext) {
   });
   context.subscriptions.push(treeView);
 
+  // Track last active .labnote.md URI (for Preview → Section Editor fallback)
+  let lastLabnoteUri: vscode.Uri | undefined;
+
   // Update document folder when active editor changes
   context.subscriptions.push(
     vscode.window.onDidChangeActiveTextEditor(editor => {
       if (editor) {
         const newFolder = path.dirname(editor.document.uri.fsPath);
         sampleTreeProvider.updateDocumentFolder(newFolder);
+        if (editor.document.uri.fsPath.endsWith('.labnote.md')) {
+          lastLabnoteUri = editor.document.uri;
+        }
       }
     })
   );
@@ -125,9 +131,23 @@ export async function activate(context: vscode.ExtensionContext) {
 
   context.subscriptions.push(
     vscode.commands.registerCommand('labnotev.openWithSectionEditor', () => {
-      const uri = vscode.window.activeTextEditor?.document.uri;
+      const uri = vscode.window.activeTextEditor?.document.uri
+        ?? sectionEditorProvider.getActiveDocument()?.uri
+        ?? lastLabnoteUri;
       if (uri) {
         vscode.commands.executeCommand('vscode.openWith', uri, 'labnotev.sectionEditor');
+      }
+    }),
+    vscode.commands.registerCommand('labnotev.openAsTextEditor', () => {
+      const uri = sectionEditorProvider.getActiveDocument()?.uri;
+      if (uri) {
+        vscode.commands.executeCommand('vscode.openWith', uri, 'default');
+      }
+    }),
+    vscode.commands.registerCommand('labnotev.openPreview', () => {
+      const uri = sectionEditorProvider.getActiveDocument()?.uri;
+      if (uri) {
+        vscode.commands.executeCommand('markdown.showPreview', uri);
       }
     })
   );
