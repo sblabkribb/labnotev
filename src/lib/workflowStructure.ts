@@ -137,6 +137,8 @@ end_date: ''
 
 ## [${workflow.id} ${workflow.name}]
 
+> ${workflow.description}
+
 ## Related Unit Operations
 
 > 유닛 오퍼레이션 목록이 자동으로 추가됩니다.

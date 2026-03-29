@@ -62,42 +62,42 @@ export function formatSampleLabel(sampleId: string, alias: string | null | undef
 }
 
 /**
- * Get text to insert into editor for a sample item (reference only - ID|Alias)
+ * Get text to insert into editor for a sample item (reference only - ID;Alias)
  */
 export function getInsertText(item: SampleTreeItem): string {
   if (item.alias && item.alias.trim()) {
-    return `${item.sampleId}|${item.alias}`;
+    return `${item.sampleId};${item.alias}`;
   }
   return item.sampleId || '';
 }
 
 /**
  * Get definition text to insert into editor for a sample item
- * Format: @type:ID|Alias:Description
- * For Equip type, ID is omitted: @equip:|Alias:Description
+ * Format: @type;ID;Alias;Description
+ * For Equip type, ID is omitted: @equip;;Alias;Description
  */
 export function getDefinitionText(item: SampleTreeItem): string {
   const type = item.sampleType?.toLowerCase() || '';
   
   // Equip type: ID is omitted (uses existing DB/JSON IDs only)
   if (type === 'equip') {
-    let text = `@${type}:`;
+    let text = `@${type};`;
     if (item.alias && item.alias.trim()) {
-      text += `|${item.alias}`;
+      text += `;${item.alias}`;
     }
     if (item.sampleDescription && item.sampleDescription.trim()) {
-      text += `:${item.sampleDescription}`;
+      text += `;${item.sampleDescription}`;
     }
     return text;
   }
 
   // Regular sample types: include ID
-  let text = `@${type}:${item.sampleId || ''}`;
+  let text = `@${type};${item.sampleId || ''}`;
   if (item.alias && item.alias.trim()) {
-    text += `|${item.alias}`;
+    text += `;${item.alias}`;
   }
   if (item.sampleDescription && item.sampleDescription.trim()) {
-    text += `:${item.sampleDescription}`;
+    text += `;${item.sampleDescription}`;
   }
   return text;
 }

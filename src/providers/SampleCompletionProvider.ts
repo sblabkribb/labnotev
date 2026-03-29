@@ -109,20 +109,21 @@ function loadSampleIdsAndRecords(
 function matchSampleType(prefix: string): SampleType | null {
   const lower = prefix.toLowerCase();
   
-  // Check for @sample: (matches all types)
-  if (lower === '@sample:') {
-    return null; // Special case for all types
+  // Check for @sample; or @sample: (matches all types)
+  if (lower === '@sample;' || lower === '@sample:') {
+    return null;
   }
   
-  // Check for @TYPE: pattern
+  // Check for @TYPE; or @TYPE: pattern
   for (const type of SAMPLE_TYPES) {
-    if (lower === `@${type.toLowerCase()}:`) {
+    const tl = type.toLowerCase();
+    if (lower === `@${tl};` || lower === `@${tl}:`) {
       return type;
     }
   }
   
-  // Handle @item: as Labware alias
-  if (lower === '@item:') {
+  // Handle @item; or @item: as Labware alias
+  if (lower === '@item;' || lower === '@item:') {
     return 'Labware';
   }
   
@@ -133,7 +134,8 @@ function matchSampleType(prefix: string): SampleType | null {
  * Check if the prefix is a sample prefix (@sample:)
  */
 function isSamplePrefix(prefix: string): boolean {
-  return prefix.toLowerCase() === '@sample:';
+  const lower = prefix.toLowerCase();
+  return lower === '@sample;' || lower === '@sample:';
 }
 
 /**
@@ -141,11 +143,12 @@ function isSamplePrefix(prefix: string): boolean {
  */
 function isKnownPrefix(prefix: string): boolean {
   const lower = prefix.toLowerCase();
-  if (lower === '@sample:') return true;
-  if (lower === '@item:') return true;
+  if (lower === '@sample;' || lower === '@sample:') return true;
+  if (lower === '@item;' || lower === '@item:') return true;
   
   for (const type of SAMPLE_TYPES) {
-    if (lower === `@${type.toLowerCase()}:`) {
+    const tl = type.toLowerCase();
+    if (lower === `@${tl};` || lower === `@${tl}:`) {
       return true;
     }
   }
@@ -183,14 +186,14 @@ export class SampleCompletionProvider implements vscode.CompletionItemProvider {
     const linePrefix = document.lineAt(position).text.substring(0, position.character);
 
     // Check for @ trigger patterns
-    // Pattern: @TYPE: or @sample: (colon optional so we match when trigger fires before colon is inserted)
-    const prefixMatch = linePrefix.match(/@(\w+):?(\S*)$/);
+    // Pattern: @TYPE; or @TYPE: (semicolon/colon optional so we match when trigger fires before delimiter is inserted)
+    const prefixMatch = linePrefix.match(/@(\w+)[;:]?(\S*)$/);
     if (!prefixMatch || prefixMatch.index === undefined) {
       logCompletionDebug(`prefixMatch null or no index, linePrefix=${JSON.stringify(linePrefix)}`);
       return undefined;
     }
 
-    const fullPrefix = `@${prefixMatch[1]}:`;
+    const fullPrefix = `@${prefixMatch[1]};`;
     const searchTerm = prefixMatch[2].toLowerCase();
     const matchIndex = prefixMatch.index;
 
@@ -254,10 +257,10 @@ export class SampleCompletionProvider implements vscode.CompletionItemProvider {
           continue;
         }
         
-        // Build insert text: "ID" or "ID|Alias" (description only in label/documentation, not in inserted text)
+        // Build insert text: "ID" or "ID;Alias"
         let insertText = id;
         if (alias) {
-          insertText = `${id}|${alias}`;
+          insertText = `${id};${alias}`;
         }
         
         const item = new vscode.CompletionItem(label, vscode.CompletionItemKind.Reference);
@@ -326,11 +329,10 @@ export class SampleCompletionProvider implements vscode.CompletionItemProvider {
 
 /**
  * Create and return the completion provider with trigger characters.
- * ':' opens the list; letters/digits/-/_ re-trigger so typing after @type: filters the list.
+ * ';' opens the list; letters/digits/-/_ re-trigger so typing after @type; filters the list.
  */
 export function createSampleCompletionProvider(): vscode.Disposable {
-  // Include '@' so completion is triggered as soon as user types @ (then each letter re-triggers)
-  const triggerChars = ['@', ':', ...'abcdefghijklmnopqrstuvwxyz0123456789-_'.split('')];
+  const triggerChars = ['@', ';', ':', ...'abcdefghijklmnopqrstuvwxyz0123456789-_'.split('')];
   return vscode.languages.registerCompletionItemProvider(
     { language: 'markdown', scheme: 'file' },
     new SampleCompletionProvider(),

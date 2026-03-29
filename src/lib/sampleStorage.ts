@@ -1,6 +1,7 @@
 /**
  * Sample Storage - Functions for extracting and storing sample information
- * Supports formats: ID|alias:description, ID|alias, ID: description, ID
+ * Supports formats: ID;alias;description, ID;alias, ID: description, ID
+ * Legacy formats (|, :) are also recognized for backward compatibility
  */
 
 import * as fs from 'fs';
@@ -34,12 +35,12 @@ export type SampleDatabase = Record<string, Record<string, SampleRecord>>;
 
 /**
  * Extract sample information from document text
- * Supports formats:
- * - @type:ID|alias:description (definition format)
- * - @type:ID|alias (definition with alias only)
- * - @type:ID (definition with ID only)
- * - ID|alias:description (full format)
- * - ID|alias (alias only)
+ * Supports formats (new ; delimiter + legacy |/: for backward compatibility):
+ * - @type;ID;alias;description (definition format)
+ * - @type;ID;alias (definition with alias only)
+ * - @type;ID (definition with ID only)
+ * - ID;alias;description (full format)
+ * - ID;alias (alias only)
  * - ID: description (legacy format)
  * - ID (ID only)
  */
@@ -49,12 +50,11 @@ export function extractSampleInfoFromText(text: string, additionalTypes?: string
 
   const allTypes: string[] = [...SAMPLE_TYPES, ...(additionalTypes ?? []).filter(t => !(SAMPLE_TYPES as readonly string[]).includes(t))];
   for (const type of allTypes) {
-    // Pattern to match sample ID with optional @type: prefix, alias and description
-    // Matches: optional @type: prefix + TYPE-digits followed by optional |alias:description or |alias or : description
-    // Alias: [^:\n|]+ allows spaces and special chars (e.g. ™); stops at : or | so ID|alias:description is unambiguous
-    // gi flag: case-insensitive for @type: prefix
+    // Pattern to match sample ID with optional @type; prefix, alias and description
+    // Supports both new ; delimiter and legacy |/: for backward compatibility
+    // Alias: [^;:\n|]+ allows spaces and special chars (e.g. ™); stops at ;/:/| so ID;alias;description is unambiguous
     const pattern = new RegExp(
-      `(?:@${type}:)?(${type}-\\d+(?:-\\d+)?)(?:\\|([^:\\n|]+)(?::([^\\n|]+))?|:\\s*([^\\n|]+))?`,
+      `(?:@${type}[;:])?(${type}-\\d+(?:-\\d+)?)(?:[;|]([^;:\\n|]+)(?:[;:]([^\\n;|]+))?|:\\s*([^\\n;|]+))?`,
       'gi'
     );
 
@@ -185,9 +185,9 @@ export function findSampleDefinitionMatch(
 ): { start: number; length: number } | null {
   const typeEsc = type.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 
-  // 1) Match by @type:ID (same pattern as extractSampleInfoFromText; alias [^:\n|]+ allows spaces)
+  // 1) Match by @type;ID or @type:ID (supports ; and legacy |/: delimiters)
   const idPattern = new RegExp(
-    `(?:@${typeEsc}:)?(${typeEsc}-\\d+(?:-\\d+)?)(?:\\|([^:\\n|]+)(?::([^\\n|]+))?|:\\s*([^\\n|]+))?`,
+    `(?:@${typeEsc}[;:])?(${typeEsc}-\\d+(?:-\\d+)?)(?:[;|]([^;:\\n|]+)(?:[;:]([^\\n;|]+))?|:\\s*([^\\n;|]+))?`,
     'gi'
   );
   let match = idPattern.exec(text);
@@ -198,11 +198,11 @@ export function findSampleDefinitionMatch(
     match = idPattern.exec(text);
   }
 
-  // 2) Equip: match by @equip:|currentAlias when definition has no ID in text
+  // 2) Equip: match by @equip;|currentAlias when definition has no ID in text
   if ((type.toLowerCase() === 'equip') && currentAlias && currentAlias.trim()) {
     const aliasEsc = currentAlias.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
     const equipAliasPattern = new RegExp(
-      `@equip:\\|${aliasEsc}(?::([^\\n|]*))?`,
+      `@equip[;:][;|]${aliasEsc}(?:[;:]([^\\n;|]*))?`,
       'gi'
     );
     const equipMatch = equipAliasPattern.exec(text);

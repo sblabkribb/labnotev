@@ -27,7 +27,7 @@ VS Code에서 실험 노트를 마크다운으로 작성할 수 있도록 돕는
    - HW: Input, Reagent, Consumables, Equipment, Method, Output, Results & Discussions
    - SW: Input, Output, Parameters, QC Metrics, Method, Environment, Discussion
 9. 샘플 정의
-   - 각 유닛오퍼레이션의 섹션 제목 옆 `+Sample` 버튼 클릭 → 모달에서 타입/별칭/설명 입력 → 해당 textarea에 `- @type:ID|별칭:설명` 형식으로 자동 삽입
+   - 각 유닛오퍼레이션의 섹션 제목 옆 `+Sample` 버튼 클릭 → 모달에서 타입/별칭/설명 입력 → 해당 textarea에 `- @type;ID;별칭;설명` 형식으로 자동 삽입
    - 커스텀 타입도 모달에서 직접 정의하여 사용 가능
    - 또는 Activity Bar의 Sample TreeView에서 타입 우클릭 → Add Sample로 생성 후 Insert Definition으로 삽입
 10. 샘플 참조
@@ -102,12 +102,12 @@ VS Code에서 실험 노트를 마크다운으로 작성할 수 있도록 돕는
 
 ### 샘플 ID 관리
 
-샘플 ID는 `@type:ID|별칭:설명` 형식으로 **정의**하고, `ID|별칭` 형식으로 **참조**합니다.
+샘플 ID는 `@type;ID;별칭;설명` 형식으로 **정의**하고, `ID;별칭` 형식으로 **참조**합니다. (기존 `|`/`:` 구분자도 호환됩니다)
 
 #### Section Editor에서의 샘플 관리
 
 - **샘플 생성 모달**: 유닛 오퍼레이션의 각 섹션 제목 옆 `+Sample` 버튼 클릭 시 모달 표시
-  - 타입 드롭다운(기본 8종 + 커스텀), 별칭, 설명(여러 줄 입력 가능)을 한 번에 입력하여 `- @type:ID|별칭:설명` 형식으로 삽입
+  - 타입 드롭다운(기본 8종 + 커스텀), 별칭, 설명(여러 줄 입력 가능)을 한 번에 입력하여 `- @type;ID;별칭;설명` 형식으로 삽입
   - Reagent/Labware는 "제품 검색" 버튼으로 참조 DB에서 제품을 검색하여 선택 가능
   - "새 타입 추가"로 커스텀 샘플 타입을 정의하면 본문에서 하이라이팅 및 추출/저장 가능
 - **하이라이팅**: textarea 내 샘플 ID가 타입별 색상으로 강조
@@ -133,7 +133,7 @@ VS Code에서 실험 노트를 마크다운으로 작성할 수 있도록 돕는
 #### 샘플 저장
 
 - 문서 저장 시 샘플 정보가 `resources/labsamples/{TYPE}.json`에 자동 저장
-- 지원 형식: `@type:ID|별칭:설명`, `ID|별칭:설명`, `ID|별칭`, `ID: 설명`
+- 지원 형식: `@type;ID;별칭;설명`, `ID;별칭;설명`, `ID;별칭`, `ID: 설명` (기존 `|`/`:` 구분자도 호환)
 - 별칭에 공백/특수문자 포함 가능 (예: `Reagent-1|UltraPure™ DNase/RNase-Free Water:설명`)
 - **참조 DB**: `{TYPE}_{이름}.json` 파일로 제품 카탈로그 제공 (읽기 전용)
   - 예: `reagent_buffer.json`, `labware_plate.json`
@@ -147,8 +147,8 @@ VS Code에서 실험 노트를 마크다운으로 작성할 수 있도록 돕는
   - `DNA [3]`, `RNA [1]` 등: 타입별 노드
   - `DNA-123 | 샘플A`: 개별 샘플
 - **컨텍스트 메뉴**:
-  - 샘플 더블클릭: 에디터에 `ID|별칭` 삽입 (참조)
-  - 우클릭 → Insert Definition: `@{type}:ID|별칭:설명` 삽입 (정의)
+  - 샘플 더블클릭: 에디터에 `ID;별칭` 삽입 (참조)
+  - 우클릭 → Insert Definition: `@{type};ID;별칭;설명` 삽입 (정의)
   - 우클릭 → Move to Definition: 샘플 정의 위치로 이동
   - 타입 우클릭 → Add Sample: 새 샘플 추가
   - 샘플 우클릭 → Edit / Delete: 별칭/설명 수정 또는 삭제

@@ -237,9 +237,9 @@ export class SectionEditorProvider implements vscode.CustomTextEditorProvider {
           await this._sampleTreeProvider.addSample('local', reqType, newId, alias || null, description || null);
 
           const typeLower = reqType.toLowerCase();
-          let definitionText = `- @${typeLower}:${newId}`;
-          if (alias) definitionText += `|${alias}`;
-          if (description) definitionText += `:${description}`;
+          let definitionText = `- @${typeLower};${newId}`;
+          if (alias) definitionText += `;${alias}`;
+          if (description) definitionText += `;${description}`;
 
           webviewPanel.webview.postMessage({
             type: 'sampleDefinitionCreated',

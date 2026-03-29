@@ -33,7 +33,7 @@ const DEFAULT_CUSTOM_COLOR = '#607D8B';
 function buildSamplePattern(availableTypes?: string[]): RegExp {
   const allTypes = new Set([...BUILTIN_TYPES, ...(availableTypes ?? [])]);
   const typeStr = [...allTypes].map(t => t.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')).join('|');
-  return new RegExp(`\\b(${typeStr})-\\d+(?:\\|[^\\s|]+)?`, 'g');
+  return new RegExp(`\\b(${typeStr})-\\d+(?:[;|][^\\s;|]+)?`, 'g');
 }
 
 interface SampleHighlighterProps {
@@ -59,7 +59,7 @@ export function SampleHighlighter({ text, interactive = false, availableTypes }:
     }
     const sampleType = match[1];
     const fullMatch = match[0];
-    const sampleId = fullMatch.split('|')[0];
+    const sampleId = fullMatch.split(/[;|]/)[0];
     const color = SAMPLE_COLORS[sampleType] || DEFAULT_CUSTOM_COLOR;
 
     const spanStyle: React.CSSProperties = {

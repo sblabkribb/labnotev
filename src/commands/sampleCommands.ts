@@ -420,7 +420,7 @@ export function registerSampleCommands(
 
       if (selected) {
         const insertText = selected.alias
-          ? `${selected.sampleId}|${selected.alias}`
+          ? `${selected.sampleId};${selected.alias}`
           : selected.sampleId;
 
         const secDoc = sectionEditorProvider?.getActiveDocument();

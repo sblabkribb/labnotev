@@ -64,9 +64,8 @@ export function findSamplePrefixRange(
   const lineText = line.text;
   const cursorChar = position.character;
 
-  // Check if cursor is at or after a @type: prefix
-  // Pattern: @type: (case insensitive)
-  const prefixPattern = new RegExp(`@${sampleType.toLowerCase()}:`, 'i');
+  // Check if cursor is at or after a @type; or @type: prefix
+  const prefixPattern = new RegExp(`@${sampleType.toLowerCase()}[;:]`, 'i');
   let match: RegExpExecArray | null;
   const regex = new RegExp(prefixPattern.source, 'gi');
   

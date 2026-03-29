@@ -217,16 +217,15 @@ export function registerUtilityCommands(
         );
       }
 
-      // Insert text with @type: prefix for definition
-      let insertText = `@${sampleType.toLowerCase()}:${newId}`;
+      let insertText = `@${sampleType.toLowerCase()};${newId}`;
       if (alias) {
-        insertText += `|${alias}`;
+        insertText += `;${alias}`;
       }
       if (description) {
-        insertText += `:${description}`;
+        insertText += `;${description}`;
       }
 
-      // Check if @type: prefix already exists at cursor position
+      // Check if @type; prefix already exists at cursor position
       const prefixRange = findSamplePrefixRange(
         editor.document,
         editor.selection.active,
@@ -308,16 +307,15 @@ export function registerUtilityCommands(
         );
       }
 
-      // Insert text with @type: prefix for definition
-      let insertText = `@${sampleType.toLowerCase()}:${sampleId}`;
+      let insertText = `@${sampleType.toLowerCase()};${sampleId}`;
       if (alias) {
-        insertText += `|${alias}`;
+        insertText += `;${alias}`;
       }
       if (description) {
-        insertText += `:${description}`;
+        insertText += `;${description}`;
       }
 
-      // Check if @type: prefix already exists at cursor position
+      // Check if @type; prefix already exists at cursor position
       const prefixRange = findSamplePrefixRange(
         editor.document,
         editor.selection.active,

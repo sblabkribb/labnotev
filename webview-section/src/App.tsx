@@ -531,6 +531,9 @@ export default function App() {
                   style={{ flex: 1 }}
                 />
               </Group>
+              {workflow.workflowDescription && (
+                <Text c="dimmed" fs="italic" size="sm">{workflow.workflowDescription}</Text>
+              )}
             </Paper>
 
             <Paper p="sm" withBorder>
