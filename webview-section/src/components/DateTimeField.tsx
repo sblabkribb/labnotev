@@ -61,6 +61,7 @@ export function DateTimeField({
   const [localTime, setLocalTime] = useState(time);
   const [editing, setEditing] = useState(false);
   const prevTimeRef = useRef(time);
+  const autoCommittedRef = useRef(false);
 
   useEffect(() => {
     if (!editing) setLocalTime(time);
@@ -87,6 +88,7 @@ export function DateTimeField({
       if (h <= 23 && m <= 59) {
         const formatted = `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`;
         onChange(combine(date, formatted));
+        autoCommittedRef.current = true;
         setEditing(false);
         e.currentTarget.blur();
       }
@@ -94,6 +96,11 @@ export function DateTimeField({
   };
 
   const handleTimeBlur = () => {
+    if (autoCommittedRef.current) {
+      autoCommittedRef.current = false;
+      setEditing(false);
+      return;
+    }
     setEditing(false);
     const formatted = formatTimeInput(localTime);
     if (formatted) {

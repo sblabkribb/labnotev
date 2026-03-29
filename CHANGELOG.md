@@ -5,6 +5,12 @@
 형식은 [Keep a Changelog](https://keepachangelog.com/ko/1.1.0/)를 기반으로 하며,
 이 프로젝트는 [유의적 버전 관리](https://semver.org/lang/ko/)를 따릅니다.
 
+## [0.35.0] - 2026-03-29
+
+### 수정
+- 시간 입력 시 4자리 숫자(예: 1111)가 올바른 HH:MM(11:11)으로 변환되지 않던 버그 수정
+  - `handleTimeChange`의 auto-commit 후 동기적 blur가 stale 클로저 값으로 결과를 덮어쓰는 문제 해결 (`autoCommittedRef` 플래그 도입)
+
 ## [0.34.1] - 2026-03-29
 
 ### 수정
