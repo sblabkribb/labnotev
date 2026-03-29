@@ -147,12 +147,6 @@ export function registerWorkflowCommands(
         return;
       }
 
-      // Optional description
-      const userDescription = await vscode.window.showInputBox({
-        prompt: '워크플로 설명 (선택 사항)',
-        placeHolder: 'e.g., Day 1 prep',
-      });
-
       const labnoteDir = labnoteDirFromTarget(target);
       const experimenter = getExperimenterForLabnoteFolder(labnoteDir);
 
@@ -164,16 +158,16 @@ export function registerWorkflowCommands(
         id: workflowId,
         name: workflowName,
         description: workflowDescription || '',
-      }, userDescription?.trim() || '');
+      });
 
       const workflowContent = createWorkflowContent({
         id: workflowId,
         name: workflowName,
         description: workflowDescription || '',
-      }, userDescription?.trim() || '', experimenter);
+      }, experimenter);
 
       const workflowPath = path.join(labnoteDir, workflowFileName);
-      const checklistTitle = `${sequence} ${workflowId} ${workflowName}${userDescription ? ` - ${userDescription}` : ''}`;
+      const checklistTitle = `${sequence} ${workflowId} ${workflowName}`;
 
       try {
         fs.writeFileSync(workflowPath, workflowContent, 'utf8');

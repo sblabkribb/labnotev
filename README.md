@@ -17,7 +17,8 @@ VS Code에서 실험 노트를 마크다운으로 작성할 수 있도록 돕는
 6. 워크플로 추가
    - 왼쪽 Activity Bar의 플라스크 아이콘 클릭 → 워크플로 트리뷰에서 원하는 워크플로의 `[Labnote: Create Workflow]` 버튼 클릭
    - 또는 명령 팔레트에서 `Labnote: Create Workflow` 입력
-   - 생성된 워크플로는 Related Workflows 섹션에 자동으로 체크리스트 형태로 연결됨
+   - 워크플로 파일이 즉시 생성되며 Related Workflows 섹션에 체크리스트로 연결됨
+   - 워크플로 설명은 Section Editor에서 직접 편집 가능 (편집 시 readme.labnote.md에 자동 반영)
 7. 워크플로 제목을 클릭하면 해당 워크플로 `.labnote.md` 파일이 Section Editor로 열림
    - 워크플로 파일 상단에 "Back to Lab Note" 링크가 표시되어 원래 실험 노트로 돌아갈 수 있음
 8. 워크플로에서 유닛 오퍼레이션 추가
@@ -66,7 +67,7 @@ VS Code에서 실험 노트를 마크다운으로 작성할 수 있도록 돕는
 
 - **Back to Lab Note 링크**: 상단에 원래 실험 노트로 돌아가는 링크 표시
 - **Front Matter 폼**: Title, Experimenter, Created Date, Last Updated, End Date를 편집
-- **Workflow Header**: 워크플로 제목과 설명 표시
+- **Workflow Header**: 워크플로 제목 표시, 설명(description) 인라인 편집 가능 -- 편집 시 `readme.labnote.md` 체크리스트에 자동 동기화
 - **Unit Operations**: 유닛 오퍼레이션 목록을 아코디언 UI로 표시
   - 드래그 앤 드롭으로 순서 변경
   - 유닛 오퍼레이션 이름 옆에 별칭(alias) 인라인 편집 가능

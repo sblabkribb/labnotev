@@ -5,6 +5,18 @@
 형식은 [Keep a Changelog](https://keepachangelog.com/ko/1.1.0/)를 기반으로 하며,
 이 프로젝트는 [유의적 버전 관리](https://semver.org/lang/ko/)를 따릅니다.
 
+## [0.37.0] - 2026-03-29
+
+### 개선
+
+#### 워크플로 헤더 편집 개선
+- 워크플로 생성 시 설명(description) 입력 단계 제거 -- 파일 즉시 생성 후 Section Editor에서 설명 편집
+- 워크플로 파일명에서 설명 부분 제거 (`001_WD010_Name.labnote.md`)
+- Section Editor에서 워크플로 헤더의 설명 부분을 인라인 편집 가능하게 변경 (UnitOp alias와 유사한 패턴)
+- 워크플로 헤더 아래 blockquote 설명 제거 (기존 파일도 재저장 시 제거)
+- 워크플로 설명 편집 시 `readme.labnote.md`의 Related Workflows 체크리스트 타이틀 자동 동기화
+- UnitOp alias 및 워크플로 헤더 설명 입력 영역이 가용 공간을 최대한 사용하도록 flex 레이아웃 개선
+
 ## [0.36.0] - 2026-03-29
 
 ### 수정

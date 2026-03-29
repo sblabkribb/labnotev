@@ -301,7 +301,7 @@ function SortableUnitOp({ op, opIndex, onUpdateSection, onUpdateAlias, onSection
     <div ref={setNodeRef} style={style}>
       <Accordion.Item value={op.id}>
         <Accordion.Control>
-          <Group gap="sm">
+          <Group gap="sm" wrap="nowrap">
             <ActionIcon
               variant="subtle"
               size="sm"
@@ -328,7 +328,8 @@ function SortableUnitOp({ op, opIndex, onUpdateSection, onUpdateAlias, onSection
               value={op.alias ?? ''}
               onChange={(e) => onUpdateAlias(opIndex, e.currentTarget.value)}
               onClick={(e) => e.stopPropagation()}
-              styles={{ input: { fontSize: '13px', color: op.alias ? 'var(--mantine-color-text)' : 'var(--mantine-color-dimmed)', minWidth: 180 } }}
+              styles={{ input: { fontSize: '13px', color: op.alias ? 'var(--mantine-color-text)' : 'var(--mantine-color-dimmed)' } }}
+              style={{ flex: 1 }}
             />
           </Group>
         </Accordion.Control>

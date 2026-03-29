@@ -118,24 +118,14 @@ export function sanitizeWorkflowName(name: string): string {
 /**
  * Create workflow file content with YAML front matter
  * @param workflow Workflow information
- * @param userDescription Optional description from user
  * @param experimenter Experimenter name (from README author field)
  */
 export function createWorkflowContent(
   workflow: WorkflowInfo,
-  userDescription: string,
   experimenter: string
 ): string {
   const today = getSeoulDateString(new Date());
-  const titleParts = [workflow.id, workflow.name];
-  if (userDescription) {
-    titleParts.push(`- ${userDescription}`);
-  }
-  const title = titleParts.join(' ');
-  
-  const headerTitle = userDescription 
-    ? `## [${workflow.id} ${workflow.name}] ${userDescription}`
-    : `## [${workflow.id} ${workflow.name}]`;
+  const title = `${workflow.id} ${workflow.name}`;
   
   return `---
 title: ${title}
@@ -145,9 +135,7 @@ last_updated_date: ${today}
 end_date: ''
 ---
 
-${headerTitle}
-
-> ${workflow.description}
+## [${workflow.id} ${workflow.name}]
 
 ## Related Unit Operations
 
@@ -165,17 +153,14 @@ ${headerTitle}
  * Create workflow filename with .md extension
  * @param sequence 3-digit sequence number (e.g., '001')
  * @param workflow Workflow information
- * @param userDescription Optional description from user
  */
 export function createWorkflowFileName(
   sequence: string,
-  workflow: WorkflowInfo,
-  userDescription: string
+  workflow: WorkflowInfo
 ): string {
   const safeName = sanitizeWorkflowName(workflow.name);
-  const safeDescription = userDescription ? `_${sanitizeWorkflowName(userDescription)}` : '';
   
-  return `${sequence}_${workflow.id}_${safeName}${safeDescription}.labnote.md`;
+  return `${sequence}_${workflow.id}_${safeName}.labnote.md`;
 }
 
 /**

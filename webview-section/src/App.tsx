@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
-import { MantineProvider, Stack, Button, Group, Title, Loader, Center, Text, Paper, Alert, Badge, Anchor, ActionIcon, Tooltip } from '@mantine/core';
+import { MantineProvider, Stack, Button, Group, Title, Loader, Center, Text, Paper, Alert, Badge, Anchor, ActionIcon, Tooltip, TextInput } from '@mantine/core';
 import { useDebouncedCallback } from '@mantine/hooks';
 import '@mantine/core/styles.css';
 
@@ -507,10 +507,30 @@ export default function App() {
 
             <Paper p="sm" withBorder>
               <Title order={3} mb="xs">Workflow Header</Title>
-              <Text>{workflow.workflowHeader}</Text>
-              {workflow.workflowDescription && (
-                <Text c="dimmed" fs="italic">{workflow.workflowDescription}</Text>
-              )}
+              <Group gap="xs" align="center" wrap="nowrap">
+                <Text fw={500}>{workflow.workflowHeader.match(/^\[.+?\]/)?.[0] ?? workflow.workflowHeader}</Text>
+                <TextInput
+                  size="sm"
+                  variant="unstyled"
+                  placeholder="Add description"
+                  value={workflow.workflowHeader.replace(/^\[.+?\]\s*/, '')}
+                  onChange={(e) => {
+                    const bracketPart = workflow.workflowHeader.match(/^\[.+?\]/)?.[0] ?? '';
+                    const desc = e.currentTarget.value;
+                    const newHeader = desc ? `${bracketPart} ${desc}` : bracketPart;
+                    const idName = bracketPart.replace(/^\[|\]$/g, '');
+                    const newTitle = desc ? `${idName} - ${desc}` : idName;
+                    setWorkflow({
+                      ...workflow,
+                      workflowHeader: newHeader,
+                      frontMatter: { ...workflow.frontMatter, title: newTitle },
+                    });
+                    markDirty();
+                  }}
+                  styles={{ input: { fontSize: '14px', minWidth: 200 } }}
+                  style={{ flex: 1 }}
+                />
+              </Group>
             </Paper>
 
             <Paper p="sm" withBorder>

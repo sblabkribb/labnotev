@@ -210,10 +210,6 @@ export function serializeWorkflowMd(doc: WorkflowDocument): string {
   // Workflow header
   parts.push(`## ${doc.workflowHeader}`);
   parts.push('');
-  if (doc.workflowDescription) {
-    parts.push(`> ${doc.workflowDescription}`);
-    parts.push('');
-  }
 
   // Related Unit Operations section marker
   parts.push('## Related Unit Operations');

@@ -8,6 +8,7 @@ import { getSeoulDateTimeString } from './lib/dateUtils';
 import { SAMPLE_TYPES, generateSampleId } from './lib/sampleUtils';
 import { findSampleDefinitionMatch } from './lib/sampleStorage';
 import { showProductPicker } from './lib/productPicker';
+import { parseWorkflowChecklistFromReadme, generateWorkflowChecklist, updateReadmeWorkflowSection } from './lib/workflowStructure';
 import type { SampleTreeViewProvider } from './views/SampleTreeViewProvider';
 
 export type MdFileType = 'labnote' | 'workflow' | 'unknown';
@@ -435,9 +436,42 @@ export class SectionEditorProvider implements vscode.CustomTextEditorProvider {
         edit.replace(document.uri, fullRange, newContent);
         await vscode.workspace.applyEdit(edit);
         await document.save();
+
+        this.syncWorkflowTitleToReadme(document, data.workflow.workflowHeader);
       }
     } finally {
       this._suppressDocChange = false;
+    }
+  }
+
+  private syncWorkflowTitleToReadme(document: vscode.TextDocument, workflowHeader: string): void {
+    try {
+      const docDir = path.dirname(document.uri.fsPath);
+      const readmePath = path.join(docDir, 'README.labnote.md');
+      if (!fs.existsSync(readmePath)) return;
+
+      const readmeContent = fs.readFileSync(readmePath, 'utf8');
+      const workflowFileName = path.basename(document.uri.fsPath);
+      const items = parseWorkflowChecklistFromReadme(readmeContent);
+      const itemIndex = items.findIndex(item => item.fileName === workflowFileName);
+      if (itemIndex < 0) return;
+
+      const bracketMatch = workflowHeader.match(/^\[(.+?)\]\s*(.*)/);
+      if (!bracketMatch) return;
+
+      const idName = bracketMatch[1];
+      const desc = bracketMatch[2]?.trim();
+      const seq = workflowFileName.match(/^(\d{3})_/)?.[1] || '';
+      const newTitle = desc ? `${seq} ${idName} - ${desc}` : `${seq} ${idName}`;
+
+      if (items[itemIndex].title === newTitle) return;
+
+      items[itemIndex].title = newTitle;
+      const newChecklist = generateWorkflowChecklist(items);
+      const updatedReadme = updateReadmeWorkflowSection(readmeContent, newChecklist);
+      fs.writeFileSync(readmePath, updatedReadme, 'utf8');
+    } catch {
+      // non-critical: silently ignore sync failures
     }
   }
 
