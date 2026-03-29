@@ -5,6 +5,12 @@
 형식은 [Keep a Changelog](https://keepachangelog.com/ko/1.1.0/)를 기반으로 하며,
 이 프로젝트는 [유의적 버전 관리](https://semver.org/lang/ko/)를 따릅니다.
 
+## [0.36.0] - 2026-03-29
+
+### 수정
+- 테이블 정렬 키보드 단축키(`Ctrl+Shift+F`) 제거 -- VS Code 내장 "Search: Find in Files" 단축키와 충돌
+  - 정렬 기능은 기존 정렬 버튼(AlignIcon)으로 사용
+
 ## [0.35.0] - 2026-03-29
 
 ### 수정

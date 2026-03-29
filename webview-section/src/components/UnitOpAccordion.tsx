@@ -193,7 +193,7 @@ function UnitOpSectionTextarea({
               <TableIcon />
             </ActionIcon>
           </Tooltip>
-          <Tooltip label="테이블 정렬 (Ctrl+Shift+F)" position="bottom" withArrow>
+          <Tooltip label="테이블 정렬" position="bottom" withArrow>
             <ActionIcon variant="subtle" size="xs" onClick={handleAlignTable} disabled={!cursorInTable} aria-label="테이블 정렬">
               <AlignIcon />
             </ActionIcon>

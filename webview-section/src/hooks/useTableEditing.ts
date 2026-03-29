@@ -55,14 +55,6 @@ export function useTableEditing(
       return;
     }
 
-    if (e.key === 'f' && e.ctrlKey && e.shiftKey && !e.altKey) {
-      if (isInsideTable(content, pos)) {
-        e.preventDefault();
-        handleAlignTable();
-        return;
-      }
-    }
-
     if (e.key === 'Tab' && !e.ctrlKey && !e.altKey) {
       if (!isInsideTable(content, pos)) return;
       e.preventDefault();
