@@ -2,7 +2,7 @@
   "name": "LabnoteV",
   "displayName": "Labnote Assistant for VSCode",
   "description": "Markdown-based labnote assistant with sample tracking and workflow management",
-  "version": "0.34.0",
+  "version": "0.34.1",
   "license": "MIT",
   "publisher": "korea-biofoundry",
   "repository": {
@@ -207,8 +207,8 @@
         "command": "labnotev.openWithSectionEditor",
         "title": "Labnote: Section Editor로 열기",
         "icon": {
-          "light": "resources/icons/flask.svg",
-          "dark": "resources/icons/flask.svg"
+          "light": "resources/icons/flask-light.svg",
+          "dark": "resources/icons/flask-dark.svg"
         }
       },
       {

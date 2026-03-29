@@ -5,6 +5,12 @@
 형식은 [Keep a Changelog](https://keepachangelog.com/ko/1.1.0/)를 기반으로 하며,
 이 프로젝트는 [유의적 버전 관리](https://semver.org/lang/ko/)를 따릅니다.
 
+## [0.34.1] - 2026-03-29
+
+### 수정
+- Section Editor 전환 버튼(플라스크 아이콘)이 VS Code 다크 모드에서 보이지 않던 문제 수정
+  - light/dark 테마별 SVG 파일 분리 (`flask-light.svg` #424242, `flask-dark.svg` #C5C5C5)
+
 ## [0.34.0] - 2026-03-29
 
 ### 추가
