@@ -65,15 +65,25 @@ export async function activate(context: vscode.ExtensionContext) {
   // Track last active .labnote.md URI (for Preview → Section Editor fallback)
   let lastLabnoteUri: vscode.Uri | undefined;
 
-  // Update document folder when active editor changes
+  // Update document folder only when a .labnote.md file becomes active
   context.subscriptions.push(
     vscode.window.onDidChangeActiveTextEditor(editor => {
       if (editor) {
-        const newFolder = path.dirname(editor.document.uri.fsPath);
-        sampleTreeProvider.updateDocumentFolder(newFolder);
-        if (editor.document.uri.fsPath.endsWith('.labnote.md')) {
+        const fsPath = editor.document.uri.fsPath;
+        if (fsPath.endsWith('.labnote.md')) {
+          const newFolder = path.dirname(fsPath);
+          sampleTreeProvider.updateDocumentFolder(newFolder);
           lastLabnoteUri = editor.document.uri;
         }
+      }
+    })
+  );
+
+  // Refresh sample tree when customSampleTypes setting changes
+  context.subscriptions.push(
+    vscode.workspace.onDidChangeConfiguration(e => {
+      if (e.affectsConfiguration('labnotev.customSampleTypes')) {
+        sampleTreeProvider.refresh();
       }
     })
   );

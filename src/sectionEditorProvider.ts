@@ -168,6 +168,10 @@ export class SectionEditorProvider implements vscode.CustomTextEditorProvider {
     const mode = detectMdFileType(content);
 
     this.activeEditor = { document, webviewPanel, mode };
+    if (document.uri.fsPath.endsWith('.labnote.md') && this._sampleTreeProvider) {
+      const experimentFolder = path.dirname(document.uri.fsPath);
+      this._sampleTreeProvider.updateDocumentFolder(experimentFolder);
+    }
 
     webviewPanel.webview.options = {
       enableScripts: true,
@@ -319,6 +323,10 @@ export class SectionEditorProvider implements vscode.CustomTextEditorProvider {
     webviewPanel.onDidChangeViewState(() => {
       if (webviewPanel.active) {
         this.activeEditor = { document, webviewPanel, mode };
+        if (document.uri.fsPath.endsWith('.labnote.md') && this._sampleTreeProvider) {
+          const experimentFolder = path.dirname(document.uri.fsPath);
+          this._sampleTreeProvider.updateDocumentFolder(experimentFolder);
+        }
       } else if (this.activeEditor?.document === document) {
         this.activeEditor = undefined;
       }

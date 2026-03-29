@@ -141,10 +141,13 @@ VS Code에서 실험 노트를 마크다운으로 작성할 수 있도록 돕는
 ### Sample TreeView (Activity Bar)
 
 - **트리뷰 표시**: VS Code Activity Bar에 플라스크 아이콘으로 샘플 패널 표시
-- **Local/Global 구분**: 문서 폴더와 워크스페이스 루트의 샘플 분리 표시
+- **Local/Global 구분**: 실험 폴더와 워크스페이스 루트의 샘플 분리 표시
+  - 로컬 샘플은 현재 열린 `.labnote.md` 파일이 속한 실험 폴더의 `resources/labsamples/`에서 로딩
+  - 다른 실험의 파일을 열면 해당 실험의 로컬 샘플로 자동 전환 (Text Editor 및 Section Editor 모두 지원)
+  - 커스텀 샘플 타입(`labnotev.customSampleTypes` 설정)도 빌트인 타입과 함께 트리에 표시
 - **계층 구조**:
   - `Samples (Local)` / `Samples (Global)`: 루트 노드
-  - `DNA [3]`, `RNA [1]` 등: 타입별 노드
+  - `DNA [3]`, `RNA [1]` 등: 타입별 노드 (빌트인 + 커스텀 타입)
   - `DNA-123 | 샘플A`: 개별 샘플
 - **컨텍스트 메뉴**:
   - 샘플 더블클릭: 에디터에 `ID;별칭` 삽입 (참조)

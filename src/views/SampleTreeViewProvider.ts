@@ -209,6 +209,12 @@ export class SampleTreeViewProvider implements vscode.TreeDataProvider<SampleTre
     this._onDidChangeTreeData.fire();
   }
 
+  private getAllTypes(): string[] {
+    const custom = vscode.workspace.getConfiguration('labnotev')
+      .get<string[]>('customSampleTypes', []);
+    return [...SAMPLE_TYPES, ...custom.filter(t => !(SAMPLE_TYPES as readonly string[]).includes(t))];
+  }
+
   /**
    * Get document folder for Local samples (parent of resources/labsamples)
    */
@@ -274,7 +280,7 @@ export class SampleTreeViewProvider implements vscode.TreeDataProvider<SampleTre
   private getTypeItems(scope: 'local' | 'global'): SampleTreeItem[] {
     const folder = scope === 'local' ? this.localFolder : this.globalFolder;
     
-    return SAMPLE_TYPES.map(type => {
+    return this.getAllTypes().map(type => {
       const samples = this.loadSamples(folder, type);
       const count = Object.keys(samples).length;
       return new SampleTreeItem(
@@ -479,7 +485,7 @@ export class SampleTreeViewProvider implements vscode.TreeDataProvider<SampleTre
     ];
 
     for (const { scope, folder } of scopes) {
-      for (const type of SAMPLE_TYPES) {
+      for (const type of this.getAllTypes()) {
         const samples = this.loadSamples(folder, type);
         for (const [id, record] of Object.entries(samples)) {
           results.push({

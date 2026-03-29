@@ -5,6 +5,19 @@
 형식은 [Keep a Changelog](https://keepachangelog.com/ko/1.1.0/)를 기반으로 하며,
 이 프로젝트는 [유의적 버전 관리](https://semver.org/lang/ko/)를 따릅니다.
 
+## [0.39.0] - 2026-03-29
+
+### 수정
+
+#### 샘플 트리뷰 버그 수정
+- 다른 파일/폴더나 extension 관리 페이지로 이동 후 샘플 트리메뉴로 돌아올 때 로컬 샘플이 사라지던 문제 수정 -- `.labnote.md` 파일이 활성화될 때만 로컬 폴더를 업데이트하도록 변경
+- 커스텀 샘플 타입(`labnotev.customSampleTypes` 설정)이 트리메뉴에 표시되지 않던 문제 수정 -- 빌트인 타입과 커스텀 타입을 합쳐서 표시
+- `labnotev.customSampleTypes` 설정 변경 시 샘플 트리가 자동 갱신되도록 리스너 추가
+
+#### 로컬 샘플 실험 폴더 스코핑
+- Section Editor(커스텀 에디터)에서 다른 실험 폴더의 `.labnote.md` 파일로 전환할 때 로컬 샘플이 해당 실험 폴더로 올바르게 갱신되도록 수정
+- 커스텀 에디터 초기 로드 및 탭 전환 시 `updateDocumentFolder` 호출 추가
+
 ## [0.38.0] - 2026-03-29
 
 ### 변경
