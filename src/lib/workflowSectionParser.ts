@@ -105,6 +105,9 @@ export function parseWorkflowMd(md: string): WorkflowDocument {
     if (HR_PATTERN.test(lines[i].trim()) || UNIT_OP_HEADING_PATTERN.test(lines[i])) {
       break;
     }
+    if (H2_PATTERN.test(lines[i]) && !/Related Unit Operations/i.test(lines[i])) {
+      break;
+    }
     i++;
   }
 
@@ -196,9 +199,11 @@ export function parseWorkflowMd(md: string): WorkflowDocument {
   }
 
   // Parse tail content (everything from the current position onwards)
+  // Strip the "## Conclusions and Discussion" heading since the UI renders it separately
   let tailContent = '';
   if (i < lines.length) {
-    tailContent = lines.slice(i).join('\n').replace(/^\n+/, '').replace(/\n+$/, '');
+    const raw = lines.slice(i).join('\n').replace(/^\n+/, '').replace(/\n+$/, '');
+    tailContent = raw.replace(/^##\s+Conclusions and Discussion\s*\n?/, '').replace(/^\n+/, '');
   }
 
   return { frontMatter: fm, workflowHeader, workflowDescription, unitOperations, tailContent };
@@ -236,13 +241,14 @@ export function serializeWorkflowMd(doc: WorkflowDocument): string {
     }
   }
 
-  // Tail section
+  // Tail section (always write the heading; content may be empty)
+  parts.push('## Conclusions and Discussion');
+  parts.push('');
   if (doc.tailContent) {
     parts.push(doc.tailContent);
     parts.push('');
-    parts.push('');
-    parts.push('');
   }
+  parts.push('');
 
   return parts.join('\n');
 }

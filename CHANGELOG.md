@@ -5,6 +5,16 @@
 형식은 [Keep a Changelog](https://keepachangelog.com/ko/1.1.0/)를 기반으로 하며,
 이 프로젝트는 [유의적 버전 관리](https://semver.org/lang/ko/)를 따릅니다.
 
+## [0.40.0] - 2026-03-30
+
+### 수정
+
+#### Conclusions and Discussion 섹션 파싱/직렬화 수정
+- 워크플로 파일의 `## Conclusions and Discussion` 섹션이 마크다운 파일에 저장되지 않던 문제 수정
+- 유닛 오퍼레이션이 없는 새 워크플로에서 skip 루프가 Conclusions 헤딩까지 건너뛰던 문제 해결
+- 직렬화 시 항상 `## Conclusions and Discussion` 헤딩을 출력하도록 변경
+- 파싱 시 tailContent에서 Conclusions 헤딩을 분리하여 Section Editor UI 중복 표시 방지
+
 ## [0.39.0] - 2026-03-29
 
 ### 수정
