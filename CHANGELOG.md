@@ -5,6 +5,15 @@
 형식은 [Keep a Changelog](https://keepachangelog.com/ko/1.1.0/)를 기반으로 하며,
 이 프로젝트는 [유의적 버전 관리](https://semver.org/lang/ko/)를 따릅니다.
 
+## [0.41.0] - 2026-03-30
+
+### 개선
+
+#### Related Unit Operations TOC 자동 생성
+- 워크플로 마크다운 직렬화 시 `## Related Unit Operations` 섹션에 각 유닛 오퍼레이션의 앵커 링크 목록(TOC)을 자동 생성
+- 마크다운 프리뷰에서 TOC 링크 클릭 시 해당 유닛 오퍼레이션 헤딩으로 이동 가능
+- alias 포함 헤딩에 대해서도 정확한 slug 생성으로 앵커 매칭 보장
+
 ## [0.40.0] - 2026-03-30
 
 ### 수정

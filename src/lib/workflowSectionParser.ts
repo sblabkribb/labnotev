@@ -220,9 +220,18 @@ export function serializeWorkflowMd(doc: WorkflowDocument): string {
     parts.push('');
   }
 
-  // Related Unit Operations section marker
+  // Related Unit Operations section marker with TOC
   parts.push('## Related Unit Operations');
   parts.push('');
+  if (doc.unitOperations.length > 0) {
+    for (const op of doc.unitOperations) {
+      const label = `${op.opId} ${op.opName}`;
+      const headingText = `[${op.opId} ${op.opName}]${op.alias ? ' ' + op.alias : ''}`;
+      const slug = headingText.toLowerCase().replace(/[^\w\s-]/g, '').replace(/\s+/g, '-').replace(/^-+|-+$/g, '');
+      parts.push(`- [${label}](#${slug})`);
+    }
+    parts.push('');
+  }
 
   // Unit operations
   for (const op of doc.unitOperations) {
