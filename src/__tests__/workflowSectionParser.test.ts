@@ -165,6 +165,55 @@ end_date: ''
       expect(doc.frontMatter.title).toBe('WD010 Empty Workflow');
       expect(doc.unitOperations).toHaveLength(0);
     });
+
+    it('should normalize typo heading Reagen to Reagent', () => {
+      const mdWithTypo = `---
+title: Typo Test
+experimenter: Test
+created_date: 2026-01-01
+last_updated_date: 2026-01-01
+end_date: ''
+---
+
+## [Typo Test]
+
+> Test
+
+## Related Unit Operations
+
+---
+
+### [HW001 Test Op]
+
+> Desc
+
+#### Meta
+- Experimenter: 'Test'
+- Start_date: ''
+- End_date: ''
+
+#### Input
+- in
+
+#### Reagen
+- buffer A
+
+#### Output
+- out
+
+`;
+      const doc = parseWorkflowMd(mdWithTypo);
+      const hwOp = doc.unitOperations[0];
+      const reagentSec = hwOp.sections.find(s => s.heading === 'Reagent');
+      expect(reagentSec).toBeDefined();
+      expect(reagentSec!.content).toContain('buffer A');
+      expect(hwOp.sections.some(s => s.heading === 'Reagen')).toBe(false);
+
+      const roundTrip = serializeWorkflowMd(doc);
+      expect(roundTrip).toContain('#### Reagent');
+      // "#### Reagent" contains substring "Reagen"; assert no standalone typo heading
+      expect(roundTrip).not.toMatch(/\n#### Reagen\n/);
+    });
   });
 
   describe('serializeWorkflowMd', () => {

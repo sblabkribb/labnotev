@@ -57,6 +57,12 @@ function detectOpType(opId: string): 'hw' | 'sw' {
   return opId.toUpperCase().startsWith('SW') ? 'sw' : 'hw';
 }
 
+/** Normalizes known H4 heading typos in unit operation sections (keep in sync with webview `normalizeUnitOpSectionHeading`). */
+export function normalizeWorkflowUnitSectionHeading(heading: string): string {
+  if (heading === 'Reagen') return 'Reagent';
+  return heading;
+}
+
 export function parseWorkflowMd(md: string): WorkflowDocument {
   const { frontMatter: rawFm, body } = parseFrontMatter(md);
 
@@ -160,7 +166,7 @@ export function parseWorkflowMd(md: string): WorkflowDocument {
 
         const h4Match = lines[i].match(/^####\s+(.*)/);
         if (h4Match) {
-          const heading = h4Match[1].trim();
+          const heading = normalizeWorkflowUnitSectionHeading(h4Match[1].trim());
           i++;
           const contentLines: string[] = [];
           while (i < lines.length) {

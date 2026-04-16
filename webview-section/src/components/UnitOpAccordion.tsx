@@ -10,6 +10,7 @@ import { DateTimeField } from './DateTimeField';
 import { TableInsertModal } from './TableInsertModal';
 import { SampleCreateModal } from './SampleCreateModal';
 import { useTableEditing } from '../hooks/useTableEditing';
+import { normalizeUnitOpSectionHeading, unitOpSectionAllowsSampleButton } from '../utils/unitOpSectionHeading';
 
 function parseMetaContent(content: string): Record<string, string> {
   const result: Record<string, string> = {};
@@ -26,13 +27,6 @@ function serializeMetaContent(fields: Record<string, string>): string {
     .map(([k, v]) => `- ${k}: '${v}'`)
     .join('\n');
 }
-
-const SECTION_HAS_SAMPLES: Record<string, boolean> = {
-  'Input': true,
-  'Reagent': true,
-  'Consumables': true,
-  'Equipment': true,
-};
 
 interface UnitOpAccordionProps {
   unitOperations: UnitOperationBlock[];
@@ -380,11 +374,12 @@ function SortableUnitOp({ op, opIndex, onUpdateSection, onUpdateAlias, onSection
                 );
               }
 
-              const hasSamples = SECTION_HAS_SAMPLES[section.heading] ?? false;
+              const displayHeading = normalizeUnitOpSectionHeading(section.heading);
+              const hasSamples = unitOpSectionAllowsSampleButton(section.heading);
               return (
                 <UnitOpSectionTextarea
                   key={secIndex}
-                  heading={section.heading}
+                  heading={displayHeading}
                   content={section.content}
                   showSampleButton={hasSamples}
                   onChange={(c) => onUpdateSection(opIndex, secIndex, c)}

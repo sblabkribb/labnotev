@@ -2,7 +2,7 @@
   "name": "LabnoteV",
   "displayName": "Labnote Assistant for VSCode",
   "description": "Markdown-based labnote assistant with sample tracking and workflow management",
-  "version": "0.41.0",
+  "version": "0.42.0",
   "license": "MIT",
   "publisher": "korea-biofoundry",
   "repository": {
