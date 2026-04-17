@@ -5,6 +5,15 @@
 형식은 [Keep a Changelog](https://keepachangelog.com/ko/1.1.0/)를 기반으로 하며,
 이 프로젝트는 [유의적 버전 관리](https://semver.org/lang/ko/)를 따릅니다.
 
+## [0.45.0] - 2026-04-18
+
+### Added
+- **Section Editor 샘플 메타**: 확장이 `resources/labsamples` JSON을 읽어 웹뷰에 샘플 ID별 별칭·설명 맵을 전달하고, 문서에서 샘플 정의를 추가한 뒤 저장하면 `sampleDefsUpdated`로 동기화되어 하이라이트/툴팁에 반영됨
+
+### Fixed
+- **샘플 트리 재저장**: 워크스페이스 루트가 실험 폴더와 같을 때 Local과 Global `resources/labsamples` 경로가 동일해, 두 번째 저장 이후 `dna.json` 등이 비워져 사이드바 타입 개수가 0으로 보이던 문제 수정
+- **Office 첨부 열기**: Windows 등에서 `file:` URI의 `openExternal` 대신 OS 기본 앱으로 여는 경로(`cmd`/`open`/`xdg-open`)를 사용해 한글·공백 경로에서 VS Code 오류 다이얼로그가 뜨던 문제 완화(폴백 체인 유지)
+
 ## [0.44.1] - 2026-04-17
 
 ### Changed

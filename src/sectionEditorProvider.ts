@@ -12,6 +12,8 @@ import { parseWorkflowChecklistFromReadme, generateWorkflowChecklist, updateRead
 import type { SampleTreeViewProvider } from './views/SampleTreeViewProvider';
 import { isPathInsideDir } from './lib/isPathInsideDir';
 import { buildInDocDirAttachmentMarkdownLink } from './lib/attachmentMarkdownLink';
+import { buildSampleDefMap } from './lib/dataLoader';
+import { openFileInOsDefaultApp } from './lib/openInOs';
 
 export type MdFileType = 'labnote' | 'workflow' | 'unknown';
 
@@ -35,11 +37,12 @@ export function shouldOpenAttachmentWithExternalApp(filePath: string): boolean {
 }
 
 /**
- * Open a linked attachment: Office files prefer OS handler; others use VS Code default editor.
- * Falls back through openWith → openExternal (reverse) → vscode.open → error + reveal in OS explorer.
+ * Open a linked attachment: Office files use OS default app via shell (cmd/start, open, xdg-open);
+ * others prefer VS Code default editor. Falls back through openWith → OS shell → vscode.open → error + reveal in OS explorer.
  */
 export async function openAttachmentFile(uri: vscode.Uri): Promise<void> {
   const wantExternal = shouldOpenAttachmentWithExternalApp(uri.fsPath);
+  const fsPath = uri.fsPath;
 
   const tryRevealInOs = async () => {
     try {
@@ -54,28 +57,41 @@ export async function openAttachmentFile(uri: vscode.Uri): Promise<void> {
     await tryRevealInOs();
   };
 
-  try {
-    if (wantExternal) {
-      let opened = false;
-      try {
-        opened = await vscode.env.openExternal(uri);
-      } catch {
-        opened = false;
-      }
-      if (opened) return;
-    }
+  const tryOpenWithDefault = async () => {
     await vscode.commands.executeCommand('vscode.openWith', uri, 'default');
+  };
+
+  const tryOpen = async () => {
+    await vscode.commands.executeCommand('vscode.open', uri);
+  };
+
+  if (wantExternal) {
+    if (await openFileInOsDefaultApp(fsPath)) return;
+    try {
+      await tryOpenWithDefault();
+      return;
+    } catch {
+      try {
+        await tryOpen();
+        return;
+      } catch {
+        await showOpenFailed();
+      }
+    }
+    return;
+  }
+
+  try {
+    await tryOpenWithDefault();
     return;
   } catch {
     try {
-      if (!wantExternal) {
-        try {
-          if (await vscode.env.openExternal(uri)) return;
-        } catch {
-          // continue
-        }
-      }
-      await vscode.commands.executeCommand('vscode.open', uri);
+      if (await openFileInOsDefaultApp(fsPath)) return;
+    } catch {
+      // continue to vscode.open
+    }
+    try {
+      await tryOpen();
       return;
     } catch {
       await showOpenFailed();
@@ -319,6 +335,10 @@ export class SectionEditorProvider implements vscode.CustomTextEditorProvider {
             type: 'sampleDefinitionCreated',
             data: { definitionText, opIndex, secIndex },
           });
+          webviewPanel.webview.postMessage({
+            type: 'sampleDefsUpdated',
+            data: { sampleDefs: buildSampleDefMap(document.uri, getAvailableTypes()) },
+          });
           break;
         }
 
@@ -521,18 +541,34 @@ export class SectionEditorProvider implements vscode.CustomTextEditorProvider {
         }
       }
 
+      const availableTypes = getAvailableTypes();
       webviewPanel.webview.postMessage({
         type: 'init',
-        data: { mode, labNote, linkedWorkflows, docBaseUri, availableTypes: getAvailableTypes() },
+        data: {
+          mode,
+          labNote,
+          linkedWorkflows,
+          docBaseUri,
+          availableTypes,
+          sampleDefs: buildSampleDefMap(document.uri, availableTypes),
+        },
       });
     } else if (mode === 'workflow') {
       const workflow = parseWorkflowMd(content);
       const readmePath = path.join(docDir, 'README.labnote.md');
       const parentLabNotePath = fs.existsSync(readmePath) ? 'README.labnote.md' : undefined;
 
+      const availableTypes = getAvailableTypes();
       webviewPanel.webview.postMessage({
         type: 'init',
-        data: { mode, workflow, parentLabNotePath, docBaseUri, availableTypes: getAvailableTypes() },
+        data: {
+          mode,
+          workflow,
+          parentLabNotePath,
+          docBaseUri,
+          availableTypes,
+          sampleDefs: buildSampleDefMap(document.uri, availableTypes),
+        },
       });
     }
   }

@@ -396,3 +396,38 @@ export function getJsonSampleRecord(type: string, id: string, documentUri?: vsco
 
   return null;
 }
+
+/** Flat map sampleId -> { alias, description } for webview hover (local JSON overrides global per id). */
+export function buildSampleDefMap(
+  documentUri: vscode.Uri,
+  types: string[]
+): Record<string, { alias: string | null; description: string | null }> {
+  const out: Record<string, { alias: string | null; description: string | null }> = {};
+
+  let resourcesPath = findResourcesFolder(documentUri);
+  if (!resourcesPath) {
+    const docDir = path.dirname(documentUri.fsPath);
+    const candidatePath = path.join(docDir, 'resources', 'labsamples');
+    if (fs.existsSync(candidatePath)) {
+      resourcesPath = candidatePath;
+    }
+  }
+  const workspaceRoot = getWorkspaceRoot(documentUri);
+
+  for (const type of types) {
+    const globalRec = workspaceRoot ? loadSamplesByTypeFromGlobalResources(type, workspaceRoot) : {};
+    const localRec = resourcesPath ? loadSamplesByTypeFromResources(type, resourcesPath) : {};
+    const ids = new Set([...Object.keys(globalRec), ...Object.keys(localRec)]);
+    for (const id of ids) {
+      const rec = localRec[id] ?? globalRec[id];
+      if (!rec) continue;
+      const desc = rec.descriptions?.[0] ?? null;
+      out[id] = {
+        alias: rec.alias ?? null,
+        description: desc,
+      };
+    }
+  }
+
+  return out;
+}

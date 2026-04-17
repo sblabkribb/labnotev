@@ -3,7 +3,7 @@ import { Accordion, Badge, Group, Text, Stack, TextInput, Title, Paper, ActionIc
 import { DndContext, closestCenter, KeyboardSensor, PointerSensor, useSensor, useSensors, type DragEndEvent } from '@dnd-kit/core';
 import { SortableContext, verticalListSortingStrategy, useSortable, arrayMove } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
-import type { UnitOperationBlock } from '../types';
+import type { UnitOperationBlock, SampleDefMap } from '../types';
 import { ImageThumbnails } from './ImageThumbnails';
 import { AttachmentLinks } from './AttachmentLinks';
 import { SampleHighlighter, highlightSampleIds } from './SampleHighlighter';
@@ -38,6 +38,7 @@ interface UnitOpAccordionProps {
   onSearchProducts?: (sampleType: string) => void;
   productSearchResult?: { alias: string; description: string } | null;
   availableTypes?: string[];
+  sampleDefs?: SampleDefMap;
   onAddCustomType?: (typeName: string) => void;
   docBaseUri?: string;
   getCursorForSection?: (opIndex: number, secIndex: number) => { pos: number; tick: number } | null | undefined;
@@ -68,6 +69,7 @@ interface UnitOpSectionTextareaProps {
   onSearchProducts?: (sampleType: string) => void;
   productSearchResult?: { alias: string; description: string } | null;
   availableTypes?: string[];
+  sampleDefs?: SampleDefMap;
   onAddCustomType?: (typeName: string) => void;
   docBaseUri?: string;
   requestFocusAt?: { pos: number; tick: number } | null;
@@ -76,7 +78,7 @@ interface UnitOpSectionTextareaProps {
 
 function UnitOpSectionTextarea({
   heading, content, showSampleButton, onChange, onFocus, onCursorActivity,
-  onCreateSample, onSearchProducts, productSearchResult, availableTypes, onAddCustomType, docBaseUri,
+  onCreateSample, onSearchProducts, productSearchResult, availableTypes, sampleDefs, onAddCustomType, docBaseUri,
   requestFocusAt,
   onAttachFile,
 }: UnitOpSectionTextareaProps) {
@@ -208,7 +210,7 @@ function UnitOpSectionTextarea({
       <div style={{ position: 'relative' }}>
         {hasSamples && (
           <div ref={overlayRef} style={overlayStyle}>
-            <SampleHighlighter text={content} interactive availableTypes={availableTypes} />
+            <SampleHighlighter text={content} interactive availableTypes={availableTypes} sampleDefs={sampleDefs} />
           </div>
         )}
         <textarea
@@ -297,13 +299,14 @@ interface SortableUnitOpProps {
   onSearchProducts?: (sampleType: string) => void;
   productSearchResult?: { alias: string; description: string } | null;
   availableTypes?: string[];
+  sampleDefs?: SampleDefMap;
   onAddCustomType?: (typeName: string) => void;
   docBaseUri?: string;
   getCursorForSection?: (opIndex: number, secIndex: number) => { pos: number; tick: number } | null | undefined;
   onAttachFile?: (opIndex: number, secIndex: number) => void;
 }
 
-function SortableUnitOp({ op, opIndex, onUpdateSection, onUpdateAlias, onSectionFocus, onCursorActivity, onCreateSample, onSearchProducts, productSearchResult, availableTypes, onAddCustomType, docBaseUri, getCursorForSection, onAttachFile }: SortableUnitOpProps) {
+function SortableUnitOp({ op, opIndex, onUpdateSection, onUpdateAlias, onSectionFocus, onCursorActivity, onCreateSample, onSearchProducts, productSearchResult, availableTypes, sampleDefs, onAddCustomType, docBaseUri, getCursorForSection, onAttachFile }: SortableUnitOpProps) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: op.id });
 
   const style = {
@@ -410,6 +413,7 @@ function SortableUnitOp({ op, opIndex, onUpdateSection, onUpdateAlias, onSection
                   onSearchProducts={onSearchProducts}
                   productSearchResult={productSearchResult}
                   availableTypes={availableTypes}
+                  sampleDefs={sampleDefs}
                   onAddCustomType={onAddCustomType}
                   docBaseUri={docBaseUri}
                   requestFocusAt={getCursorForSection?.(opIndex, secIndex)}
@@ -424,7 +428,7 @@ function SortableUnitOp({ op, opIndex, onUpdateSection, onUpdateAlias, onSection
   );
 }
 
-export function UnitOpAccordion({ unitOperations, onChange, onSectionFocus, onCursorActivity, onCreateSample, onSearchProducts, productSearchResult, availableTypes, onAddCustomType, docBaseUri, getCursorForSection, onAttachFile }: UnitOpAccordionProps) {
+export function UnitOpAccordion({ unitOperations, onChange, onSectionFocus, onCursorActivity, onCreateSample, onSearchProducts, productSearchResult, availableTypes, sampleDefs, onAddCustomType, docBaseUri, getCursorForSection, onAttachFile }: UnitOpAccordionProps) {
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 8 } }),
     useSensor(KeyboardSensor)
@@ -487,6 +491,7 @@ export function UnitOpAccordion({ unitOperations, onChange, onSectionFocus, onCu
               onSearchProducts={onSearchProducts}
               productSearchResult={productSearchResult}
               availableTypes={availableTypes}
+              sampleDefs={sampleDefs}
               onAddCustomType={onAddCustomType}
               docBaseUri={docBaseUri}
               getCursorForSection={getCursorForSection}

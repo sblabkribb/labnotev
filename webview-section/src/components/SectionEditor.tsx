@@ -5,6 +5,7 @@ import { ImageThumbnails } from './ImageThumbnails';
 import { AttachmentLinks } from './AttachmentLinks';
 import { TableInsertModal } from './TableInsertModal';
 import { useTableEditing } from '../hooks/useTableEditing';
+import type { SampleDefMap } from '../types';
 
 interface SectionEditorProps {
   heading: string;
@@ -17,6 +18,7 @@ interface SectionEditorProps {
   docBaseUri?: string;
   requestFocusAt?: { pos: number; tick: number } | null;
   availableTypes?: string[];
+  sampleDefs?: SampleDefMap;
   onAttachFile?: () => void;
 }
 
@@ -31,6 +33,7 @@ export function SectionEditor({
   docBaseUri,
   requestFocusAt,
   availableTypes,
+  sampleDefs,
   onAttachFile,
 }: SectionEditorProps) {
   const order = headingLevel === 'h2' ? 2 : headingLevel === 'h3' ? 3 : 4;
@@ -158,7 +161,7 @@ export function SectionEditor({
         <div style={{ position: 'relative' }}>
           {hasSamples && (
             <div ref={overlayRef} style={overlayStyle}>
-              <SampleHighlighter text={content} interactive availableTypes={availableTypes} />
+              <SampleHighlighter text={content} interactive availableTypes={availableTypes} sampleDefs={sampleDefs} />
             </div>
           )}
           <textarea

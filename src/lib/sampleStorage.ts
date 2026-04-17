@@ -337,12 +337,21 @@ export function saveSamplesFromDocument(
   // Build new database from extracted samples
   const newDb = buildSampleDatabase(samples, sourceFile);
 
+  const globalFolderResolved = globalLabsamplesFolder
+    ? path.resolve(globalLabsamplesFolder).toLowerCase()
+    : '';
+  const localFolderResolved = path.resolve(labsamplesFolder).toLowerCase();
+  const skipGlobalDedupe =
+    Boolean(globalLabsamplesFolder) && globalFolderResolved === localFolderResolved;
+
   for (const type of Object.keys(newDb)) {
     const existing = loadSamplesByType(labsamplesFolder, type);
     const merged = mergeSampleDatabases({ [type]: existing }, { [type]: newDb[type] });
 
-    // Do not keep in Local samples that exist in Global (avoid re-adding after Move to Global)
-    if (globalLabsamplesFolder) {
+    // Do not keep in Local samples that exist in Global (avoid re-adding after Move to Global).
+    // When workspace root is the experiment folder, local and global paths are the same — skip
+    // or we would load the same JSON as "global" and delete every merged id.
+    if (globalLabsamplesFolder && !skipGlobalDedupe) {
       const globalSamples = loadSamplesByType(globalLabsamplesFolder, type);
       for (const id of Object.keys(globalSamples)) {
         if (merged[type][id]) {

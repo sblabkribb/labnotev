@@ -19,6 +19,7 @@ import type {
   WorkflowReference,
   UnitOperationBlock,
   ExtensionToWebviewMessage,
+  SampleDefMap,
 } from './types';
 import { postMessage } from './vscodeApi';
 
@@ -61,6 +62,7 @@ export default function App() {
   const activeSectionRef = useRef<FocusTarget | null>(null);
   const [pendingCursor, setPendingCursor] = useState<{ pos: number; tick: number } | null>(null);
   const [availableTypes, setAvailableTypes] = useState<string[]>([]);
+  const [sampleDefs, setSampleDefs] = useState<SampleDefMap>({});
   const [productSearchResult, setProductSearchResult] = useState<{ alias: string; description: string } | null>(null);
   const [colorScheme, setColorScheme] = useState<ColorScheme>(loadColorScheme);
 
@@ -127,6 +129,11 @@ export default function App() {
           if (message.data.parentLabNotePath) setParentLabNotePath(message.data.parentLabNotePath);
           if (message.data.docBaseUri) setDocBaseUri(message.data.docBaseUri);
           if (message.data.availableTypes) setAvailableTypes(message.data.availableTypes);
+          if (message.data.sampleDefs) setSampleDefs(message.data.sampleDefs);
+          break;
+
+        case 'sampleDefsUpdated':
+          setSampleDefs(message.data.sampleDefs);
           break;
 
         case 'unitOpAdded':
@@ -511,6 +518,7 @@ export default function App() {
                       docBaseUri={docBaseUri}
                       requestFocusAt={getCursorForArea('labnoteSection', { sectionIndex: index })}
                       availableTypes={availableTypes}
+                      sampleDefs={sampleDefs}
                       onAttachFile={() => handleAttachFile({ area: 'labnoteSection', sectionIndex: index })}
                     />
                   );
@@ -534,6 +542,7 @@ export default function App() {
                       docBaseUri={docBaseUri}
                       requestFocusAt={getCursorForArea('labnoteSection', { sectionIndex: index })}
                       availableTypes={availableTypes}
+                      sampleDefs={sampleDefs}
                       onAttachFile={() => handleAttachFile({ area: 'labnoteSection', sectionIndex: index })}
                     />
                   );
@@ -549,6 +558,7 @@ export default function App() {
                       docBaseUri={docBaseUri}
                       requestFocusAt={getCursorForArea('labnoteSection', { sectionIndex: index })}
                       availableTypes={availableTypes}
+                      sampleDefs={sampleDefs}
                       onAttachFile={() => handleAttachFile({ area: 'labnoteSection', sectionIndex: index })}
                     />
                   );
@@ -628,6 +638,7 @@ export default function App() {
                 onSearchProducts={handleSearchProducts}
                 productSearchResult={productSearchResult}
                 availableTypes={availableTypes}
+                sampleDefs={sampleDefs}
                 onAddCustomType={handleAddCustomType}
                 docBaseUri={docBaseUri}
                 getCursorForSection={(opI, secI) => getCursorForArea('unitOp', { opIndex: opI, secIndex: secI })}
@@ -650,6 +661,7 @@ export default function App() {
                 docBaseUri={docBaseUri}
                 requestFocusAt={getCursorForArea('tailContent')}
                 availableTypes={availableTypes}
+                sampleDefs={sampleDefs}
                 onAttachFile={() => handleAttachFile({ area: 'tailContent' })}
               />
             )}

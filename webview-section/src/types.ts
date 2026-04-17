@@ -59,9 +59,25 @@ export interface WorkflowDocument {
   tailContent: string;
 }
 
+/** Sample id -> alias + first description line (from resources/labsamples JSON). */
+export type SampleDefMap = Record<string, { alias: string | null; description: string | null }>;
+
 // Extension <-> Webview message types
 export type ExtensionToWebviewMessage =
-  | { type: 'init'; data: { mode: string; labNote?: LabNoteDocument; workflow?: WorkflowDocument; linkedWorkflows?: WorkflowDocument[]; parentLabNotePath?: string; docBaseUri?: string; availableTypes?: string[] } }
+  | {
+      type: 'init';
+      data: {
+        mode: string;
+        labNote?: LabNoteDocument;
+        workflow?: WorkflowDocument;
+        linkedWorkflows?: WorkflowDocument[];
+        parentLabNotePath?: string;
+        docBaseUri?: string;
+        availableTypes?: string[];
+        sampleDefs?: SampleDefMap;
+      };
+    }
+  | { type: 'sampleDefsUpdated'; data: { sampleDefs: SampleDefMap } }
   | { type: 'unitOpAdded'; data: UnitOperationBlock }
   | { type: 'sampleInserted'; data: { text: string } }
   | { type: 'textInserted'; data: { text: string } }

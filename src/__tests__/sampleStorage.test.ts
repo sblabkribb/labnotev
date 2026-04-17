@@ -1,4 +1,7 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+import * as fs from 'fs';
+import * as path from 'path';
+import * as os from 'os';
 
 describe('Sample Storage', () => {
   describe('extractSampleInfoFromText', () => {
@@ -366,6 +369,64 @@ Sample Tracking: YES
       
       expect(result).toMatch(/resources[\\\/]labsamples$/);
       expect(result).toContain('workspace');
+    });
+  });
+
+  describe('saveSamplesFromDocument', () => {
+    let tmpRoot: string;
+
+    afterEach(() => {
+      if (tmpRoot && fs.existsSync(tmpRoot)) {
+        fs.rmSync(tmpRoot, { recursive: true, force: true });
+      }
+    });
+
+    it('keeps DNA in local dna.json after two saves when workspace root equals document parent (same labsamples path)', async () => {
+      const { saveSamplesFromDocument, getGlobalLabsamplesFolder } = await import('../lib/sampleStorage');
+      tmpRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'lnv-same-labsamples-'));
+      const workspaceRoot = tmpRoot;
+      const docPath = path.join(tmpRoot, 'note.labnote.md');
+      fs.mkdirSync(path.dirname(docPath), { recursive: true });
+      const globalFolder = getGlobalLabsamplesFolder(workspaceRoot);
+      const text = '@dna;DNA-1;myAlias';
+
+      saveSamplesFromDocument(docPath, text, globalFolder);
+      saveSamplesFromDocument(docPath, text, globalFolder);
+
+      const dnaPath = path.join(globalFolder, 'dna.json');
+      expect(fs.existsSync(dnaPath)).toBe(true);
+      const data = JSON.parse(fs.readFileSync(dnaPath, 'utf8')) as Record<string, { alias?: string | null }>;
+      expect(data['DNA-1']).toBeDefined();
+      expect(data['DNA-1'].alias).toBe('myAlias');
+    });
+
+    it('does not write to local dna.json when sample id already exists in a distinct global labsamples folder', async () => {
+      const { saveSamplesFromDocument, getGlobalLabsamplesFolder } = await import('../lib/sampleStorage');
+      tmpRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'lnv-distinct-labsamples-'));
+      const workspaceRoot = tmpRoot;
+      const docPath = path.join(tmpRoot, 'exp', 'note.labnote.md');
+      fs.mkdirSync(path.dirname(docPath), { recursive: true });
+      const globalFolder = getGlobalLabsamplesFolder(workspaceRoot);
+      fs.mkdirSync(globalFolder, { recursive: true });
+      fs.writeFileSync(
+        path.join(globalFolder, 'dna.json'),
+        JSON.stringify({
+          'DNA-1': {
+            type: 'DNA',
+            alias: 'GlobalOnly',
+            descriptions: [],
+            sources: ['other.labnote.md'],
+          },
+        }),
+        'utf8'
+      );
+
+      saveSamplesFromDocument(docPath, '@dna;DNA-1;localAlias', globalFolder);
+
+      const localDnaPath = path.join(tmpRoot, 'exp', 'resources', 'labsamples', 'dna.json');
+      expect(fs.existsSync(localDnaPath)).toBe(true);
+      const localData = JSON.parse(fs.readFileSync(localDnaPath, 'utf8')) as Record<string, unknown>;
+      expect(localData['DNA-1']).toBeUndefined();
     });
   });
 
