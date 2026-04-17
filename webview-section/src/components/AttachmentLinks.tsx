@@ -1,26 +1,49 @@
 import { useMemo } from 'react';
 import { Group, Text, Anchor } from '@mantine/core';
 import { postMessage } from '../vscodeApi';
-
-const RESOURCE_LINK_RE = /\[([^\]]*)\]\((resources\/[^)]+)\)/g;
-
-const IMAGE_EXT = /\.(png|jpg|jpeg|gif|webp|svg|bmp)$/i;
+import {
+  MARKDOWN_FILE_LINK_RE,
+  normalizeLocalMarkdownHref,
+  isWorkflowDocLink,
+  isImagePath,
+} from '../lib/markdownLocalLinks';
 
 export interface ParsedAttachmentLink {
   label: string;
   path: string;
 }
 
-/** Extract markdown links pointing at resources/... excluding common image extensions (ImageThumbnails handles those). */
+/**
+ * Extract `[label](path)` file links under the experiment folder (non-image only).
+ * Image paths are shown as thumbnails in ImageThumbnails (paste + linked attachments).
+ */
 export function parseResourceAttachmentLinks(content: string): ParsedAttachmentLink[] {
   const out: ParsedAttachmentLink[] = [];
-  const re = new RegExp(RESOURCE_LINK_RE.source, 'g');
+  const seen = new Set<string>();
   let match: RegExpExecArray | null;
+  const re = new RegExp(MARKDOWN_FILE_LINK_RE.source, 'g');
   while ((match = re.exec(content)) !== null) {
-    const label = match[1].trim() || match[2];
-    const href = match[2].trim();
-    if (IMAGE_EXT.test(href)) continue;
-    out.push({ label, path: href });
+    const label = match[1].trim() || match[2].trim();
+    const hrefRaw = match[2];
+    const href = normalizeLocalMarkdownHref(hrefRaw);
+    if (!href || isWorkflowDocLink(href)) continue;
+    if (isImagePath(href)) continue;
+
+    let include = false;
+    if (href.startsWith('images/')) {
+      include = true;
+    } else if (href.startsWith('resources/')) {
+      include = true;
+    } else if (href.includes('/')) {
+      include = true;
+    } else if (/\.[a-z0-9]{2,12}$/i.test(href)) {
+      include = true;
+    }
+
+    if (!include) continue;
+    if (seen.has(href)) continue;
+    seen.add(href);
+    out.push({ label: label || href, path: href });
   }
   return out;
 }

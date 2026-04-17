@@ -1,24 +1,48 @@
 import { useState, useMemo } from 'react';
 import { Group, Modal, Text } from '@mantine/core';
+import {
+  MARKDOWN_FILE_LINK_RE,
+  normalizeLocalMarkdownHref,
+  isWorkflowDocLink,
+  isImagePath,
+} from '../lib/markdownLocalLinks';
 
-const IMAGE_LINK_PATTERN = /!\[([^\]]*)\]\(([^)]+)\)/g;
+const INLINE_IMAGE_PATTERN = /!\[([^\]]*)\]\(([^)]+)\)/g;
 
-interface ParsedImage {
+export interface ParsedImage {
   alt: string;
   path: string;
 }
 
-function parseImageLinks(content: string): ParsedImage[] {
-  const images: ParsedImage[] = [];
-  let match;
-  const regex = new RegExp(IMAGE_LINK_PATTERN);
-  while ((match = regex.exec(content)) !== null) {
-    const imgPath = match[2];
-    if (/\.(png|jpg|jpeg|gif|webp|svg|bmp)$/i.test(imgPath)) {
-      images.push({ alt: match[1] || imgPath, path: imgPath });
+/**
+ * Collects image paths from `![](path)` and from attachment-style `[label](path)` for image extensions.
+ * Dedupes by normalized relative path.
+ */
+export function parseImageLinks(content: string): ParsedImage[] {
+  const byPath = new Map<string, ParsedImage>();
+
+  const tryAdd = (hrefRaw: string, alt: string) => {
+    const normalized = normalizeLocalMarkdownHref(hrefRaw.trim());
+    if (!normalized || isWorkflowDocLink(normalized)) return;
+    if (!isImagePath(normalized)) return;
+    if (!byPath.has(normalized)) {
+      const displayAlt = (alt || '').trim() || normalized;
+      byPath.set(normalized, { path: normalized, alt: displayAlt });
     }
+  };
+
+  let match: RegExpExecArray | null;
+  const rInline = new RegExp(INLINE_IMAGE_PATTERN.source, 'g');
+  while ((match = rInline.exec(content)) !== null) {
+    tryAdd(match[2], match[1] || match[2]);
   }
-  return images;
+
+  const rLink = new RegExp(MARKDOWN_FILE_LINK_RE.source, 'g');
+  while ((match = rLink.exec(content)) !== null) {
+    tryAdd(match[2], match[1] || match[2]);
+  }
+
+  return Array.from(byPath.values());
 }
 
 interface ImageThumbnailsProps {
