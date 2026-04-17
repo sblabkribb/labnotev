@@ -118,6 +118,57 @@ describe('workflowSectionParser', () => {
       expect(doc.unitOperations[1].opType).toBe('sw');
     });
 
+    it('should detect USW/UHW catalog opIds as sw/hw', () => {
+      const md = `---
+title: Test
+experimenter: A
+created_date: 2026-01-01
+last_updated_date: 2026-01-01
+end_date: ''
+---
+
+## [WD999 Test]
+
+## Related Unit Operations
+
+---
+
+### [UHW010 Liquid Handling]
+
+> HW desc
+
+#### Meta
+- Experimenter: A
+- Start_date: '2026-01-01'
+- End_date: ''
+
+#### Input
+-
+
+---
+
+### [USW250 Model Evaluation]
+
+> SW desc
+
+#### Meta
+- Experimenter: A
+- Start_date: '2026-01-01'
+- End_date: ''
+- Software: Python
+
+#### Input
+-
+
+`;
+      const doc = parseWorkflowMd(md);
+      expect(doc.unitOperations).toHaveLength(2);
+      expect(doc.unitOperations[0].opId).toBe('UHW010');
+      expect(doc.unitOperations[0].opType).toBe('hw');
+      expect(doc.unitOperations[1].opId).toBe('USW250');
+      expect(doc.unitOperations[1].opType).toBe('sw');
+    });
+
     it('should parse unit operation sections', () => {
       const doc = parseWorkflowMd(SAMPLE_WORKFLOW);
       const hwOp = doc.unitOperations[0];

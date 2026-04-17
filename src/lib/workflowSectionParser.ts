@@ -53,8 +53,14 @@ const HR_PATTERN = /^---\s*$/;
 const UNIT_OP_HEADING_PATTERN = /^###\s+\[([A-Z]+\d+)\s+(.+?)\]\s*(.*)/;
 const BLOCKQUOTE_PATTERN = /^>\s*(.*)/;
 
+/** Catalog ids use UHW/USW (see workflowDataLoader); legacy markdown may use HW/SW prefixes. */
 function detectOpType(opId: string): 'hw' | 'sw' {
-  return opId.toUpperCase().startsWith('SW') ? 'sw' : 'hw';
+  const u = opId.toUpperCase();
+  if (u.startsWith('USW')) return 'sw';
+  if (u.startsWith('UHW')) return 'hw';
+  if (u.startsWith('SW')) return 'sw';
+  if (u.startsWith('HW')) return 'hw';
+  return 'hw';
 }
 
 /** Normalizes known H4 heading typos in unit operation sections (keep in sync with webview `normalizeUnitOpSectionHeading`). */
