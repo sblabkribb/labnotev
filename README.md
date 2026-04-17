@@ -26,6 +26,7 @@ VS Code에서 실험 노트를 마크다운으로 작성할 수 있도록 돕는
    - 유닛 오퍼레이션은 아코디언 UI로 표시되며, 드래그 앤 드롭으로 순서 변경 가능
    - HW: Input, Reagent, Consumables, Equipment, Method, Output, Results & Discussions
    - SW: Input, Output, Parameters, QC Metrics, Method, Environment, Discussion
+   - **Output** 섹션을 포함해 각 섹션 제목 옆 **플라스크(+Sample)** 버튼으로 샘플 정의를 삽입할 수 있음
 9. 샘플 정의
    - 각 유닛오퍼레이션의 섹션 제목 옆 `+Sample` 버튼 클릭 → 모달에서 타입/별칭/설명 입력 → 해당 textarea에 `- @type;ID;별칭;설명` 형식으로 자동 삽입
    - 커스텀 타입도 모달에서 직접 정의하여 사용 가능
@@ -37,6 +38,7 @@ VS Code에서 실험 노트를 마크다운으로 작성할 수 있도록 돕는
    - 커서 위치에 `Ctrl+V`로 클립보드 이미지 붙여넣기 가능 지원 
    - 이미지는 `images/` 폴더에 자동 저장되고 마크다운 이미지 링크가 삽입됨
    - 텍스트박스 아래에 이미지 썸네일이 자동 표시되며, `![제목](링크)` 형식으로 제목을 입력하면 썸네일 아래에 제목 표시
+   - **파일 첨부**(섹션 제목 옆 클립 아이콘): 실험 폴더 안 파일은 상대 링크만, 밖의 파일은 `resources/attachments/`에 복사 후 링크 삽입. 이미지 첨부도 썸네일로 확인 가능
 12. 테이블
    - 섹션 제목 옆 테이블 아이콘 클릭 → 행/열 수 지정 → 테이블 템플릿 삽입
    - 테이블 내에서 Tab으로 다음 셀, Shift+Tab으로 이전 셀 이동 (마지막 셀에서 Tab → 새 행 추가)
@@ -60,6 +62,7 @@ VS Code에서 실험 노트를 마크다운으로 작성할 수 있도록 돕는
 - **Experiment Objective**: 실험 목적을 자유롭게 작성하는 textarea
 - **Related Workflows**: 연결된 워크플로 체크리스트
   - 워크플로 제목 클릭 시 해당 워크플로 `.labnote.md` 파일을 Section Editor로 열기
+  - 저장 시 `## Related Unit Operations` 아래에 각 워크플로·유닛 오퍼레이션으로 점프할 수 있는 **목차(앵커 링크)**가 자동 생성되며, 마크다운 미리보기에서 링크를 클릭하면 해당 헤딩으로 이동할 수 있음
 - **Results & Discussion**: 실험 결과 및 논의 작성 영역
 - **Summary and Discussion**: 실험 전체 요약 작성 영역
 
@@ -72,11 +75,13 @@ VS Code에서 실험 노트를 마크다운으로 작성할 수 있도록 돕는
   - 드래그 앤 드롭으로 순서 변경
   - 유닛 오퍼레이션 이름 옆에 별칭(alias) 인라인 편집 가능
   - Meta 섹션: Experimenter(텍스트 입력), Start/End Date(날짜 달력 + 시간 선택)를 구조화된 폼으로 표시
+  - 마크다운에 `#### Reagen`처럼 오타가 있어도 저장·표시 시 **`#### Reagent`**로 자동 정규화됨
   - 일반 섹션(Input, Output, Method 등): textarea로 자유롭게 편집
+  - 카탈로그에서 삽입한 유닛 오퍼레이션 ID는 **`UHW…`(하드웨어)·`USW…`(소프트웨어)** 형식이며, Section Editor의 HW/SW 표시와 Meta의 Equipment/Software 필드가 이 접두어를 기준으로 맞춰짐(텍스트 에디터로 본문을 고친 뒤 다시 열어도 동일하게 인식)
   - `+Sample` 버튼으로 샘플 생성 모달 열기: 타입 선택(기본 8종 + 커스텀), 별칭, 설명을 한 번에 입력
   - Reagent/Labware 선택 시 제품 검색 버튼으로 참조 DB에서 제품 선택 가능
   - "새 타입 추가"로 커스텀 샘플 타입 정의 가능 (워크스페이스 설정에 저장)
-- **Conclusions and Discussion**: 워크플로 전체 요약 및 논의 작성 영역
+- **Conclusions and Discussion**: 워크플로 전체 요약 및 논의 작성 영역(저장 시 마크다운에 `## Conclusions and Discussion`이 항상 포함되며, Section Editor UI와 본문이 중복되지 않도록 동기화)
 
 #### 공통 기능
 
@@ -97,6 +102,7 @@ VS Code에서 실험 노트를 마크다운으로 작성할 수 있도록 돕는
   - 테이블 내에서 Tab으로 다음 셀, Shift+Tab으로 이전 셀 이동 (마지막 셀에서 Tab → 새 행 추가)
   - Excel/Google Sheets에서 복사한 데이터를 붙여넣으면 마크다운 테이블로 자동 변환
   - 정렬 버튼으로 테이블 컬럼 자동 정렬 (한글 등 CJK 문자 너비 고려)
+  - 컬럼 정렬은 **툴바의 정렬 버튼**으로만 실행합니다(정렬 전용 키보드 단축키는 없음)
 - **다크 모드**: 에디터 오른쪽 상단의 달/해 아이콘으로 다크/라이트 모드 전환 (설정은 자동 저장)
 - **텍스트로 열기**: 상단 버튼으로 원본 마크다운을 VS Code 텍스트 에디터로 열기
 - **에디터 3-way 전환 버튼**: 에디터 타이틀 바 오른쪽 상단에서 Text Editor, Section Editor, Preview 간 전환 가능
@@ -147,7 +153,7 @@ VS Code에서 실험 노트를 마크다운으로 작성할 수 있도록 돕는
 - **Local/Global 구분**: 실험 폴더와 워크스페이스 루트의 샘플 분리 표시
   - 로컬 샘플은 현재 열린 `.labnote.md` 파일이 속한 실험 폴더의 `resources/labsamples/`에서 로딩
   - 다른 실험의 파일을 열면 해당 실험의 로컬 샘플로 자동 전환 (Text Editor 및 Section Editor 모두 지원)
-  - 커스텀 샘플 타입(`labnotev.customSampleTypes` 설정)도 빌트인 타입과 함께 트리에 표시
+  - 커스텀 샘플 타입(`labnotev.customSampleTypes` 설정)도 빌트인 타입과 함께 트리에 표시되며, 설정을 바꾸면 트리가 자동으로 갱신됨
 - **계층 구조**:
   - `Samples (Local)` / `Samples (Global)`: 루트 노드
   - `DNA [3]`, `RNA [1]` 등: 타입별 노드 (빌트인 + 커스텀 타입)
@@ -190,6 +196,7 @@ VS Code에서 실험 노트를 마크다운으로 작성할 수 있도록 돕는
   - 이미지가 `images/` 폴더에 자동 저장되고 마크다운 이미지 링크(`![](images/img_xxx.png)`)가 삽입됨
   - textarea 아래에 이미지 썸네일 자동 표시
   - 썸네일 클릭 시 모달로 확대 보기
+- **첨부로 넣은 이미지**: `[파일명](images/…)`·`[파일명](resources/…)` 등 링크 형식으로 삽입한 이미지도 동일하게 썸네일·모달로 표시됨(`![](동일경로)`와 겹치면 한 번만 표시)
 - **이미지 미리보기 패널**: 이미지 링크 클릭 시 별도 패널에서 이미지 열기
   - 줌 컨트롤 (+, -, Reset)
   - 키보드 단축키: Esc(닫기), +/-(줌), 0(리셋)

@@ -5,6 +5,11 @@
 형식은 [Keep a Changelog](https://keepachangelog.com/ko/1.1.0/)를 기반으로 하며,
 이 프로젝트는 [유의적 버전 관리](https://semver.org/lang/ko/)를 따릅니다.
 
+## [0.44.1] - 2026-04-17
+
+### Changed
+- **문서**: README에 최근 릴리스 반영 — Related Unit Operations TOC, Output +Sample, UHW/USW 타입 표시, Conclusions 저장·동기화, 테이블 정렬(버튼 전용), 첨부 이미지 썸네일, Reagen 정규화, 샘플 트리 설정 갱신, Quick Start 첨부 요약 등
+
 ## [0.44.0] - 2026-04-17
 
 ### Added
