@@ -10,16 +10,10 @@ import { findSampleDefinitionMatch } from './lib/sampleStorage';
 import { showProductPicker } from './lib/productPicker';
 import { parseWorkflowChecklistFromReadme, generateWorkflowChecklist, updateReadmeWorkflowSection } from './lib/workflowStructure';
 import type { SampleTreeViewProvider } from './views/SampleTreeViewProvider';
+import { isPathInsideDir } from './lib/isPathInsideDir';
+import { buildInDocDirAttachmentMarkdownLink } from './lib/attachmentMarkdownLink';
 
 export type MdFileType = 'labnote' | 'workflow' | 'unknown';
-
-/** True if `candidatePath` is `parentDir` or a file/directory inside it (resolved paths). */
-function isPathInsideDir(parentDir: string, candidatePath: string): boolean {
-  const parent = path.resolve(parentDir);
-  const candidate = path.resolve(candidatePath);
-  const rel = path.relative(parent, candidate);
-  return rel === '' || (!rel.startsWith(`..${path.sep}`) && !path.isAbsolute(rel));
-}
 
 function getUniqueAttachmentDestPath(attachDir: string, baseName: string): string {
   const dest = path.join(attachDir, baseName);
@@ -409,9 +403,9 @@ export class SectionEditorProvider implements vscode.CustomTextEditorProvider {
           const resourcesDir = path.join(docDir, 'resources');
 
           let markdownLink: string;
-          if (isPathInsideDir(resourcesDir, selectedPath)) {
-            const relativePath = path.relative(docDir, selectedPath).replace(/\\/g, '/');
-            markdownLink = `[${baseName}](${relativePath})`;
+          const inDocLink = buildInDocDirAttachmentMarkdownLink(docDir, selectedPath);
+          if (inDocLink !== null) {
+            markdownLink = inDocLink;
           } else {
             const attachDir = path.join(resourcesDir, 'attachments');
             fs.mkdirSync(attachDir, { recursive: true });

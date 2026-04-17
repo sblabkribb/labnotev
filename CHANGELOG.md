@@ -5,6 +5,14 @@
 형식은 [Keep a Changelog](https://keepachangelog.com/ko/1.1.0/)를 기반으로 하며,
 이 프로젝트는 [유의적 버전 관리](https://semver.org/lang/ko/)를 따릅니다.
 
+## [0.43.1] - 2026-04-17
+
+### Fixed
+- **파일 첨부 경로**: `images/` 등 실험 폴더(열린 `.labnote.md`와 같은 디렉터리) 안 파일을 첨부해도 `resources/attachments/`로 복사되던 동작을 수정하고, 폴더 내부 파일은 복사 없이 상대 경로 링크만 삽입하도록 변경
+
+### Changed
+- **문서**: README에 클립보드 이미지 붙여넣기와 파일 첨부의 저장·링크 동작 차이를 명확히 기술
+
 ## [0.43.0] - 2026-04-17
 
 ### Added
