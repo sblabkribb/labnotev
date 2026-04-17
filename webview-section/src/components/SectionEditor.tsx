@@ -117,7 +117,11 @@ export function SectionEditor({
     whiteSpace: 'pre-wrap',
     wordWrap: 'break-word',
     overflow: 'hidden',
-    zIndex: 1,
+    // Overlay must sit above the transparent textarea (z-index: 2) so sample
+    // spans (pointer-events: auto) can receive hover events for HoverCard.
+    // The overlay itself keeps pointer-events: none, so clicks on non-sample
+    // regions still pass through to the textarea.
+    zIndex: 3,
     color: 'var(--mantine-color-text)',
   };
 

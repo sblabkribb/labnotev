@@ -5,6 +5,11 @@
 형식은 [Keep a Changelog](https://keepachangelog.com/ko/1.1.0/)를 기반으로 하며,
 이 프로젝트는 [유의적 버전 관리](https://semver.org/lang/ko/)를 따릅니다.
 
+## [0.45.1] - 2026-04-18
+
+### Fixed
+- **샘플 호버 툴팁**: Section Editor / 유닛 오퍼레이션 아코디언의 텍스트 영역에서 `DNA-001` 같은 샘플 토큰 위로 마우스를 올려도 정보 말풍선(HoverCard)이 뜨지 않던 문제 수정. 투명 textarea가 오버레이를 덮고 있어 샘플 span이 마우스 이벤트를 받지 못하던 z-index 레이어 순서를 바로잡음(오버레이 `pointer-events: none` 유지로 비-샘플 영역 클릭 통과는 동일)
+
 ## [0.45.0] - 2026-04-18
 
 ### Added
