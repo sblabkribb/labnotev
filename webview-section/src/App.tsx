@@ -30,6 +30,11 @@ const LABNOTE_FM_FIELDS = [
   { key: 'last_updated_date', label: 'Last Updated', type: 'datetime' as const },
 ];
 
+function appendAttachmentLinkAtEnd(content: string, markdownLink: string): string {
+  if (!content.trim()) return `${markdownLink}\n`;
+  return content.endsWith('\n') ? `${content}${markdownLink}\n` : `${content}\n${markdownLink}\n`;
+}
+
 const WORKFLOW_FM_FIELDS = [
   { key: 'title', label: 'Title' },
   { key: 'experimenter', label: 'Experimenter' },
@@ -279,6 +284,61 @@ export default function App() {
           break;
         }
 
+        case 'fileAttached': {
+          const { markdownLink, area, opIndex, secIndex, sectionIndex, linkedWfIndex } = message.data;
+          const append = appendAttachmentLinkAtEnd;
+
+          if (area === 'labnoteSection' && sectionIndex !== undefined) {
+            setLabNote(prev => {
+              if (!prev) return prev;
+              const sections = [...prev.sections];
+              const sec = sections[sectionIndex];
+              if (!sec || !('content' in sec)) return prev;
+              sections[sectionIndex] = { ...sec, content: append(sec.content, markdownLink) };
+              return { ...prev, sections };
+            });
+            markDirty();
+          } else if (area === 'tailContent') {
+            setWorkflow(prev => {
+              if (!prev) return prev;
+              return { ...prev, tailContent: append(prev.tailContent ?? '', markdownLink) };
+            });
+            markDirty();
+          } else if (area === 'unitOp' && opIndex !== undefined && secIndex !== undefined) {
+            setWorkflow(prev => {
+              if (!prev) return prev;
+              const ops = [...prev.unitOperations];
+              const op = ops[opIndex];
+              if (!op) return prev;
+              const secs = [...op.sections];
+              const sec = secs[secIndex];
+              if (!sec) return prev;
+              secs[secIndex] = { ...sec, content: append(sec.content, markdownLink) };
+              ops[opIndex] = { ...op, sections: secs };
+              return { ...prev, unitOperations: ops };
+            });
+            markDirty();
+          } else if (area === 'linkedUnitOp' && linkedWfIndex !== undefined && opIndex !== undefined && secIndex !== undefined) {
+            setLinkedWorkflows(prev => {
+              const updated = [...prev];
+              const wf = updated[linkedWfIndex];
+              if (!wf) return prev;
+              const ops = [...wf.unitOperations];
+              const op = ops[opIndex];
+              if (!op) return prev;
+              const secs = [...op.sections];
+              const sec = secs[secIndex];
+              if (!sec) return prev;
+              secs[secIndex] = { ...sec, content: append(sec.content, markdownLink) };
+              ops[opIndex] = { ...op, sections: secs };
+              updated[linkedWfIndex] = { ...wf, unitOperations: ops };
+              return updated;
+            });
+            markDirty();
+          }
+          break;
+        }
+
         case 'saveCompleted':
           setSaveStatus('saved');
           break;
@@ -350,6 +410,19 @@ export default function App() {
   const handleAddCustomType = useCallback((typeName: string) => {
     postMessage({ type: 'addCustomType', data: { typeName } });
   }, []);
+
+  const handleAttachFile = useCallback(
+    (payload: {
+      area: 'unitOp' | 'labnoteSection' | 'tailContent' | 'linkedUnitOp';
+      opIndex?: number;
+      secIndex?: number;
+      sectionIndex?: number;
+      linkedWfIndex?: number;
+    }) => {
+      postMessage({ type: 'attachFile', data: payload });
+    },
+    []
+  );
 
   if (!mode) {
     return (
@@ -438,6 +511,7 @@ export default function App() {
                       docBaseUri={docBaseUri}
                       requestFocusAt={getCursorForArea('labnoteSection', { sectionIndex: index })}
                       availableTypes={availableTypes}
+                      onAttachFile={() => handleAttachFile({ area: 'labnoteSection', sectionIndex: index })}
                     />
                   );
                 case 'workflows':
@@ -460,6 +534,7 @@ export default function App() {
                       docBaseUri={docBaseUri}
                       requestFocusAt={getCursorForArea('labnoteSection', { sectionIndex: index })}
                       availableTypes={availableTypes}
+                      onAttachFile={() => handleAttachFile({ area: 'labnoteSection', sectionIndex: index })}
                     />
                   );
                 case 'freeform':
@@ -474,6 +549,7 @@ export default function App() {
                       docBaseUri={docBaseUri}
                       requestFocusAt={getCursorForArea('labnoteSection', { sectionIndex: index })}
                       availableTypes={availableTypes}
+                      onAttachFile={() => handleAttachFile({ area: 'labnoteSection', sectionIndex: index })}
                     />
                   );
                 default:
@@ -555,6 +631,7 @@ export default function App() {
                 onAddCustomType={handleAddCustomType}
                 docBaseUri={docBaseUri}
                 getCursorForSection={(opI, secI) => getCursorForArea('unitOp', { opIndex: opI, secIndex: secI })}
+                onAttachFile={(opI, secI) => handleAttachFile({ area: 'unitOp', opIndex: opI, secIndex: secI })}
               />
             </Paper>
 
@@ -573,6 +650,7 @@ export default function App() {
                 docBaseUri={docBaseUri}
                 requestFocusAt={getCursorForArea('tailContent')}
                 availableTypes={availableTypes}
+                onAttachFile={() => handleAttachFile({ area: 'tailContent' })}
               />
             )}
           </>

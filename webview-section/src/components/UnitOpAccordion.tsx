@@ -5,6 +5,7 @@ import { SortableContext, verticalListSortingStrategy, useSortable, arrayMove } 
 import { CSS } from '@dnd-kit/utilities';
 import type { UnitOperationBlock } from '../types';
 import { ImageThumbnails } from './ImageThumbnails';
+import { AttachmentLinks } from './AttachmentLinks';
 import { SampleHighlighter, highlightSampleIds } from './SampleHighlighter';
 import { DateTimeField } from './DateTimeField';
 import { TableInsertModal } from './TableInsertModal';
@@ -40,6 +41,7 @@ interface UnitOpAccordionProps {
   onAddCustomType?: (typeName: string) => void;
   docBaseUri?: string;
   getCursorForSection?: (opIndex: number, secIndex: number) => { pos: number; tick: number } | null | undefined;
+  onAttachFile?: (opIndex: number, secIndex: number) => void;
 }
 
 function GripIcon() {
@@ -69,12 +71,14 @@ interface UnitOpSectionTextareaProps {
   onAddCustomType?: (typeName: string) => void;
   docBaseUri?: string;
   requestFocusAt?: { pos: number; tick: number } | null;
+  onAttachFile?: () => void;
 }
 
 function UnitOpSectionTextarea({
   heading, content, showSampleButton, onChange, onFocus, onCursorActivity,
   onCreateSample, onSearchProducts, productSearchResult, availableTypes, onAddCustomType, docBaseUri,
   requestFocusAt,
+  onAttachFile,
 }: UnitOpSectionTextareaProps) {
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const overlayRef = useRef<HTMLDivElement>(null);
@@ -182,6 +186,13 @@ function UnitOpSectionTextarea({
               </ActionIcon>
             </Tooltip>
           )}
+          {onAttachFile && (
+            <Tooltip label="파일 첨부" position="bottom" withArrow>
+              <ActionIcon variant="subtle" size="xs" onClick={onAttachFile} aria-label="파일 첨부">
+                <AttachIcon />
+              </ActionIcon>
+            </Tooltip>
+          )}
           <Tooltip label="테이블 삽입" position="bottom" withArrow>
             <ActionIcon variant="subtle" size="xs" onClick={() => setTableModalOpen(true)} aria-label="테이블 삽입">
               <TableIcon />
@@ -214,6 +225,7 @@ function UnitOpSectionTextarea({
         />
       </div>
       {docBaseUri && <ImageThumbnails content={content} docBaseUri={docBaseUri} />}
+      <AttachmentLinks content={content} />
       <TableInsertModal
         opened={tableModalOpen}
         onClose={() => setTableModalOpen(false)}
@@ -231,6 +243,14 @@ function UnitOpSectionTextarea({
         />
       )}
     </div>
+  );
+}
+
+function AttachIcon() {
+  return (
+    <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M9.5 4.5L4.5 9.5a2 2 0 102.8 2.8l5.8-5.8a2.5 2.5 0 00-3.5-3.5L3.8 8.3" />
+    </svg>
   );
 }
 
@@ -280,9 +300,10 @@ interface SortableUnitOpProps {
   onAddCustomType?: (typeName: string) => void;
   docBaseUri?: string;
   getCursorForSection?: (opIndex: number, secIndex: number) => { pos: number; tick: number } | null | undefined;
+  onAttachFile?: (opIndex: number, secIndex: number) => void;
 }
 
-function SortableUnitOp({ op, opIndex, onUpdateSection, onUpdateAlias, onSectionFocus, onCursorActivity, onCreateSample, onSearchProducts, productSearchResult, availableTypes, onAddCustomType, docBaseUri, getCursorForSection }: SortableUnitOpProps) {
+function SortableUnitOp({ op, opIndex, onUpdateSection, onUpdateAlias, onSectionFocus, onCursorActivity, onCreateSample, onSearchProducts, productSearchResult, availableTypes, onAddCustomType, docBaseUri, getCursorForSection, onAttachFile }: SortableUnitOpProps) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: op.id });
 
   const style = {
@@ -392,6 +413,7 @@ function SortableUnitOp({ op, opIndex, onUpdateSection, onUpdateAlias, onSection
                   onAddCustomType={onAddCustomType}
                   docBaseUri={docBaseUri}
                   requestFocusAt={getCursorForSection?.(opIndex, secIndex)}
+                  onAttachFile={onAttachFile ? () => onAttachFile(opIndex, secIndex) : undefined}
                 />
               );
             })}
@@ -402,7 +424,7 @@ function SortableUnitOp({ op, opIndex, onUpdateSection, onUpdateAlias, onSection
   );
 }
 
-export function UnitOpAccordion({ unitOperations, onChange, onSectionFocus, onCursorActivity, onCreateSample, onSearchProducts, productSearchResult, availableTypes, onAddCustomType, docBaseUri, getCursorForSection }: UnitOpAccordionProps) {
+export function UnitOpAccordion({ unitOperations, onChange, onSectionFocus, onCursorActivity, onCreateSample, onSearchProducts, productSearchResult, availableTypes, onAddCustomType, docBaseUri, getCursorForSection, onAttachFile }: UnitOpAccordionProps) {
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 8 } }),
     useSensor(KeyboardSensor)
@@ -468,6 +490,7 @@ export function UnitOpAccordion({ unitOperations, onChange, onSectionFocus, onCu
               onAddCustomType={onAddCustomType}
               docBaseUri={docBaseUri}
               getCursorForSection={getCursorForSection}
+              onAttachFile={onAttachFile}
             />
           ))}
         </Accordion>

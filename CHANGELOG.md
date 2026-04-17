@@ -5,6 +5,15 @@
 형식은 [Keep a Changelog](https://keepachangelog.com/ko/1.1.0/)를 기반으로 하며,
 이 프로젝트는 [유의적 버전 관리](https://semver.org/lang/ko/)를 따릅니다.
 
+## [0.43.0] - 2026-04-17
+
+### Added
+- **Section Editor 파일 첨부**: 섹션 제목 옆 첨부 버튼으로 파일 선택 시 `resources/attachments/`에 복사(또는 이미 실험 폴더 `resources/` 안 파일은 상대 경로 링크만 삽입), 본문에 마크다운 링크 추가
+- **첨부 링크 UI**: 섹션 textarea 아래에서 첨부 파일 링크를 표시하고 클릭 시 열기
+
+### Fixed
+- **Office 첨부 열기**: Excel·Word·PowerPoint 등은 VS Code 대신 OS 기본 앱으로 열도록 하여 에디터에서 깨지거나 오류가 나는 문제 완화; 실패 시 `openWith`/`vscode.open` 폴백 및 오류 시 파일 위치 표시
+
 ## [0.42.0] - 2026-04-16
 
 ### Added

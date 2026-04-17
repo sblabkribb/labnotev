@@ -72,7 +72,18 @@ export type ExtensionToWebviewMessage =
   | { type: 'imagePasted'; data: { markdownText: string } }
   | { type: 'productSearchResult'; data: { alias: string; description: string } }
   | { type: 'customTypesUpdated'; data: { availableTypes: string[] } }
-  | { type: 'scrollToSample'; data: { area: string; sectionIndex?: number; opIndex?: number; secIndex?: number; localOffset: number } };
+  | { type: 'scrollToSample'; data: { area: string; sectionIndex?: number; opIndex?: number; secIndex?: number; localOffset: number } }
+  | {
+      type: 'fileAttached';
+      data: {
+        markdownLink: string;
+        area: 'unitOp' | 'labnoteSection' | 'tailContent' | 'linkedUnitOp';
+        opIndex?: number;
+        secIndex?: number;
+        sectionIndex?: number;
+        linkedWfIndex?: number;
+      };
+    };
 
 export type WebviewToExtensionMessage =
   | { type: 'ready' }
@@ -84,4 +95,15 @@ export type WebviewToExtensionMessage =
   | { type: 'addCustomType'; data: { typeName: string } }
   | { type: 'navigateToSample'; data: { sampleId: string; sampleType: string } }
   | { type: 'openWorkflow'; data: { link: string } }
-  | { type: 'pasteImage'; data: { imageBase64: string; mimeType: string } };
+  | { type: 'pasteImage'; data: { imageBase64: string; mimeType: string } }
+  | {
+      type: 'attachFile';
+      data: {
+        area: 'unitOp' | 'labnoteSection' | 'tailContent' | 'linkedUnitOp';
+        opIndex?: number;
+        secIndex?: number;
+        sectionIndex?: number;
+        linkedWfIndex?: number;
+      };
+    }
+  | { type: 'openAttachment'; data: { path: string } };

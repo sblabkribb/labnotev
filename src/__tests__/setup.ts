@@ -65,6 +65,9 @@ export const mockVscode = {
     registerCommand: vi.fn(() => ({ dispose: vi.fn() })),
     executeCommand: vi.fn(),
   },
+  env: {
+    openExternal: vi.fn(),
+  },
   languages: {
     registerDocumentLinkProvider: vi.fn(() => ({ dispose: vi.fn() })),
     registerHoverProvider: vi.fn(() => ({ dispose: vi.fn() })),
@@ -159,4 +162,5 @@ vi.mock('vscode', () => mockVscode);
 
 beforeEach(() => {
   vi.clearAllMocks();
+  mockVscode.env.openExternal.mockResolvedValue(true);
 });

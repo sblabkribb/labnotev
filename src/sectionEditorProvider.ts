@@ -13,6 +13,82 @@ import type { SampleTreeViewProvider } from './views/SampleTreeViewProvider';
 
 export type MdFileType = 'labnote' | 'workflow' | 'unknown';
 
+/** True if `candidatePath` is `parentDir` or a file/directory inside it (resolved paths). */
+function isPathInsideDir(parentDir: string, candidatePath: string): boolean {
+  const parent = path.resolve(parentDir);
+  const candidate = path.resolve(candidatePath);
+  const rel = path.relative(parent, candidate);
+  return rel === '' || (!rel.startsWith(`..${path.sep}`) && !path.isAbsolute(rel));
+}
+
+function getUniqueAttachmentDestPath(attachDir: string, baseName: string): string {
+  const dest = path.join(attachDir, baseName);
+  if (!fs.existsSync(dest)) return dest;
+  const ext = path.extname(baseName);
+  const stem = ext ? path.basename(baseName, ext) : baseName;
+  return path.join(attachDir, `${stem}_${Date.now()}${ext}`);
+}
+
+/** Office-style attachments open reliably in the OS default app (e.g. Excel) instead of the VS Code editor. */
+const OFFICE_ATTACHMENT_EXTENSIONS = new Set([
+  '.xlsx', '.xls', '.xlsm',
+  '.doc', '.docx', '.docm',
+  '.ppt', '.pptx', '.pptm',
+]);
+
+export function shouldOpenAttachmentWithExternalApp(filePath: string): boolean {
+  return OFFICE_ATTACHMENT_EXTENSIONS.has(path.extname(filePath).toLowerCase());
+}
+
+/**
+ * Open a linked attachment: Office files prefer OS handler; others use VS Code default editor.
+ * Falls back through openWith → openExternal (reverse) → vscode.open → error + reveal in OS explorer.
+ */
+export async function openAttachmentFile(uri: vscode.Uri): Promise<void> {
+  const wantExternal = shouldOpenAttachmentWithExternalApp(uri.fsPath);
+
+  const tryRevealInOs = async () => {
+    try {
+      await vscode.commands.executeCommand('revealFileInOS', uri);
+    } catch {
+      // command may be unavailable in some hosts
+    }
+  };
+
+  const showOpenFailed = async () => {
+    await vscode.window.showErrorMessage(`파일을 열 수 없습니다: ${path.basename(uri.fsPath)}`);
+    await tryRevealInOs();
+  };
+
+  try {
+    if (wantExternal) {
+      let opened = false;
+      try {
+        opened = await vscode.env.openExternal(uri);
+      } catch {
+        opened = false;
+      }
+      if (opened) return;
+    }
+    await vscode.commands.executeCommand('vscode.openWith', uri, 'default');
+    return;
+  } catch {
+    try {
+      if (!wantExternal) {
+        try {
+          if (await vscode.env.openExternal(uri)) return;
+        } catch {
+          // continue
+        }
+      }
+      await vscode.commands.executeCommand('vscode.open', uri);
+      return;
+    } catch {
+      await showOpenFailed();
+    }
+  }
+}
+
 export function detectMdFileType(content: string): MdFileType {
   const fmMatch = content.match(/^---\n([\s\S]*?)\n---/);
   if (!fmMatch) return 'unknown';
@@ -315,6 +391,69 @@ export class SectionEditorProvider implements vscode.CustomTextEditorProvider {
             type: 'imagePasted',
             data: { markdownText },
           });
+          break;
+        }
+
+        case 'attachFile': {
+          const { area, opIndex, secIndex, sectionIndex, linkedWfIndex } = message.data || {};
+          if (!area) break;
+          const uris = await vscode.window.showOpenDialog({
+            canSelectMany: false,
+            openLabel: '첨부',
+          });
+          if (!uris?.[0]) break;
+
+          const docDir = path.dirname(document.uri.fsPath);
+          const selectedPath = uris[0].fsPath;
+          const baseName = path.basename(selectedPath);
+          const resourcesDir = path.join(docDir, 'resources');
+
+          let markdownLink: string;
+          if (isPathInsideDir(resourcesDir, selectedPath)) {
+            const relativePath = path.relative(docDir, selectedPath).replace(/\\/g, '/');
+            markdownLink = `[${baseName}](${relativePath})`;
+          } else {
+            const attachDir = path.join(resourcesDir, 'attachments');
+            fs.mkdirSync(attachDir, { recursive: true });
+            const destPath = getUniqueAttachmentDestPath(attachDir, baseName);
+            fs.copyFileSync(selectedPath, destPath);
+            const destName = path.basename(destPath);
+            markdownLink = `[${destName}](resources/attachments/${destName})`;
+          }
+
+          webviewPanel.webview.postMessage({
+            type: 'fileAttached',
+            data: {
+              markdownLink,
+              area,
+              opIndex,
+              secIndex,
+              sectionIndex,
+              linkedWfIndex,
+            },
+          });
+          break;
+        }
+
+        case 'openAttachment': {
+          const rel = message.data?.path;
+          if (!rel || typeof rel !== 'string') break;
+          const normalized = rel.replace(/\\/g, '/');
+          if (normalized.includes('..')) {
+            vscode.window.showWarningMessage('잘못된 경로입니다.');
+            break;
+          }
+          const docDir = path.dirname(document.uri.fsPath);
+          const absPath = path.resolve(docDir, rel);
+          if (!isPathInsideDir(docDir, absPath)) {
+            vscode.window.showWarningMessage('문서 밖 파일은 열 수 없습니다.');
+            break;
+          }
+          if (!fs.existsSync(absPath)) {
+            vscode.window.showWarningMessage(`파일을 찾을 수 없습니다: ${rel}`);
+            break;
+          }
+          await openAttachmentFile(vscode.Uri.file(absPath));
           break;
         }
       }

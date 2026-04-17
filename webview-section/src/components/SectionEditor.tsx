@@ -2,6 +2,7 @@ import { useRef, useEffect, useState } from 'react';
 import { Title, Paper, Stack, Group, ActionIcon, Tooltip } from '@mantine/core';
 import { SampleHighlighter, highlightSampleIds } from './SampleHighlighter';
 import { ImageThumbnails } from './ImageThumbnails';
+import { AttachmentLinks } from './AttachmentLinks';
 import { TableInsertModal } from './TableInsertModal';
 import { useTableEditing } from '../hooks/useTableEditing';
 
@@ -16,6 +17,7 @@ interface SectionEditorProps {
   docBaseUri?: string;
   requestFocusAt?: { pos: number; tick: number } | null;
   availableTypes?: string[];
+  onAttachFile?: () => void;
 }
 
 export function SectionEditor({
@@ -29,6 +31,7 @@ export function SectionEditor({
   docBaseUri,
   requestFocusAt,
   availableTypes,
+  onAttachFile,
 }: SectionEditorProps) {
   const order = headingLevel === 'h2' ? 2 : headingLevel === 'h3' ? 3 : 4;
   const textareaRef = useRef<HTMLTextAreaElement>(null);
@@ -121,6 +124,13 @@ export function SectionEditor({
         <Group justify="space-between" align="center">
           <Title order={order}>{heading}</Title>
           <Group gap={4}>
+            {onAttachFile && (
+              <Tooltip label="파일 첨부" position="bottom" withArrow>
+                <ActionIcon variant="subtle" size="sm" onClick={onAttachFile} aria-label="파일 첨부">
+                  <AttachIcon />
+                </ActionIcon>
+              </Tooltip>
+            )}
             <Tooltip label="테이블 삽입" position="bottom" withArrow>
               <ActionIcon
                 variant="subtle"
@@ -165,6 +175,7 @@ export function SectionEditor({
           />
         </div>
         {docBaseUri && <ImageThumbnails content={content} docBaseUri={docBaseUri} />}
+        <AttachmentLinks content={content} />
       </Stack>
 
       <TableInsertModal
@@ -173,6 +184,14 @@ export function SectionEditor({
         onInsert={handleTableInsert}
       />
     </Paper>
+  );
+}
+
+function AttachIcon() {
+  return (
+    <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M9.5 4.5L4.5 9.5a2 2 0 102.8 2.8l5.8-5.8a2.5 2.5 0 00-3.5-3.5L3.8 8.3" />
+    </svg>
   );
 }
 
