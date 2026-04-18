@@ -189,27 +189,54 @@ export default function App() {
           // text was actually spliced. Previously `actualPos` defaulted to 0
           // while `insertAt` defaulted to original.length, so the caret focus
           // jumped to column 0 after inserting into an empty section.
-          let actualPos = 0;
           // Phase C-2: if the user typed a `@type;`/`@type:` prefix, then
           // picked a sample from the TreeView (which sends a full definition
           // starting with `@type;`), splice out the existing prefix at the
           // caret instead of inserting after it. Otherwise we end up with
           // `@dna;@dna;DNA-123` in the textarea.
           const prefixMatch = /^@([a-z]+)[;:]/.exec(text);
-          const insertAt = (original: string) => {
-            const pos = target.cursorPos ?? original.length;
-            let cutStart = pos;
+          // Resolve the pre-insert original content synchronously so we can
+          // compute the final caret position before React runs the updater.
+          // Reading from the updater's `prev` works for the splice itself but
+          // leaves `actualPos` at its initial value when pendingCursor is set
+          // in the same tick, which caused the caret to jump to column 0.
+          let original = '';
+          if (target.area === 'labnoteSection') {
+            const sec = labNote?.sections?.[target.sectionIndex];
+            if (sec && 'content' in sec && typeof (sec as { content?: unknown }).content === 'string') {
+              original = (sec as { content: string }).content;
+            }
+          } else if (target.area === 'unitOp') {
+            const srcList = target.linkedWfIndex !== undefined
+              ? linkedWorkflows[target.linkedWfIndex]?.unitOperations
+              : workflow?.unitOperations;
+            original = srcList?.[target.opIndex]?.sections?.[target.secIndex]?.content ?? '';
+          } else if (target.area === 'tailContent') {
+            original = workflow?.tailContent ?? '';
+          }
+          const pos = target.cursorPos ?? original.length;
+          let cutStart = pos;
+          if (prefixMatch) {
+            const typeLower = prefixMatch[1];
+            const before = original.slice(0, pos);
+            const existingRe = new RegExp(`@${typeLower}[;:]$`, 'i');
+            const m = existingRe.exec(before);
+            if (m) {
+              cutStart = before.length - m[0].length;
+            }
+          }
+          const actualPos = cutStart;
+          const insertAt = (orig: string) => {
+            const oPos = target.cursorPos ?? orig.length;
+            let oCut = oPos;
             if (prefixMatch) {
               const typeLower = prefixMatch[1];
-              const before = original.slice(0, pos);
+              const oBefore = orig.slice(0, oPos);
               const existingRe = new RegExp(`@${typeLower}[;:]$`, 'i');
-              const m = existingRe.exec(before);
-              if (m) {
-                cutStart = before.length - m[0].length;
-              }
+              const m = existingRe.exec(oBefore);
+              if (m) oCut = oBefore.length - m[0].length;
             }
-            actualPos = cutStart;
-            return original.slice(0, cutStart) + text + original.slice(pos);
+            return orig.slice(0, oCut) + text + orig.slice(oPos);
           };
 
           if (target.area === 'labnoteSection') {
@@ -255,12 +282,15 @@ export default function App() {
               return { ...prev, tailContent: insertAt(prev.tailContent ?? '') };
             });
           }
-          setPendingCursor({ pos: actualPos + text.length, tick: Date.now(), scroll: 'nearest' });
+          const pendingPos = actualPos + text.length;
+          setPendingCursor({ pos: pendingPos, tick: Date.now(), scroll: 'nearest' });
           // Clear pendingCursor after the next render cycle consumes it.
           // Without this, a stale pendingCursor is re-applied whenever the
           // textarea component remounts (e.g. when the accordion is folded
           // and unfolded), causing the caret to jump unexpectedly.
-          setTimeout(() => setPendingCursor(null), 100);
+          setTimeout(() => {
+            setPendingCursor(null);
+          }, 100);
           markDirty();
           break;
         }

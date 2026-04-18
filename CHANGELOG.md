@@ -5,6 +5,12 @@
 형식은 [Keep a Changelog](https://keepachangelog.com/ko/1.1.0/)를 기반으로 하며,
 이 프로젝트는 [유의적 버전 관리](https://semver.org/lang/ko/)를 따릅니다.
 
+## [0.48.2] - 2026-03-26
+
+### Fixed
+- **TreeView Sample Insert 후 caret이 textarea 맨 앞으로 튀는 문제 (최종 수정)**: v0.47.4 / v0.48.1에서도 잔존하던 동일 증상의 실제 원인은 스크롤 로직이 아니라 React state updater의 실행 시점 문제였음. `App.tsx` `sampleInserted` 핸들러가 `let actualPos = 0`으로 초기화한 뒤, `setWorkflow(prev => insertAt(prev))` updater 내부에서 `actualPos = cutStart`를 대입하고 바로 다음 줄에서 `setPendingCursor({ pos: actualPos + text.length })`를 호출하는 구조였는데, React 18의 배치된 setState에서 updater가 지연 실행되므로 pendingCursor는 초기값 `0`으로 계산돼 caret이 `0 + text.length` 위치(≒ textarea 앞쪽)로 이동하던 문제를 수정
+- **동기적 actualPos 사전 계산으로 구조 변경**: insert 대상 섹션의 현재 `original` 콘텐츠를 `labNote` / `workflow` / `linkedWorkflows` 상태 클로저에서 동기적으로 조회해, prefix-cut(`@type;` 중복 제거) 포함 `cutStart`를 setState 호출 이전에 결정. updater(`insertAt(prev)`)는 동일 로직을 `prev` 기반으로 독립 수행하여 state 일관성 유지. 이로써 blur 경로나 stale cursor 보고와 무관하게 pendingCursor가 항상 실제 삽입 종료 위치를 가리키도록 보장
+
 ## [0.48.1] - 2026-03-26
 
 ### Fixed
