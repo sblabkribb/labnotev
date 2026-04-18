@@ -1,8 +1,6 @@
 /**
  * Tests for dataLoader module
  */
-
-import { describe, it, expect, vi } from 'vitest';
 import {
   SAMPLE_TYPES,
   MONGO_BACKED_TYPES,

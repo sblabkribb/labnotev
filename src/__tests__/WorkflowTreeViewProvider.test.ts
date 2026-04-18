@@ -1,11 +1,7 @@
 /**
  * Tests for WorkflowTreeViewProvider
  * Tree view for workflows and unit operations
- */
-
-import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-
-// Mock vscode
+ */// Mock vscode
 vi.mock('vscode', () => ({
   TreeItem: class {
     label: string;

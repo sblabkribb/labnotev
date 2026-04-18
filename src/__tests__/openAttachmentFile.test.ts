@@ -1,4 +1,3 @@
-import { describe, it, expect, beforeEach, vi } from 'vitest';
 import * as vscode from 'vscode';
 import { mockVscode } from './setup';
 import { openFileInOsDefaultApp } from '../lib/openInOs';

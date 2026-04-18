@@ -1,4 +1,3 @@
-import { describe, it, expect } from 'vitest';
 import { parseLabNoteMd, serializeLabNoteMd } from '../lib/labnoteSectionParser';
 import type { LabNoteDocument } from '../lib/sectionTypes';
 

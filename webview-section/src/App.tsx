@@ -62,6 +62,7 @@ export default function App() {
   const activeSectionRef = useRef<FocusTarget | null>(null);
   const [pendingCursor, setPendingCursor] = useState<{ pos: number; tick: number } | null>(null);
   const [availableTypes, setAvailableTypes] = useState<string[]>([]);
+  const [sampleTypeColors, setSampleTypeColors] = useState<Record<string, string>>({});
   const [sampleDefs, setSampleDefs] = useState<SampleDefMap>({});
   const [productSearchResult, setProductSearchResult] = useState<{ alias: string; description: string } | null>(null);
   const [colorScheme, setColorScheme] = useState<ColorScheme>(loadColorScheme);
@@ -129,6 +130,7 @@ export default function App() {
           if (message.data.parentLabNotePath) setParentLabNotePath(message.data.parentLabNotePath);
           if (message.data.docBaseUri) setDocBaseUri(message.data.docBaseUri);
           if (message.data.availableTypes) setAvailableTypes(message.data.availableTypes);
+          if (message.data.sampleTypeColors) setSampleTypeColors(message.data.sampleTypeColors);
           if (message.data.sampleDefs) setSampleDefs(message.data.sampleDefs);
           break;
 
@@ -164,10 +166,31 @@ export default function App() {
           const text = message.data.text;
           const target = activeSectionRef.current;
           if (!target) break;
-          const actualPos = target.cursorPos ?? 0;
+          // Phase A-4: unify the fallback so pendingCursor matches where the
+          // text was actually spliced. Previously `actualPos` defaulted to 0
+          // while `insertAt` defaulted to original.length, so the caret focus
+          // jumped to column 0 after inserting into an empty section.
+          let actualPos = 0;
+          // Phase C-2: if the user typed a `@type;`/`@type:` prefix, then
+          // picked a sample from the TreeView (which sends a full definition
+          // starting with `@type;`), splice out the existing prefix at the
+          // caret instead of inserting after it. Otherwise we end up with
+          // `@dna;@dna;DNA-123` in the textarea.
+          const prefixMatch = /^@([a-z]+)[;:]/.exec(text);
           const insertAt = (original: string) => {
             const pos = target.cursorPos ?? original.length;
-            return original.slice(0, pos) + text + original.slice(pos);
+            let cutStart = pos;
+            if (prefixMatch) {
+              const typeLower = prefixMatch[1];
+              const before = original.slice(0, pos);
+              const existingRe = new RegExp(`@${typeLower}[;:]$`, 'i');
+              const m = existingRe.exec(before);
+              if (m) {
+                cutStart = before.length - m[0].length;
+              }
+            }
+            actualPos = cutStart;
+            return original.slice(0, cutStart) + text + original.slice(pos);
           };
 
           if (target.area === 'labnoteSection') {
@@ -219,20 +242,44 @@ export default function App() {
         }
 
         case 'sampleDefinitionCreated': {
-          const { definitionText, opIndex, secIndex } = message.data;
+          // Phase C-1: Route by opId + section heading (preferred) and fall
+          // back to opIndex/secIndex when the extension hasn't supplied them
+          // (older versions / stale message shape). Between the user clicking
+          // "샘플 생성" and the extension echoing the definition back, the user
+          // may have reordered or removed unit operations, which would shift
+          // the numeric indices. Looking up by id/heading keeps the definition
+          // attached to the right section no matter what.
+          const { definitionText, opIndex, secIndex, opId, secHeading } = message.data;
           const curTarget = activeSectionRef.current;
           setWorkflow(prev => {
             if (!prev) return prev;
             const ops = [...prev.unitOperations];
-            const op = ops[opIndex];
+            let resolvedOpIndex = -1;
+            if (typeof opId === 'string' && opId.length > 0) {
+              resolvedOpIndex = ops.findIndex(o => o.opId === opId);
+            }
+            if (resolvedOpIndex < 0 && typeof opIndex === 'number') {
+              resolvedOpIndex = opIndex;
+            }
+            const op = ops[resolvedOpIndex];
             if (!op) return prev;
             const sections = [...op.sections];
-            const sec = sections[secIndex];
+            let resolvedSecIndex = -1;
+            if (typeof secHeading === 'string' && secHeading.length > 0) {
+              resolvedSecIndex = sections.findIndex(s => s.heading === secHeading);
+            }
+            if (resolvedSecIndex < 0 && typeof secIndex === 'number') {
+              resolvedSecIndex = secIndex;
+            }
+            const sec = sections[resolvedSecIndex];
             if (!sec) return prev;
             const pos = curTarget?.cursorPos ?? sec.content.length;
             const separator = pos > 0 && sec.content[pos - 1] !== '\n' ? '\n' : '';
-            sections[secIndex] = { ...sec, content: sec.content.slice(0, pos) + separator + definitionText + sec.content.slice(pos) };
-            ops[opIndex] = { ...op, sections };
+            sections[resolvedSecIndex] = {
+              ...sec,
+              content: sec.content.slice(0, pos) + separator + definitionText + sec.content.slice(pos),
+            };
+            ops[resolvedOpIndex] = { ...op, sections };
             return { ...prev, unitOperations: ops };
           });
           markDirty();
@@ -246,6 +293,9 @@ export default function App() {
 
         case 'customTypesUpdated': {
           setAvailableTypes(message.data.availableTypes);
+          if (message.data.sampleTypeColors) {
+            setSampleTypeColors(message.data.sampleTypeColors);
+          }
           break;
         }
 
@@ -253,9 +303,13 @@ export default function App() {
           const imgText = message.data.markdownText;
           const target = activeSectionRef.current;
           if (!target) break;
-          const actualPos = target.cursorPos ?? 0;
+          // Phase A-4: mirror sampleInserted — keep actualPos in sync with the
+          // pos we actually used inside insertImg so pendingCursor always lands
+          // at the end of the just-inserted text (empty sections included).
+          let actualPos = 0;
           const insertImg = (original: string) => {
             const pos = target.cursorPos ?? original.length;
+            actualPos = pos;
             return original.slice(0, pos) + imgText + original.slice(pos);
           };
 
@@ -406,7 +460,18 @@ export default function App() {
 
   const handleCreateSample = useCallback((opIndex: number, secIndex: number, sampleType: string, alias: string, description: string) => {
     setProductSearchResult(null);
-    postMessage({ type: 'createSampleFromModal', data: { sampleType, alias, description, opIndex, secIndex } });
+    // Phase C-1: resolve stable identifiers (opId + secHeading) *at submit
+    // time* so the extension can echo them back in sampleDefinitionCreated.
+    // We keep opIndex/secIndex for backwards compatibility, but the webview's
+    // handler prefers the id/heading lookup when both are present.
+    const wf = workflowRef.current;
+    const op = wf?.unitOperations[opIndex];
+    const opId = op?.opId;
+    const secHeading = op?.sections[secIndex]?.heading;
+    postMessage({
+      type: 'createSampleFromModal',
+      data: { sampleType, alias, description, opIndex, secIndex, opId, secHeading },
+    });
   }, []);
 
   const handleSearchProducts = useCallback((sampleType: string) => {
@@ -518,6 +583,7 @@ export default function App() {
                       docBaseUri={docBaseUri}
                       requestFocusAt={getCursorForArea('labnoteSection', { sectionIndex: index })}
                       availableTypes={availableTypes}
+                      sampleTypeColors={sampleTypeColors}
                       sampleDefs={sampleDefs}
                       onAttachFile={() => handleAttachFile({ area: 'labnoteSection', sectionIndex: index })}
                     />
@@ -542,6 +608,7 @@ export default function App() {
                       docBaseUri={docBaseUri}
                       requestFocusAt={getCursorForArea('labnoteSection', { sectionIndex: index })}
                       availableTypes={availableTypes}
+                      sampleTypeColors={sampleTypeColors}
                       sampleDefs={sampleDefs}
                       onAttachFile={() => handleAttachFile({ area: 'labnoteSection', sectionIndex: index })}
                     />
@@ -558,6 +625,7 @@ export default function App() {
                       docBaseUri={docBaseUri}
                       requestFocusAt={getCursorForArea('labnoteSection', { sectionIndex: index })}
                       availableTypes={availableTypes}
+                      sampleTypeColors={sampleTypeColors}
                       sampleDefs={sampleDefs}
                       onAttachFile={() => handleAttachFile({ area: 'labnoteSection', sectionIndex: index })}
                     />
@@ -638,6 +706,7 @@ export default function App() {
                 onSearchProducts={handleSearchProducts}
                 productSearchResult={productSearchResult}
                 availableTypes={availableTypes}
+                sampleTypeColors={sampleTypeColors}
                 sampleDefs={sampleDefs}
                 onAddCustomType={handleAddCustomType}
                 docBaseUri={docBaseUri}
@@ -661,6 +730,7 @@ export default function App() {
                 docBaseUri={docBaseUri}
                 requestFocusAt={getCursorForArea('tailContent')}
                 availableTypes={availableTypes}
+                sampleTypeColors={sampleTypeColors}
                 sampleDefs={sampleDefs}
                 onAttachFile={() => handleAttachFile({ area: 'tailContent' })}
               />

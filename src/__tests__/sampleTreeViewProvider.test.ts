@@ -1,4 +1,3 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
 import './setup';
 
 // Mock fs module
@@ -209,6 +208,75 @@ describe('SampleTreeViewProvider', () => {
       expect(children[1].label).toBe('DNA-456');
     });
 
+    it('returns an empty-state Detail row when a Type has no samples (Phase B-4, local)', async () => {
+      const { SampleTreeViewProvider, SampleTreeItem, SampleTreeItemType } = await import('../views/SampleTreeViewProvider');
+      const fs = await import('fs');
+
+      const mockContext = { subscriptions: [], extensionUri: { fsPath: '/test/extension' } };
+      vi.mocked(fs.existsSync).mockReturnValue(false);
+      vi.mocked(fs.readFileSync).mockReturnValue('{}');
+
+      const provider = new SampleTreeViewProvider(
+        mockContext as any, '/test/workspace', '/test/document/folder'
+      );
+      const typeItem = new SampleTreeItem('DNA [0]', SampleTreeItemType.Type, {
+        scope: 'local', sampleType: 'DNA',
+      });
+      const children = await provider.getChildren(typeItem);
+
+      expect(children).toHaveLength(1);
+      expect(children[0].itemType).toBe(SampleTreeItemType.Detail);
+      // Label must mention "샘플 없음" so users can distinguish from a loading bug.
+      expect(String(children[0].label)).toContain('샘플 없음');
+      // Local placeholder hints at the right-click action.
+      expect(String(children[0].label)).toContain('샘플 생성');
+    });
+
+    it('returns a global-flavored empty-state Detail row (Phase B-4, global)', async () => {
+      const { SampleTreeViewProvider, SampleTreeItem, SampleTreeItemType } = await import('../views/SampleTreeViewProvider');
+      const fs = await import('fs');
+
+      const mockContext = { subscriptions: [], extensionUri: { fsPath: '/test/extension' } };
+      vi.mocked(fs.existsSync).mockReturnValue(false);
+      vi.mocked(fs.readFileSync).mockReturnValue('{}');
+
+      const provider = new SampleTreeViewProvider(
+        mockContext as any, '/test/workspace', '/test/document/folder'
+      );
+      const typeItem = new SampleTreeItem('RNA [0]', SampleTreeItemType.Type, {
+        scope: 'global', sampleType: 'RNA',
+      });
+      const children = await provider.getChildren(typeItem);
+
+      expect(children).toHaveLength(1);
+      expect(String(children[0].label)).toContain('샘플 없음');
+      // Global placeholder explains that samples appear automatically when
+      // a matching `@type;id` definition is saved anywhere in the workspace.
+      expect(String(children[0].label)).toContain('자동 등록');
+    });
+
+    it('applies a per-type ThemeIcon color to Type rows (Phase B-4)', async () => {
+      const { SampleTreeItem, SampleTreeItemType } = await import('../views/SampleTreeViewProvider');
+      const dna = new SampleTreeItem('DNA [1]', SampleTreeItemType.Type, {
+        scope: 'local', sampleType: 'DNA',
+      });
+      // ThemeIcon is the concrete class; color is a ThemeColor when a palette
+      // entry exists for the type.
+      const icon = dna.iconPath as { id: string; color?: { id: string } };
+      expect(icon.id).toBe('symbol-class');
+      expect(icon.color?.id).toBe('charts.pink');
+    });
+
+    it('leaves unknown custom types with the default Type icon color (Phase B-4)', async () => {
+      const { SampleTreeItem, SampleTreeItemType } = await import('../views/SampleTreeViewProvider');
+      const custom = new SampleTreeItem('Oligo [0]', SampleTreeItemType.Type, {
+        scope: 'local', sampleType: 'Oligo',
+      });
+      const icon = custom.iconPath as { id: string; color?: { id: string } };
+      expect(icon.id).toBe('symbol-class');
+      expect(icon.color).toBeUndefined();
+    });
+
     it('should return detail items for sample element', async () => {
       const { SampleTreeViewProvider, SampleTreeItem, SampleTreeItemType } = await import('../views/SampleTreeViewProvider');
       
@@ -342,6 +410,75 @@ describe('SampleTreeViewProvider', () => {
       
       expect(fs.writeFileSync).toHaveBeenCalled();
     });
+
+    it('should replace description instead of accumulating when editing a sample (Phase A-5)', async () => {
+      const { SampleTreeViewProvider } = await import('../views/SampleTreeViewProvider');
+      const fs = await import('fs');
+
+      vi.mocked(fs.existsSync).mockReturnValue(true);
+      vi.mocked(fs.readFileSync).mockReturnValue(JSON.stringify({
+        'DNA-123': {
+          type: 'DNA',
+          alias: '샘플A',
+          descriptions: ['기존설명1', '기존설명2'],
+          sources: [],
+        },
+      }));
+
+      const mockContext = {
+        subscriptions: [],
+        extensionUri: { fsPath: '/test/extension' },
+      };
+
+      const provider = new SampleTreeViewProvider(
+        mockContext as any,
+        '/test/workspace',
+        '/test/document/folder'
+      );
+
+      await provider.editSample('local', 'DNA', 'DNA-123', '새별칭', '새설명');
+
+      const writeCall = vi.mocked(fs.writeFileSync).mock.calls.at(-1);
+      expect(writeCall).toBeDefined();
+      const payload = JSON.parse(writeCall![1] as string);
+      // Phase A-5: descriptions must be overwritten, not prepended, so that
+      // TreeView/InfoPanel always show exactly what the user just typed.
+      expect(payload['DNA-123'].descriptions).toEqual(['새설명']);
+      expect(payload['DNA-123'].alias).toBe('새별칭');
+    });
+
+    it('should clear description when editing with empty description (Phase A-5)', async () => {
+      const { SampleTreeViewProvider } = await import('../views/SampleTreeViewProvider');
+      const fs = await import('fs');
+
+      vi.mocked(fs.existsSync).mockReturnValue(true);
+      vi.mocked(fs.readFileSync).mockReturnValue(JSON.stringify({
+        'DNA-123': {
+          type: 'DNA',
+          alias: '샘플A',
+          descriptions: ['지워질 설명'],
+          sources: [],
+        },
+      }));
+
+      const mockContext = {
+        subscriptions: [],
+        extensionUri: { fsPath: '/test/extension' },
+      };
+
+      const provider = new SampleTreeViewProvider(
+        mockContext as any,
+        '/test/workspace',
+        '/test/document/folder'
+      );
+
+      await provider.editSample('local', 'DNA', 'DNA-123', '샘플A', null);
+
+      const writeCall = vi.mocked(fs.writeFileSync).mock.calls.at(-1);
+      expect(writeCall).toBeDefined();
+      const payload = JSON.parse(writeCall![1] as string);
+      expect(payload['DNA-123'].descriptions).toEqual([]);
+    });
   });
 
   describe('getInsertText', () => {
@@ -361,7 +498,7 @@ describe('SampleTreeViewProvider', () => {
       );
       
       const text = getInsertText(item);
-      expect(text).toBe('DNA-123|샘플A');
+      expect(text).toBe('DNA-123;샘플A');
     });
 
     it('should return ID only when no alias', async () => {
@@ -401,7 +538,7 @@ describe('SampleTreeViewProvider', () => {
       );
       
       const text = getDefinitionText(item);
-      expect(text).toBe('@dna:DNA-123|샘플A:테스트 설명');
+      expect(text).toBe('@dna;DNA-123;샘플A;테스트 설명');
     });
 
     it('should return @type:ID|alias format when no description', async () => {
@@ -420,7 +557,7 @@ describe('SampleTreeViewProvider', () => {
       );
       
       const text = getDefinitionText(item);
-      expect(text).toBe('@rna:RNA-456|SampleB');
+      expect(text).toBe('@rna;RNA-456;SampleB');
     });
 
     it('should return @type:ID format when no alias or description', async () => {
@@ -439,10 +576,10 @@ describe('SampleTreeViewProvider', () => {
       );
       
       const text = getDefinitionText(item);
-      expect(text).toBe('@plasmid:Plasmid-789');
+      expect(text).toBe('@plasmid;Plasmid-789');
     });
 
-    it('should return @equip:|alias:description format for Equip (without ID)', async () => {
+    it('should return @equip;;alias;description format for Equip (without ID)', async () => {
       const { SampleTreeItem, SampleTreeItemType, getDefinitionText } = await import('../views/SampleTreeViewProvider');
       
       const item = new SampleTreeItem(
@@ -459,10 +596,10 @@ describe('SampleTreeViewProvider', () => {
       
       const text = getDefinitionText(item);
       // Equip should NOT include the ID in definition
-      expect(text).toBe('@equip:|Centrifuge:High-speed centrifuge');
+      expect(text).toBe('@equip;;Centrifuge;High-speed centrifuge');
     });
 
-    it('should return @equip:|alias format for Equip without description', async () => {
+    it('should return @equip;;alias format for Equip without description', async () => {
       const { SampleTreeItem, SampleTreeItemType, getDefinitionText } = await import('../views/SampleTreeViewProvider');
       
       const item = new SampleTreeItem(
@@ -478,10 +615,10 @@ describe('SampleTreeViewProvider', () => {
       );
       
       const text = getDefinitionText(item);
-      expect(text).toBe('@equip:|Incubator');
+      expect(text).toBe('@equip;;Incubator');
     });
 
-    it('should return @equip: format for Equip without alias or description', async () => {
+    it('should return @equip; format for Equip without alias or description', async () => {
       const { SampleTreeItem, SampleTreeItemType, getDefinitionText } = await import('../views/SampleTreeViewProvider');
       
       const item = new SampleTreeItem(
@@ -497,7 +634,7 @@ describe('SampleTreeViewProvider', () => {
       );
       
       const text = getDefinitionText(item);
-      expect(text).toBe('@equip:');
+      expect(text).toBe('@equip;');
     });
 
     it('should handle Labware same as regular samples (with ID)', async () => {
@@ -517,7 +654,7 @@ describe('SampleTreeViewProvider', () => {
       
       const text = getDefinitionText(item);
       // Labware should include the ID (unlike Equip)
-      expect(text).toBe('@labware:Labware-100|96-well plate:Standard 96-well plate');
+      expect(text).toBe('@labware;Labware-100;96-well plate;Standard 96-well plate');
     });
   });
 

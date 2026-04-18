@@ -1,4 +1,3 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, act } from '@testing-library/react';
 import App from '../App';
 import type { LabNoteDocument, WorkflowDocument } from '../types';
@@ -86,5 +85,67 @@ describe('App', () => {
     });
 
     expect(screen.getByText(/Lab Note 또는 Workflow 형식이 아닙니다/)).toBeInTheDocument();
+  });
+
+  // Phase C-3 regression: `sampleDefinitionCreated` used to route by the
+  // numeric `opIndex` the webview sent when opening the create-sample modal.
+  // If the user reordered unit operations between clicking "샘플 생성" and the
+  // extension echoing back the definition, the message landed in the wrong
+  // section. Phase C-1 switched the handler to prefer `opId` + `secHeading`
+  // when both sides agree on them, so the definition follows the op even
+  // after reordering.
+  it('routes sampleDefinitionCreated to the op matching opId, not the original opIndex', async () => {
+    const twoOps: WorkflowDocument = {
+      ...mockWorkflow,
+      unitOperations: [
+        {
+          id: 'uo-a',
+          opId: 'UO_A',
+          opName: 'Op A',
+          opDescription: '',
+          opType: 'hw',
+          sections: [{ heading: 'Samples', content: '' }],
+        },
+        {
+          id: 'uo-b',
+          opId: 'UO_B',
+          opName: 'Op B',
+          opDescription: '',
+          opType: 'hw',
+          sections: [{ heading: 'Samples', content: '' }],
+        },
+      ],
+    };
+
+    render(<App />);
+
+    await act(async () => {
+      simulateMessage({ type: 'init', data: { mode: 'workflow', workflow: twoOps } });
+    });
+
+    // The extension echoes back the original opIndex=1 (UO_B's slot at creation
+    // time) plus opId='UO_B'. In this test we mimic the "already reordered"
+    // state by passing an opIndex that now points at the *wrong* op. The
+    // id-based lookup must win.
+    await act(async () => {
+      simulateMessage({
+        type: 'sampleDefinitionCreated',
+        data: {
+          sampleType: 'DNA',
+          definitionText: '@dna;DNA-1;alias',
+          opIndex: 0,
+          secIndex: 0,
+          opId: 'UO_B',
+          secHeading: 'Samples',
+        },
+      });
+    });
+
+    // UO_B's "Samples" section should receive the definition; UO_A's shouldn't.
+    const textareas = Array.from(
+      document.querySelectorAll('textarea')
+    ) as HTMLTextAreaElement[];
+    const withDefinition = textareas.filter(t => t.value.includes('@dna;DNA-1;alias'));
+    expect(withDefinition.length).toBe(1);
   });
 });

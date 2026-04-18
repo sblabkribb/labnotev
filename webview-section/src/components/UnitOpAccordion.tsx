@@ -1,4 +1,4 @@
-import { useRef, useEffect, useState } from 'react';
+import { useRef, useState } from 'react';
 import { Accordion, Badge, Group, Text, Stack, TextInput, Title, Paper, ActionIcon, Tooltip } from '@mantine/core';
 import { DndContext, closestCenter, KeyboardSensor, PointerSensor, useSensor, useSensors, type DragEndEvent } from '@dnd-kit/core';
 import { SortableContext, verticalListSortingStrategy, useSortable, arrayMove } from '@dnd-kit/sortable';
@@ -6,7 +6,7 @@ import { CSS } from '@dnd-kit/utilities';
 import type { UnitOperationBlock, SampleDefMap } from '../types';
 import { ImageThumbnails } from './ImageThumbnails';
 import { AttachmentLinks } from './AttachmentLinks';
-import { SampleHighlighter, highlightSampleIds } from './SampleHighlighter';
+import { HighlightedTextarea } from './HighlightedTextarea';
 import { DateTimeField } from './DateTimeField';
 import { TableInsertModal } from './TableInsertModal';
 import { SampleCreateModal } from './SampleCreateModal';
@@ -38,6 +38,7 @@ interface UnitOpAccordionProps {
   onSearchProducts?: (sampleType: string) => void;
   productSearchResult?: { alias: string; description: string } | null;
   availableTypes?: string[];
+  sampleTypeColors?: Record<string, string>;
   sampleDefs?: SampleDefMap;
   onAddCustomType?: (typeName: string) => void;
   docBaseUri?: string;
@@ -69,24 +70,25 @@ interface UnitOpSectionTextareaProps {
   onSearchProducts?: (sampleType: string) => void;
   productSearchResult?: { alias: string; description: string } | null;
   availableTypes?: string[];
+  sampleTypeColors?: Record<string, string>;
   sampleDefs?: SampleDefMap;
   onAddCustomType?: (typeName: string) => void;
   docBaseUri?: string;
   requestFocusAt?: { pos: number; tick: number } | null;
   onAttachFile?: () => void;
+  minRows?: number;
 }
 
 function UnitOpSectionTextarea({
   heading, content, showSampleButton, onChange, onFocus, onCursorActivity,
-  onCreateSample, onSearchProducts, productSearchResult, availableTypes, sampleDefs, onAddCustomType, docBaseUri,
+  onCreateSample, onSearchProducts, productSearchResult, availableTypes, sampleTypeColors, sampleDefs, onAddCustomType, docBaseUri,
   requestFocusAt,
   onAttachFile,
+  minRows = 2,
 }: UnitOpSectionTextareaProps) {
   const textareaRef = useRef<HTMLTextAreaElement>(null);
-  const overlayRef = useRef<HTMLDivElement>(null);
   const [tableModalOpen, setTableModalOpen] = useState(false);
   const [sampleModalOpen, setSampleModalOpen] = useState(false);
-  const [hasSamples, setHasSamples] = useState(false);
 
   const reportCursor = () => {
     if (textareaRef.current && onCursorActivity) {
@@ -101,84 +103,6 @@ function UnitOpSectionTextarea({
     handlePaste,
     cursorInTable,
   } = useTableEditing(textareaRef, content, onChange, reportCursor);
-
-  useEffect(() => {
-    if (!requestFocusAt) return;
-    const ta = textareaRef.current;
-    if (!ta) return;
-    requestAnimationFrame(() => {
-      ta.focus();
-      ta.selectionStart = ta.selectionEnd = requestFocusAt.pos;
-      reportCursor();
-    });
-  }, [requestFocusAt?.tick]);
-
-  useEffect(() => {
-    setHasSamples(highlightSampleIds(content, availableTypes));
-  }, [content, availableTypes]);
-
-  useEffect(() => {
-    const ta = textareaRef.current;
-    if (!ta) return;
-    ta.style.height = 'auto';
-    ta.style.height = ta.scrollHeight + 'px';
-  }, [content]);
-
-  useEffect(() => {
-    const ta = textareaRef.current;
-    if (!ta) return;
-    const resize = () => {
-      ta.style.height = 'auto';
-      ta.style.height = ta.scrollHeight + 'px';
-    };
-    const observer = new ResizeObserver(resize);
-    observer.observe(ta);
-    return () => observer.disconnect();
-  }, []);
-
-  const syncScroll = () => {
-    if (textareaRef.current && overlayRef.current) {
-      overlayRef.current.scrollTop = textareaRef.current.scrollTop;
-      overlayRef.current.scrollLeft = textareaRef.current.scrollLeft;
-    }
-  };
-
-  const textareaStyle: React.CSSProperties = {
-    fontFamily: 'monospace',
-    fontSize: '13px',
-    lineHeight: '1.55',
-    width: '100%',
-    padding: '8px',
-    border: '1px solid var(--mantine-color-default-border)',
-    borderRadius: '4px',
-    resize: 'none',
-    overflow: 'hidden',
-    minHeight: `${2 * 1.55 * 13 + 16}px`,
-    background: hasSamples ? 'transparent' : 'var(--mantine-color-body)',
-    color: hasSamples ? 'transparent' : 'var(--mantine-color-text)',
-    caretColor: 'var(--mantine-color-text)',
-    position: hasSamples ? 'relative' : undefined,
-    zIndex: hasSamples ? 2 : undefined,
-  };
-
-  const overlayStyle: React.CSSProperties = {
-    fontFamily: 'monospace',
-    fontSize: '13px',
-    lineHeight: '1.55',
-    padding: '8px',
-    position: 'absolute',
-    top: 0, left: 0, right: 0, bottom: 0,
-    pointerEvents: 'none',
-    whiteSpace: 'pre-wrap',
-    wordWrap: 'break-word',
-    overflow: 'hidden',
-    // Overlay must sit above the transparent textarea (z-index: 2) so sample
-    // spans (pointer-events: auto) can receive hover events for HoverCard.
-    // The overlay itself keeps pointer-events: none, so clicks on non-sample
-    // regions still pass through to the textarea.
-    zIndex: 3,
-    color: 'var(--mantine-color-text)',
-  };
 
   return (
     <div>
@@ -211,25 +135,20 @@ function UnitOpSectionTextarea({
           </Tooltip>
         </Group>
       </Group>
-      <div style={{ position: 'relative' }}>
-        {hasSamples && (
-          <div ref={overlayRef} style={overlayStyle}>
-            <SampleHighlighter text={content} interactive availableTypes={availableTypes} sampleDefs={sampleDefs} />
-          </div>
-        )}
-        <textarea
-          ref={textareaRef}
-          value={content}
-          onChange={(e) => { onChange(e.currentTarget.value); reportCursor(); }}
-          onFocus={() => { onFocus?.(); reportCursor(); }}
-          onClick={reportCursor}
-          onKeyUp={reportCursor}
-          onKeyDown={handleKeyDown}
-          onPaste={handlePaste}
-          onScroll={syncScroll}
-          style={textareaStyle}
-        />
-      </div>
+      <HighlightedTextarea
+        ref={textareaRef}
+        value={content}
+        onChange={onChange}
+        onFocus={onFocus}
+        onCursorChange={onCursorActivity}
+        onKeyDown={handleKeyDown}
+        onPaste={handlePaste}
+        minRows={minRows}
+        availableTypes={availableTypes}
+        sampleTypeColors={sampleTypeColors}
+        sampleDefs={sampleDefs}
+        requestFocusAt={requestFocusAt}
+      />
       {docBaseUri && <ImageThumbnails content={content} docBaseUri={docBaseUri} />}
       <AttachmentLinks content={content} />
       <TableInsertModal
@@ -303,6 +222,7 @@ interface SortableUnitOpProps {
   onSearchProducts?: (sampleType: string) => void;
   productSearchResult?: { alias: string; description: string } | null;
   availableTypes?: string[];
+  sampleTypeColors?: Record<string, string>;
   sampleDefs?: SampleDefMap;
   onAddCustomType?: (typeName: string) => void;
   docBaseUri?: string;
@@ -310,7 +230,7 @@ interface SortableUnitOpProps {
   onAttachFile?: (opIndex: number, secIndex: number) => void;
 }
 
-function SortableUnitOp({ op, opIndex, onUpdateSection, onUpdateAlias, onSectionFocus, onCursorActivity, onCreateSample, onSearchProducts, productSearchResult, availableTypes, sampleDefs, onAddCustomType, docBaseUri, getCursorForSection, onAttachFile }: SortableUnitOpProps) {
+function SortableUnitOp({ op, opIndex, onUpdateSection, onUpdateAlias, onSectionFocus, onCursorActivity, onCreateSample, onSearchProducts, productSearchResult, availableTypes, sampleTypeColors, sampleDefs, onAddCustomType, docBaseUri, getCursorForSection, onAttachFile }: SortableUnitOpProps) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: op.id });
 
   const style = {
@@ -417,6 +337,7 @@ function SortableUnitOp({ op, opIndex, onUpdateSection, onUpdateAlias, onSection
                   onSearchProducts={onSearchProducts}
                   productSearchResult={productSearchResult}
                   availableTypes={availableTypes}
+                  sampleTypeColors={sampleTypeColors}
                   sampleDefs={sampleDefs}
                   onAddCustomType={onAddCustomType}
                   docBaseUri={docBaseUri}
@@ -432,7 +353,7 @@ function SortableUnitOp({ op, opIndex, onUpdateSection, onUpdateAlias, onSection
   );
 }
 
-export function UnitOpAccordion({ unitOperations, onChange, onSectionFocus, onCursorActivity, onCreateSample, onSearchProducts, productSearchResult, availableTypes, sampleDefs, onAddCustomType, docBaseUri, getCursorForSection, onAttachFile }: UnitOpAccordionProps) {
+export function UnitOpAccordion({ unitOperations, onChange, onSectionFocus, onCursorActivity, onCreateSample, onSearchProducts, productSearchResult, availableTypes, sampleTypeColors, sampleDefs, onAddCustomType, docBaseUri, getCursorForSection, onAttachFile }: UnitOpAccordionProps) {
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 8 } }),
     useSensor(KeyboardSensor)
@@ -495,6 +416,7 @@ export function UnitOpAccordion({ unitOperations, onChange, onSectionFocus, onCu
               onSearchProducts={onSearchProducts}
               productSearchResult={productSearchResult}
               availableTypes={availableTypes}
+              sampleTypeColors={sampleTypeColors}
               sampleDefs={sampleDefs}
               onAddCustomType={onAddCustomType}
               docBaseUri={docBaseUri}

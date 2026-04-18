@@ -1,8 +1,6 @@
 /**
  * Tests for SampleCompletionProvider
  */
-
-import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { SampleCompletionProvider } from '../providers/SampleCompletionProvider';
 
 // Mock vscode

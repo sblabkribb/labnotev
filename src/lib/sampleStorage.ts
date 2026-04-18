@@ -7,6 +7,7 @@
 import * as fs from 'fs';
 import * as path from 'path';
 import { SAMPLE_TYPES, SampleType } from './sampleUtils';
+import { escapeRegExp } from './regexUtils';
 
 /**
  * Extracted sample information from document text
@@ -50,11 +51,13 @@ export function extractSampleInfoFromText(text: string, additionalTypes?: string
 
   const allTypes: string[] = [...SAMPLE_TYPES, ...(additionalTypes ?? []).filter(t => !(SAMPLE_TYPES as readonly string[]).includes(t))];
   for (const type of allTypes) {
-    // Pattern to match sample ID with optional @type; prefix, alias and description
-    // Supports both new ; delimiter and legacy |/: for backward compatibility
-    // Alias: [^;:\n|]+ allows spaces and special chars (e.g. ™); stops at ;/:/| so ID;alias;description is unambiguous
+    // Pattern to match sample ID with optional @type; prefix, alias and description.
+    // ID segment uses (?:-\d+)* (same as buildSampleIdPattern) so collision-resolved
+    // ids like DNA-1737000000000-3 are extracted. The type is escaped because custom
+    // types may contain regex metachars in theory (defense-in-depth).
+    const typeEsc = escapeRegExp(type);
     const pattern = new RegExp(
-      `(?:@${type}[;:])?(${type}-\\d+(?:-\\d+)?)(?:[;|]([^;:\\n|]+)(?:[;:]([^\\n;|]+))?|:\\s*([^\\n;|]+))?`,
+      `(?:@${typeEsc}[;:])?(${typeEsc}-\\d+(?:-\\d+)*)(?:[;|]([^;:\\n|]+)(?:[;:]([^\\n;|]+))?|:\\s*([^\\n;|]+))?`,
       'gi'
     );
 
@@ -183,11 +186,12 @@ export function findSampleDefinitionMatch(
   id: string,
   currentAlias?: string | null
 ): { start: number; length: number } | null {
-  const typeEsc = type.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  const typeEsc = escapeRegExp(type);
 
-  // 1) Match by @type;ID or @type:ID (supports ; and legacy |/: delimiters)
+  // 1) Match by @type;ID or @type:ID (supports ; and legacy |/: delimiters).
+  //    ID segment uses (?:-\d+)* for parity with buildSampleIdPattern.
   const idPattern = new RegExp(
-    `(?:@${typeEsc}[;:])?(${typeEsc}-\\d+(?:-\\d+)?)(?:[;|]([^;:\\n|]+)(?:[;:]([^\\n;|]+))?|:\\s*([^\\n;|]+))?`,
+    `(?:@${typeEsc}[;:])?(${typeEsc}-\\d+(?:-\\d+)*)(?:[;|]([^;:\\n|]+)(?:[;:]([^\\n;|]+))?|:\\s*([^\\n;|]+))?`,
     'gi'
   );
   let match = idPattern.exec(text);
@@ -200,7 +204,7 @@ export function findSampleDefinitionMatch(
 
   // 2) Equip: match by @equip;|currentAlias when definition has no ID in text
   if ((type.toLowerCase() === 'equip') && currentAlias && currentAlias.trim()) {
-    const aliasEsc = currentAlias.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    const aliasEsc = escapeRegExp(currentAlias);
     const equipAliasPattern = new RegExp(
       `@equip[;:][;|]${aliasEsc}(?:[;:]([^\\n;|]*))?`,
       'gi'

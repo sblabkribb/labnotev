@@ -1,6 +1,8 @@
 import * as vscode from 'vscode';
-import { SAMPLE_TYPES, SampleType, sampleTypeColors } from '../lib/sampleUtils';
+import { SAMPLE_TYPES, SampleType, sampleTypeColors, buildSampleIdPattern } from '../lib/sampleUtils';
 import { extractSampleInfoFromText as extractFromStorage, SampleInfo, parseSampleTracking } from '../lib/sampleStorage';
+import { escapeRegExp } from '../lib/regexUtils';
+import { josa, withJosa } from '../lib/josa';
 
 /**
  * Sample display information with all metadata
@@ -18,16 +20,17 @@ export interface SampleDisplayInfo {
  */
 export function extractSampleIdsFromText(text: string): string[] {
   const sampleIds: string[] = [];
-  
+
   for (const type of SAMPLE_TYPES) {
-    // Pattern: TYPE-{digits} (e.g., DNA-1737123456789)
-    const pattern = new RegExp(`\\b${type}-\\d+(?:-\\d+)?\\b`, 'g');
+    // Phase A-3: use the canonical segment (?:-\d+)* so multi-counter ids
+    // (DNA-1737000000000-3) are captured consistently with highlighting/storage.
+    const pattern = buildSampleIdPattern(type);
     let match;
     while ((match = pattern.exec(text)) !== null) {
       sampleIds.push(match[0]);
     }
   }
-  
+
   return sampleIds;
 }
 
@@ -62,7 +65,7 @@ export function generateSampleListHtml(sampleIds: string[]): string {
   if (sampleIds.length === 0) {
     return `
       <div class="no-samples">
-        <p>No sample IDs found in the current document.</p>
+        <p>현재 문서에서 샘플 ID를 찾을 수 없습니다.</p>
       </div>
     `;
   }
@@ -73,16 +76,16 @@ export function generateSampleListHtml(sampleIds: string[]): string {
     return `
       <li class="sample-item">
         <span class="sample-badge" style="background-color: ${color}99; border: 1px solid ${color};">
-          ${type}
+          ${escapeHtml(type)}
         </span>
-        <span class="sample-id">${id}</span>
+        <span class="sample-id">${escapeHtml(id)}</span>
       </li>
     `;
   }).join('');
 
   return `
     <div class="sample-list">
-      <h3>Sample IDs (${sampleIds.length})</h3>
+      <h3>샘플 ID (${sampleIds.length})</h3>
       <ul>
         ${sampleListItems}
       </ul>
@@ -97,7 +100,7 @@ export function generateSampleInfoHtml(samples: SampleDisplayInfo[]): string {
   if (samples.length === 0) {
     return `
       <div class="no-samples">
-        <p>No sample IDs found in the current document.</p>
+        <p>현재 문서에서 샘플 ID를 찾을 수 없습니다.</p>
       </div>
     `;
   }
@@ -106,15 +109,15 @@ export function generateSampleInfoHtml(samples: SampleDisplayInfo[]): string {
     const color = sampleTypeColors[sample.type as SampleType] || '#888888';
     const aliasHtml = sample.alias ? `<span class="sample-alias">(${escapeHtml(sample.alias)})</span>` : '';
     const descHtml = sample.description ? `<p class="sample-description">${escapeHtml(sample.description)}</p>` : '';
-    const sourcesHtml = sample.sources.length > 0 
-      ? `<p class="sample-sources">Sources: ${sample.sources.map(s => escapeHtml(s)).join(', ')}</p>` 
+    const sourcesHtml = sample.sources.length > 0
+      ? `<p class="sample-sources">출처: ${sample.sources.map(s => escapeHtml(s)).join(', ')}</p>`
       : '';
 
     return `
       <li class="sample-item" data-id="${escapeHtml(sample.id)}" data-type="${escapeHtml(sample.type)}">
         <div class="sample-header">
           <span class="sample-badge" style="background-color: ${color}99; border: 1px solid ${color};">
-            ${sample.type}
+            ${escapeHtml(sample.type)}
           </span>
           <span class="sample-id">${escapeHtml(sample.id)}</span>
           ${aliasHtml}
@@ -123,8 +126,8 @@ export function generateSampleInfoHtml(samples: SampleDisplayInfo[]): string {
         ${sourcesHtml}
         <div class="sample-actions">
           <button class="action-btn goto-btn" data-action="goto" data-id="${escapeHtml(sample.id)}">위치로 이동</button>
-          <button class="action-btn rename-btn" data-action="rename" data-id="${escapeHtml(sample.id)}">Rename</button>
-          <button class="action-btn replace-btn" data-action="replace" data-id="${escapeHtml(sample.id)}" data-type="${escapeHtml(sample.type)}">Replace</button>
+          <button class="action-btn rename-btn" data-action="rename" data-id="${escapeHtml(sample.id)}">이름 변경</button>
+          <button class="action-btn replace-btn" data-action="replace" data-id="${escapeHtml(sample.id)}" data-type="${escapeHtml(sample.type)}">다른 ID로 교체</button>
         </div>
       </li>
     `;
@@ -132,7 +135,7 @@ export function generateSampleInfoHtml(samples: SampleDisplayInfo[]): string {
 
   return `
     <div class="sample-list">
-      <h3>Sample IDs (${samples.length})</h3>
+      <h3>샘플 ID (${samples.length})</h3>
       <ul>
         ${sampleListItems}
       </ul>
@@ -243,7 +246,7 @@ export class SampleInfoPanel {
     if (!this._currentDocUri) return;
 
     const newId = await vscode.window.showInputBox({
-      prompt: `${oldId}를 새로운 ID로 변경`,
+      prompt: `${withJosa(oldId, '을/를')} 새로운 ID로 변경`,
       value: oldId,
       validateInput: (value) => {
         if (!value || value.trim() === '') return 'ID를 입력하세요';
@@ -256,7 +259,7 @@ export class SampleInfoPanel {
 
     const doc = await vscode.workspace.openTextDocument(this._currentDocUri);
     const text = doc.getText();
-    const newText = text.replace(new RegExp(`\\b${oldId}\\b`, 'g'), newId);
+    const newText = text.replace(new RegExp(`\\b${escapeRegExp(oldId)}\\b`, 'g'), newId);
 
     const edit = new vscode.WorkspaceEdit();
     edit.replace(
@@ -267,7 +270,7 @@ export class SampleInfoPanel {
     await vscode.workspace.applyEdit(edit);
     await doc.save();
 
-    vscode.window.showInformationMessage(`${oldId} → ${newId}로 변경되었습니다.`);
+    vscode.window.showInformationMessage(`${oldId} → ${newId}${josa(newId, '으로/로')} 변경되었습니다.`);
     this._updateFromActiveEditor();
   }
 
@@ -279,9 +282,10 @@ export class SampleInfoPanel {
 
     const doc = await vscode.workspace.openTextDocument(this._currentDocUri);
     const text = doc.getText();
-    
-    // Extract all IDs of the same type
-    const pattern = new RegExp(`\\b${type}-\\d+(?:-\\d+)?\\b`, 'g');
+
+    // Extract all IDs of the same type. Phase A-3 unifies the segment to (?:-\d+)*
+    // so collision-resolved IDs like DNA-1700000000000-3 are surfaced for replacement.
+    const pattern = new RegExp(`\\b${escapeRegExp(type)}-\\d+(?:-\\d+)*\\b`, 'g');
     const existingIds = [...new Set(text.match(pattern) || [])].filter(id => id !== oldId);
 
     if (existingIds.length === 0) {
@@ -290,12 +294,12 @@ export class SampleInfoPanel {
     }
 
     const selectedId = await vscode.window.showQuickPick(existingIds, {
-      placeHolder: `${oldId}를 대체할 ID 선택`
+      placeHolder: `${withJosa(oldId, '을/를')} 대체할 ID 선택`
     });
 
     if (!selectedId) return;
 
-    const newText = text.replace(new RegExp(`\\b${oldId}\\b`, 'g'), selectedId);
+    const newText = text.replace(new RegExp(`\\b${escapeRegExp(oldId)}\\b`, 'g'), selectedId);
 
     const edit = new vscode.WorkspaceEdit();
     edit.replace(
@@ -306,7 +310,7 @@ export class SampleInfoPanel {
     await vscode.workspace.applyEdit(edit);
     await doc.save();
 
-    vscode.window.showInformationMessage(`${oldId} → ${selectedId}로 교체되었습니다.`);
+    vscode.window.showInformationMessage(`${oldId} → ${selectedId}${josa(selectedId, '으로/로')} 교체되었습니다.`);
     this._updateFromActiveEditor();
   }
 
@@ -328,7 +332,7 @@ export class SampleInfoPanel {
     // Otherwise, create a new panel
     const panel = vscode.window.createWebviewPanel(
       SampleInfoPanel.viewType,
-      'Sample Info',
+      '샘플 정보',
       column,
       {
         enableScripts: true,
@@ -405,7 +409,7 @@ export class SampleInfoPanel {
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Sample Info</title>
+  <title>샘플 정보</title>
   <style>
     body {
       font-family: var(--vscode-font-family);

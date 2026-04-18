@@ -2,8 +2,6 @@
  * Tests for sample command insertion (generateSampleId, inputSampleInfo)
  * Tests that @type: prefix is not duplicated when inserting new samples
  */
-
-import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { mockVscode } from './setup';
 
 // Mock modules
@@ -77,6 +75,10 @@ describe('Sample Command Insertion - Prefix Duplication Fix', () => {
         callback(mockEditBuilder);
         return Promise.resolve(true);
       }),
+      // Used by applySampleIdHighlights (registered via registerUtilityCommands
+      // during activate()); no-op so the activate() path doesn't throw in
+      // tests that set `languageId = 'markdown'`.
+      setDecorations: vi.fn(),
     };
 
     mockVscode.window.activeTextEditor = mockEditor;
@@ -116,7 +118,11 @@ describe('Sample Command Insertion - Prefix Duplication Fix', () => {
       // Verify the replacement range includes the @labware: prefix
       const replaceCall = mockEditBuilder.replace.mock.calls[0];
       expect(replaceCall[0]).toBeDefined(); // range
-      expect(replaceCall[1]).toMatch(/^@labware:Labware-\d+/); // insertText should start with @labware:
+      // Phase A/C: the production replacement now uses the `;` delimiter
+      // (`@labware;Labware-\d+;...`) — accept either `;` or `:` so this test
+      // continues to guard against prefix duplication regardless of the
+      // exact delimiter emitted.
+      expect(replaceCall[1]).toMatch(/^@labware[;:]Labware-\d+/);
     });
 
     it('should handle @dna: prefix correctly', async () => {
@@ -145,7 +151,7 @@ describe('Sample Command Insertion - Prefix Duplication Fix', () => {
 
       expect(mockEditBuilder.replace).toHaveBeenCalled();
       const replaceCall = mockEditBuilder.replace.mock.calls[0];
-      expect(replaceCall[1]).toMatch(/^@dna:DNA-\d+/);
+      expect(replaceCall[1]).toMatch(/^@dna[;:]DNA-\d+/);
     });
 
     it('should insert normally when no @type: prefix exists', async () => {
@@ -211,7 +217,7 @@ describe('Sample Command Insertion - Prefix Duplication Fix', () => {
       expect(mockEditBuilder.insert).not.toHaveBeenCalled();
 
       const replaceCall = mockEditBuilder.replace.mock.calls[0];
-      expect(replaceCall[1]).toMatch(/^@labware:Labware-999/);
+      expect(replaceCall[1]).toMatch(/^@labware[;:]Labware-999/);
     });
 
     it('should handle @rna: prefix correctly', async () => {
@@ -245,7 +251,89 @@ describe('Sample Command Insertion - Prefix Duplication Fix', () => {
 
       expect(mockEditBuilder.replace).toHaveBeenCalled();
       const replaceCall = mockEditBuilder.replace.mock.calls[0];
-      expect(replaceCall[1]).toMatch(/^@rna:RNA-888/);
+      expect(replaceCall[1]).toMatch(/^@rna[;:]RNA-888/);
+    });
+  });
+
+  // Phase C-3 regression: the TreeView `insertSampleDefinition` path used to
+  // insert text after an existing `@type;`/`@type:` prefix, leaving duplicates
+  // like `@dna:@dna;DNA-123;Alias`. With Phase C-2 it must detect the prefix
+  // under the caret and replace it instead.
+  describe('insertSampleDefinition TreeView command (Phase C-2)', () => {
+    it('should replace an existing @dna: prefix when inserting a DNA definition from the TreeView', async () => {
+      mockDocument.lineAt = vi.fn(() => ({
+        text: '@dna:',
+        range: { start: { line: 0, character: 0 }, end: { line: 0, character: 5 } },
+      }));
+      mockDocument.languageId = 'markdown';
+      mockPosition.character = 5;
+
+      const { activate } = await import('../extension');
+      const mockContext = {
+        subscriptions: [],
+        extensionUri: { fsPath: '/test' },
+        extensionPath: '/test',
+      };
+      await activate(mockContext as any);
+
+      const commandCalls = mockVscode.commands.registerCommand.mock.calls;
+      const insertDefCall = commandCalls.find(
+        (call: any[]) => call[0] === 'labnotev.insertSampleDefinition'
+      );
+      expect(insertDefCall).toBeDefined();
+      const handler = insertDefCall![1];
+
+      const item = {
+        itemType: 'sample',
+        sampleType: 'DNA',
+        sampleId: 'DNA-123',
+        alias: 'MyAlias',
+        sampleDescription: null,
+      };
+      // Force fallback to the activeTextEditor path (no sectionEditor doc).
+      await handler(item);
+
+      expect(mockEditBuilder.replace).toHaveBeenCalled();
+      expect(mockEditBuilder.insert).not.toHaveBeenCalled();
+      const replaceCall = mockEditBuilder.replace.mock.calls[0];
+      // The replacement text is the full definition including a single
+      // `@dna;` prefix — not two prefixes.
+      expect(replaceCall[1]).toBe('@dna;DNA-123;MyAlias');
+    });
+
+    it('should fall back to insert when no prefix is at the caret', async () => {
+      mockDocument.lineAt = vi.fn(() => ({
+        text: 'some body text',
+        range: { start: { line: 0, character: 0 }, end: { line: 0, character: 14 } },
+      }));
+      mockDocument.languageId = 'markdown';
+      mockPosition.character = 14;
+
+      const { activate } = await import('../extension');
+      const mockContext = {
+        subscriptions: [],
+        extensionUri: { fsPath: '/test' },
+        extensionPath: '/test',
+      };
+      await activate(mockContext as any);
+
+      const commandCalls = mockVscode.commands.registerCommand.mock.calls;
+      const insertDefCall = commandCalls.find(
+        (call: any[]) => call[0] === 'labnotev.insertSampleDefinition'
+      );
+      const handler = insertDefCall![1];
+
+      const item = {
+        itemType: 'sample',
+        sampleType: 'DNA',
+        sampleId: 'DNA-9',
+        alias: 'A',
+        sampleDescription: null,
+      };
+      await handler(item);
+
+      expect(mockEditBuilder.insert).toHaveBeenCalled();
+      expect(mockEditBuilder.replace).not.toHaveBeenCalled();
     });
   });
 });

@@ -49,10 +49,16 @@ export const mockVscode = {
   },
   ThemeIcon: class MockThemeIcon {
     id: string;
-    color?: string;
-    constructor(id: string, color?: string) {
+    color?: unknown;
+    constructor(id: string, color?: unknown) {
       this.id = id;
       this.color = color;
+    }
+  },
+  ThemeColor: class MockThemeColor {
+    id: string;
+    constructor(id: string) {
+      this.id = id;
     }
   },
   DecorationRangeBehavior: {
@@ -156,6 +162,15 @@ export const mockVscode = {
     delete = vi.fn();
   },
   ExtensionContext: vi.fn(),
+  DataTransferItem: class MockDataTransferItem {
+    value: unknown;
+    constructor(value: unknown) {
+      this.value = value;
+    }
+    asString(): Promise<string> {
+      return Promise.resolve(String(this.value));
+    }
+  },
 };
 
 vi.mock('vscode', () => mockVscode);

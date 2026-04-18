@@ -1,6 +1,6 @@
 import * as vscode from 'vscode';
 import * as path from 'path';
-import { SampleTreeViewProvider } from './views/SampleTreeViewProvider';
+import { SampleTreeViewProvider, SampleTreeDragAndDropController } from './views/SampleTreeViewProvider';
 import { WorkflowTreeViewProvider } from './views/WorkflowTreeViewProvider';
 import { createSampleCompletionProvider } from './providers/SampleCompletionProvider';
 import { initRemoteData, disposeRemoteData } from './lib/dataLoader';
@@ -55,10 +55,13 @@ export async function activate(context: vscode.ExtensionContext) {
     })
   );
 
-  // Register tree view
+  // Register tree view. Phase D-3: attach drag-and-drop controller so users
+  // can drag sample leaf nodes into any editor to insert their definition.
+  const sampleDndController = new SampleTreeDragAndDropController();
   const treeView = vscode.window.createTreeView('labnotev.sampleTreeView', {
     treeDataProvider: sampleTreeProvider,
     showCollapseAll: true,
+    dragAndDropController: sampleDndController,
   });
   context.subscriptions.push(treeView);
 

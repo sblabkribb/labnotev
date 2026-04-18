@@ -103,6 +103,26 @@ export function getDefinitionText(item: SampleTreeItem): string {
 }
 
 /**
+ * Phase B-4: Map a sample type to a VS Code ThemeColor id. We reuse the
+ * standard chart palette rather than inventing new ids so the icons respect
+ * the user's color theme. Unknown types fall back to the default icon color.
+ */
+function sampleTreeIconColor(sampleType: string | undefined): string | undefined {
+  if (!sampleType) return undefined;
+  const palette: Record<string, string> = {
+    DNA: 'charts.pink',
+    RNA: 'charts.blue',
+    Plasmid: 'charts.yellow',
+    Reagent: 'charts.purple',
+    Primer: 'charts.green',
+    Protein: 'charts.orange',
+    Equip: 'charts.foreground',
+    Labware: 'charts.lines',
+  };
+  return palette[sampleType];
+}
+
+/**
  * Sample TreeItem class
  */
 export class SampleTreeItem extends vscode.TreeItem {
@@ -147,9 +167,16 @@ export class SampleTreeItem extends vscode.TreeItem {
       case SampleTreeItemType.Root:
         this.iconPath = new vscode.ThemeIcon(this.scope === 'local' ? 'folder' : 'globe');
         break;
-      case SampleTreeItemType.Type:
-        this.iconPath = new vscode.ThemeIcon('symbol-class');
+      case SampleTreeItemType.Type: {
+        // Phase B-4: per-type ThemeIcon colors mirror the webview overlay so
+        // the TreeView and the editor highlight the same sample type with the
+        // same visual signal.
+        const color = sampleTreeIconColor(this.sampleType);
+        this.iconPath = color
+          ? new vscode.ThemeIcon('symbol-class', new vscode.ThemeColor(color))
+          : new vscode.ThemeIcon('symbol-class');
         break;
+      }
       case SampleTreeItemType.Sample:
         this.iconPath = new vscode.ThemeIcon('beaker');
         break;
@@ -170,6 +197,58 @@ export class SampleTreeItem extends vscode.TreeItem {
       }
       this.tooltip = parts.join('\n');
     }
+  }
+}
+
+/**
+ * Phase D-3: Drag-and-drop controller for the Samples tree view.
+ *
+ * Users can drag a Sample leaf node into any open text editor to insert its
+ * `@type;id;alias;description` definition. We advertise `text/plain` so VS
+ * Code's editor drop target accepts the payload natively; we also publish a
+ * labnotev-specific mime type so future in-tree drag targets (e.g. dropping
+ * between local/global) can round-trip richer metadata.
+ *
+ * Only `Sample` items emit a payload — dragging a root/type/detail node is a
+ * no-op, which keeps the UX predictable.
+ */
+export const SAMPLE_TREE_DND_MIME = 'application/vnd.code.tree.labnotevsampletreeview';
+
+export class SampleTreeDragAndDropController
+  implements vscode.TreeDragAndDropController<SampleTreeItem>
+{
+  readonly dropMimeTypes: readonly string[] = [SAMPLE_TREE_DND_MIME];
+  readonly dragMimeTypes: readonly string[] = ['text/plain', SAMPLE_TREE_DND_MIME];
+
+  public handleDrag(
+    source: readonly SampleTreeItem[],
+    dataTransfer: vscode.DataTransfer,
+    _token: vscode.CancellationToken
+  ): void {
+    const samples = source.filter(item => item.itemType === SampleTreeItemType.Sample);
+    if (samples.length === 0) return;
+
+    const textPayload = samples.map(item => getDefinitionText(item)).join('\n');
+    dataTransfer.set('text/plain', new vscode.DataTransferItem(textPayload));
+
+    const structuredPayload = samples.map(item => ({
+      scope: item.scope,
+      sampleType: item.sampleType,
+      sampleId: item.sampleId,
+      alias: item.alias ?? null,
+      sampleDescription: item.sampleDescription ?? null,
+    }));
+    dataTransfer.set(SAMPLE_TREE_DND_MIME, new vscode.DataTransferItem(structuredPayload));
+  }
+
+  /**
+   * Internal drops (inside the tree view) are not meaningful yet — moving a
+   * sample between local/global is handled by dedicated commands. We keep the
+   * handler so VS Code can still show the drop affordance; it intentionally
+   * performs no mutation.
+   */
+  public handleDrop(): void {
+    // no-op
   }
 }
 
@@ -297,8 +376,24 @@ export class SampleTreeViewProvider implements vscode.TreeDataProvider<SampleTre
   private getSampleItems(scope: 'local' | 'global', sampleType: string): SampleTreeItem[] {
     const folder = scope === 'local' ? this.localFolder : this.globalFolder;
     const samples = this.loadSamples(folder, sampleType);
+    const entries = Object.entries(samples);
 
-    return Object.entries(samples).map(([id, record]) => {
+    // Phase B-4: expose an empty-state Detail row so the user sees a clear
+    // "샘플 없음" placeholder and a hint for adding one, rather than a silent
+    // blank section that makes the TreeView look broken.
+    if (entries.length === 0) {
+      const hint = scope === 'local'
+        ? '샘플 없음 — 마우스 오른쪽 버튼 → "샘플 생성"'
+        : '샘플 없음 — 문서에서 @type;id 정의를 저장하면 자동 등록됩니다';
+      return [
+        new SampleTreeItem(hint, SampleTreeItemType.Detail, {
+          scope,
+          sampleType,
+        }),
+      ];
+    }
+
+    return entries.map(([id, record]) => {
       const label = formatSampleLabel(id, record.alias);
       return new SampleTreeItem(
         label,
@@ -412,11 +507,12 @@ export class SampleTreeViewProvider implements vscode.TreeDataProvider<SampleTre
 
     if (samples[sampleId]) {
       samples[sampleId].alias = alias;
-      if (description) {
-        if (!samples[sampleId].descriptions.includes(description)) {
-          samples[sampleId].descriptions = [description, ...samples[sampleId].descriptions];
-        }
-      }
+      // Phase A-5: the edit dialog pre-fills the current description and
+      // represents the user's latest intent, so we *overwrite* instead of
+      // prepending. Otherwise repeated edits accumulate stale descriptions
+      // and the InfoPanel/TreeView keep showing a history list the user
+      // cannot clear. Clearing the field also clears the array now.
+      samples[sampleId].descriptions = description ? [description] : [];
       this.saveSamples(folder, sampleType, samples);
       this.refresh();
     }

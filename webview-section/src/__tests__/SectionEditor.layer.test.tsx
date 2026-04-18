@@ -1,11 +1,19 @@
 import type { ReactNode } from 'react';
-import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { render, fireEvent } from '@testing-library/react';
 import { MantineProvider } from '@mantine/core';
 import { SectionEditor } from '../components/SectionEditor';
 import { UnitOpAccordion } from '../components/UnitOpAccordion';
 import * as vscodeApi from '../vscodeApi';
 import type { UnitOperationBlock } from '../types';
+
+// Phase A-1: mirror the extension's injected SAMPLE_TYPES / sampleTypeColors.
+// Without these props SampleHighlighter renders nothing and the overlay never
+// mounts, so this regression test would silently stop catching layering bugs.
+const DEFAULT_TYPES = ['DNA', 'RNA', 'Plasmid', 'Reagent', 'Primer', 'Protein', 'Equip', 'Labware'];
+const DEFAULT_COLORS: Record<string, string> = {
+  DNA: '#FFB6C1', RNA: '#87CEEB', Plasmid: '#FFFACD', Reagent: '#DDA0DD',
+  Primer: '#B0E0E6', Protein: '#F0E68C', Equip: '#A9A9A9', Labware: '#C0C0C0',
+};
 
 function renderWithMantine(ui: ReactNode) {
   return render(<MantineProvider>{ui}</MantineProvider>);
@@ -39,6 +47,8 @@ describe('Layer z-index regression (SectionEditor overlay must sit above textare
         heading="Test"
         content="샘플 DNA-001 사용"
         onChange={() => {}}
+        availableTypes={DEFAULT_TYPES}
+        sampleTypeColors={DEFAULT_COLORS}
       />
     );
 
@@ -68,7 +78,12 @@ describe('Layer z-index regression (SectionEditor overlay must sit above textare
     ];
 
     const { container } = renderWithMantine(
-      <UnitOpAccordion unitOperations={unitOperations} onChange={() => {}} />
+      <UnitOpAccordion
+        unitOperations={unitOperations}
+        onChange={() => {}}
+        availableTypes={DEFAULT_TYPES}
+        sampleTypeColors={DEFAULT_COLORS}
+      />
     );
 
     const control = container.querySelector('button.mantine-Accordion-control') as HTMLButtonElement | null;

@@ -1,4 +1,3 @@
-import { describe, it, expect } from 'vitest';
 import { parseImageLinks } from '../components/ImageThumbnails';
 
 describe('parseImageLinks', () => {

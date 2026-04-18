@@ -1,7 +1,7 @@
 import * as vscode from 'vscode';
 import * as fs from 'fs';
 import * as path from 'path';
-import { SampleType } from '../lib/sampleUtils';
+import { SampleType, findSamplePrefixRange } from '../lib/sampleUtils';
 import { generateSampleId } from '../lib/sampleUtils';
 import {
   SampleTreeViewProvider,
@@ -93,6 +93,8 @@ export function registerSampleCommands(
 
         const editor = vscode.window.activeTextEditor;
         if (editor && editor.document.languageId === 'markdown') {
+          // Phase C-2: the reference form ("ID" or "ID;alias") doesn't carry a
+          // `@type;` prefix, so there's nothing to dedupe here — insert as is.
           await editor.edit(editBuilder => {
             editBuilder.insert(editor.selection.active, insertText);
           });
@@ -111,12 +113,44 @@ export function registerSampleCommands(
 
         const secDoc = sectionEditorProvider?.getActiveDocument();
         if (secDoc) {
+          // Phase C-2: let the webview decide whether to strip a user-typed
+          // `@type;` prefix at the caret — it's the only side with access to
+          // the textarea caret context.
           await sectionEditorProvider!.insertSampleIntoDocument(secDoc, insertText);
           return;
         }
 
         const editor = vscode.window.activeTextEditor;
         if (editor && editor.document.languageId === 'markdown') {
+          // Phase C-2: if the caret is inside an existing `@type;`/`@type:`
+          // prefix that matches this sample's type, replace that prefix range
+          // instead of inserting after it — otherwise we end up with
+          // `@dna;@dna;DNA-123;...`. `findSamplePrefixRange` returns the range
+          // of the prefix the cursor is sitting in (or null for no match).
+          const sampleType = item.sampleType;
+          if (sampleType) {
+            const prefixRange = findSamplePrefixRange(
+              editor.document,
+              editor.selection.active,
+              sampleType
+            );
+            if (prefixRange) {
+              // Note: the 4-number constructor form of vscode.Range is used
+              // here (rather than Position, Position) to stay compatible with
+              // the test mock in src/__tests__/setup.ts, which mocks Range but
+              // not Position. Behavior is identical at runtime.
+              const range = new vscode.Range(
+                prefixRange.start.line,
+                prefixRange.start.character,
+                prefixRange.end.line,
+                prefixRange.end.character
+              );
+              await editor.edit(editBuilder => {
+                editBuilder.replace(range, insertText);
+              });
+              return;
+            }
+          }
           await editor.edit(editBuilder => {
             editBuilder.insert(editor.selection.active, insertText);
           });

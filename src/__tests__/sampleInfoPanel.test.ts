@@ -1,4 +1,3 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { mockVscode } from './setup';
 
 describe('Sample Info Panel', () => {
@@ -84,10 +83,10 @@ describe('Sample Info Panel', () => {
 
     it('should show message when no samples found', async () => {
       const { generateSampleListHtml } = await import('../views/SampleInfoPanel');
-      
+
       const html = generateSampleListHtml([]);
-      
-      expect(html).toContain('No sample IDs found');
+
+      expect(html).toContain('샘플 ID를 찾을 수 없습니다');
     });
   });
 
@@ -133,15 +132,33 @@ describe('Sample Info Panel', () => {
 
     it('should include action buttons (Rename, Replace, Go to)', async () => {
       const { generateSampleInfoHtml, SampleDisplayInfo } = await import('../views/SampleInfoPanel');
-      
+
       const samples: SampleDisplayInfo[] = [
         { id: 'DNA-123', type: 'DNA', alias: null, description: null, sources: [] }
       ];
       const html = generateSampleInfoHtml(samples);
-      
-      expect(html).toContain('Rename');
-      expect(html).toContain('Replace');
+
+      expect(html).toContain('이름 변경');
+      expect(html).toContain('다른 ID로 교체');
       expect(html).toContain('위치로 이동');
+    });
+
+    it('should escape HTML in sample id, type, alias and description', async () => {
+      const { generateSampleInfoHtml, SampleDisplayInfo } = await import('../views/SampleInfoPanel');
+
+      const samples: SampleDisplayInfo[] = [
+        { id: 'DNA-<script>', type: 'DNA"bad"', alias: '<img onerror>', description: '<b>x</b>', sources: ['<a>src</a>'] }
+      ];
+      const html = generateSampleInfoHtml(samples);
+
+      expect(html).not.toContain('<script>');
+      expect(html).not.toContain('<img onerror>');
+      expect(html).not.toContain('<b>x</b>');
+      expect(html).not.toContain('DNA"bad"');
+      expect(html).toContain('&lt;script&gt;');
+      expect(html).toContain('&lt;img onerror&gt;');
+      expect(html).toContain('&lt;b&gt;x&lt;/b&gt;');
+      expect(html).toContain('DNA&quot;bad&quot;');
     });
   });
 

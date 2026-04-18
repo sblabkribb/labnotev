@@ -1,6 +1,6 @@
-import { useRef, useEffect, useState } from 'react';
+import { useRef, useState } from 'react';
 import { Title, Paper, Stack, Group, ActionIcon, Tooltip } from '@mantine/core';
-import { SampleHighlighter, highlightSampleIds } from './SampleHighlighter';
+import { HighlightedTextarea } from './HighlightedTextarea';
 import { ImageThumbnails } from './ImageThumbnails';
 import { AttachmentLinks } from './AttachmentLinks';
 import { TableInsertModal } from './TableInsertModal';
@@ -18,6 +18,7 @@ interface SectionEditorProps {
   docBaseUri?: string;
   requestFocusAt?: { pos: number; tick: number } | null;
   availableTypes?: string[];
+  sampleTypeColors?: Record<string, string>;
   sampleDefs?: SampleDefMap;
   onAttachFile?: () => void;
 }
@@ -33,36 +34,13 @@ export function SectionEditor({
   docBaseUri,
   requestFocusAt,
   availableTypes,
+  sampleTypeColors,
   sampleDefs,
   onAttachFile,
 }: SectionEditorProps) {
   const order = headingLevel === 'h2' ? 2 : headingLevel === 'h3' ? 3 : 4;
   const textareaRef = useRef<HTMLTextAreaElement>(null);
-  const overlayRef = useRef<HTMLDivElement>(null);
-  const [hasSamples, setHasSamples] = useState(false);
   const [tableModalOpen, setTableModalOpen] = useState(false);
-
-  useEffect(() => {
-    setHasSamples(highlightSampleIds(content, availableTypes));
-  }, [content, availableTypes]);
-
-  useEffect(() => {
-    const ta = textareaRef.current;
-    if (!ta) return;
-    ta.style.height = 'auto';
-    ta.style.height = ta.scrollHeight + 'px';
-  }, [content]);
-
-  useEffect(() => {
-    if (!requestFocusAt) return;
-    const ta = textareaRef.current;
-    if (!ta) return;
-    requestAnimationFrame(() => {
-      ta.focus();
-      ta.selectionStart = ta.selectionEnd = requestFocusAt.pos;
-      reportCursor();
-    });
-  }, [requestFocusAt?.tick]);
 
   const reportCursor = () => {
     if (textareaRef.current && onCursorActivity) {
@@ -77,53 +55,6 @@ export function SectionEditor({
     handlePaste,
     cursorInTable,
   } = useTableEditing(textareaRef, content, onChange, reportCursor);
-
-  const syncScroll = () => {
-    if (textareaRef.current && overlayRef.current) {
-      overlayRef.current.scrollTop = textareaRef.current.scrollTop;
-      overlayRef.current.scrollLeft = textareaRef.current.scrollLeft;
-    }
-  };
-
-  const textareaStyle: React.CSSProperties = {
-    fontFamily: 'monospace',
-    fontSize: '13px',
-    lineHeight: '1.55',
-    width: '100%',
-    padding: '8px',
-    border: '1px solid var(--mantine-color-default-border)',
-    borderRadius: '4px',
-    resize: 'none',
-    overflow: 'hidden',
-    minHeight: `${minRows * 1.55 * 13 + 16}px`,
-    background: hasSamples ? 'transparent' : 'var(--mantine-color-body)',
-    position: hasSamples ? 'relative' : undefined,
-    zIndex: hasSamples ? 2 : undefined,
-    caretColor: 'var(--mantine-color-text)',
-    color: hasSamples ? 'transparent' : 'var(--mantine-color-text)',
-  };
-
-  const overlayStyle: React.CSSProperties = {
-    fontFamily: 'monospace',
-    fontSize: '13px',
-    lineHeight: '1.55',
-    padding: '8px',
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
-    pointerEvents: 'none',
-    whiteSpace: 'pre-wrap',
-    wordWrap: 'break-word',
-    overflow: 'hidden',
-    // Overlay must sit above the transparent textarea (z-index: 2) so sample
-    // spans (pointer-events: auto) can receive hover events for HoverCard.
-    // The overlay itself keeps pointer-events: none, so clicks on non-sample
-    // regions still pass through to the textarea.
-    zIndex: 3,
-    color: 'var(--mantine-color-text)',
-  };
 
   return (
     <Paper p="sm" withBorder>
@@ -162,25 +93,20 @@ export function SectionEditor({
           </Group>
         </Group>
 
-        <div style={{ position: 'relative' }}>
-          {hasSamples && (
-            <div ref={overlayRef} style={overlayStyle}>
-              <SampleHighlighter text={content} interactive availableTypes={availableTypes} sampleDefs={sampleDefs} />
-            </div>
-          )}
-          <textarea
-            ref={textareaRef}
-            value={content}
-            onChange={(e) => { onChange(e.currentTarget.value); reportCursor(); }}
-            onFocus={() => { onFocus?.(); reportCursor(); }}
-            onClick={reportCursor}
-            onKeyUp={reportCursor}
-            onKeyDown={handleKeyDown}
-            onPaste={handlePaste}
-            onScroll={syncScroll}
-            style={textareaStyle}
-          />
-        </div>
+        <HighlightedTextarea
+          ref={textareaRef}
+          value={content}
+          onChange={onChange}
+          onFocus={onFocus}
+          onCursorChange={onCursorActivity}
+          onKeyDown={handleKeyDown}
+          onPaste={handlePaste}
+          minRows={minRows}
+          availableTypes={availableTypes}
+          sampleTypeColors={sampleTypeColors}
+          sampleDefs={sampleDefs}
+          requestFocusAt={requestFocusAt}
+        />
         {docBaseUri && <ImageThumbnails content={content} docBaseUri={docBaseUri} />}
         <AttachmentLinks content={content} />
       </Stack>

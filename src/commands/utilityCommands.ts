@@ -1,6 +1,6 @@
 import * as vscode from 'vscode';
 import * as path from 'path';
-import { SampleType, SAMPLE_TYPES, findSamplePrefixRange, generateSampleId } from '../lib/sampleUtils';
+import { SampleType, SAMPLE_TYPES, findSamplePrefixRange, generateSampleId, buildSampleIdPattern } from '../lib/sampleUtils';
 import {
   getSeoulDateString,
   getSeoulDateTimeString,
@@ -363,7 +363,7 @@ export function registerUtilityCommands(
       const line = document.lineAt(lineNum);
 
       for (const type of allTypes) {
-        const pattern = new RegExp(`\\b${type}-\\d+(?:-\\d+)*\\b`, 'g');
+        const pattern = buildSampleIdPattern(type);
         let match;
 
         while ((match = pattern.exec(line.text)) !== null) {

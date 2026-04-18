@@ -5,7 +5,7 @@ import { parseLabNoteMd, serializeLabNoteMd } from './lib/labnoteSectionParser';
 import { parseWorkflowMd, serializeWorkflowMd } from './lib/workflowSectionParser';
 import type { UnitOperationBlock, WorkflowReference } from './lib/sectionTypes';
 import { getSeoulDateTimeString } from './lib/dateUtils';
-import { SAMPLE_TYPES, generateSampleId } from './lib/sampleUtils';
+import { generateSampleId, getSampleDisplayMeta, type SampleDisplayMeta } from './lib/sampleUtils';
 import { findSampleDefinitionMatch } from './lib/sampleStorage';
 import { showProductPicker } from './lib/productPicker';
 import { parseWorkflowChecklistFromReadme, generateWorkflowChecklist, updateReadmeWorkflowSection } from './lib/workflowStructure';
@@ -108,9 +108,24 @@ export function detectMdFileType(content: string): MdFileType {
   return 'unknown';
 }
 
-function getAvailableTypes(): string[] {
+/**
+ * Read the user's `labnotev.customSampleTypes` config and funnel it through
+ * the single `getSampleDisplayMeta` entry point. All call sites that need
+ * "available types" and/or "type -> color" derive from this one result so the
+ * init payload, customTypesUpdated messages, and sampleDefs builders stay in
+ * lock-step.
+ */
+function readSampleDisplayMeta(): SampleDisplayMeta {
   const custom = vscode.workspace.getConfiguration('labnotev').get<string[]>('customSampleTypes', []);
-  return [...SAMPLE_TYPES, ...custom.filter(t => !(SAMPLE_TYPES as readonly string[]).includes(t))];
+  return getSampleDisplayMeta(custom);
+}
+
+function getAvailableTypes(): string[] {
+  return readSampleDisplayMeta().types;
+}
+
+function getSampleTypeColorMap(): Record<string, string> {
+  return readSampleDisplayMeta().colors;
 }
 
 export function buildUnitOperationBlock(
@@ -320,7 +335,11 @@ export class SectionEditorProvider implements vscode.CustomTextEditorProvider {
         }
 
         case 'createSampleFromModal': {
-          const { sampleType: reqType, alias, description, opIndex, secIndex } = message.data || {};
+          // Phase C-1: forward the stable identifiers (opId + secHeading) the
+          // webview resolved at submit time, so the webview can re-locate the
+          // target section even if unit operations have been reordered,
+          // inserted, or removed in the meantime.
+          const { sampleType: reqType, alias, description, opIndex, secIndex, opId, secHeading } = message.data || {};
           if (!reqType || !this._sampleTreeProvider) break;
 
           const newId = generateSampleId(reqType);
@@ -333,7 +352,7 @@ export class SectionEditorProvider implements vscode.CustomTextEditorProvider {
 
           webviewPanel.webview.postMessage({
             type: 'sampleDefinitionCreated',
-            data: { definitionText, opIndex, secIndex },
+            data: { definitionText, opIndex, secIndex, opId, secHeading },
           });
           webviewPanel.webview.postMessage({
             type: 'sampleDefsUpdated',
@@ -365,9 +384,13 @@ export class SectionEditorProvider implements vscode.CustomTextEditorProvider {
             const updated = [...existing, typeName];
             await config.update('customSampleTypes', updated, vscode.ConfigurationTarget.Workspace);
           }
+          const updatedMeta = readSampleDisplayMeta();
           webviewPanel.webview.postMessage({
             type: 'customTypesUpdated',
-            data: { availableTypes: getAvailableTypes() },
+            data: {
+              availableTypes: updatedMeta.types,
+              sampleTypeColors: updatedMeta.colors,
+            },
           });
           break;
         }
@@ -541,7 +564,7 @@ export class SectionEditorProvider implements vscode.CustomTextEditorProvider {
         }
       }
 
-      const availableTypes = getAvailableTypes();
+      const meta = readSampleDisplayMeta();
       webviewPanel.webview.postMessage({
         type: 'init',
         data: {
@@ -549,8 +572,9 @@ export class SectionEditorProvider implements vscode.CustomTextEditorProvider {
           labNote,
           linkedWorkflows,
           docBaseUri,
-          availableTypes,
-          sampleDefs: buildSampleDefMap(document.uri, availableTypes),
+          availableTypes: meta.types,
+          sampleTypeColors: meta.colors,
+          sampleDefs: buildSampleDefMap(document.uri, meta.types),
         },
       });
     } else if (mode === 'workflow') {
@@ -558,7 +582,7 @@ export class SectionEditorProvider implements vscode.CustomTextEditorProvider {
       const readmePath = path.join(docDir, 'README.labnote.md');
       const parentLabNotePath = fs.existsSync(readmePath) ? 'README.labnote.md' : undefined;
 
-      const availableTypes = getAvailableTypes();
+      const meta = readSampleDisplayMeta();
       webviewPanel.webview.postMessage({
         type: 'init',
         data: {
@@ -566,8 +590,9 @@ export class SectionEditorProvider implements vscode.CustomTextEditorProvider {
           workflow,
           parentLabNotePath,
           docBaseUri,
-          availableTypes,
-          sampleDefs: buildSampleDefMap(document.uri, availableTypes),
+          availableTypes: meta.types,
+          sampleTypeColors: meta.colors,
+          sampleDefs: buildSampleDefMap(document.uri, meta.types),
         },
       });
     }

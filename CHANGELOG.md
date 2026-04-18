@@ -5,6 +5,28 @@
 형식은 [Keep a Changelog](https://keepachangelog.com/ko/1.1.0/)를 기반으로 하며,
 이 프로젝트는 [유의적 버전 관리](https://semver.org/lang/ko/)를 따릅니다.
 
+## [0.46.0] - 2026-04-18
+
+### Added
+- **TreeView 드래그 앤 드롭**: Sample TreeView의 샘플 노드를 에디터로 드래그하면 `@type;ID;별칭;설명` 정의가 자동 삽입됨. 다중 선택 시 여러 줄로 삽입되며, Equip 타입은 ID를 생략한 포맷을 따름
+- **샘플 TreeView 타입 아이콘 색상**: 타입 노드 아이콘이 본문 하이라이트와 동일한 팔레트로 표시되어 DNA/RNA/Plasmid 등을 시각적으로 즉시 구분 가능
+- **샘플 TreeView 빈 상태 안내**: 타입에 샘플이 없을 때 "샘플 없음" 안내 행을 표시 (Local은 우클릭으로 생성, Global은 본문 저장 시 자동 등록된다는 힌트 포함)
+- **한국어 조사 헬퍼**: `src/lib/josa.ts`의 `josa`/`withJosa`로 `을/를`, `이/가`, `은/는`, `와/과`, `으로/로`(ㄹ 받침 특수 처리 포함)를 받침 유무에 따라 자동 선택. SampleInfoPanel의 안내 메시지에서 어색한 `을(를)` 표기 제거
+
+### Changed
+- **샘플 정의 삽입 시 프리픽스 중복 제거**: TreeView의 Insert Definition 및 Section Editor 웹뷰 모두에서, 커서 앞에 이미 `@type;` 또는 `@type:` 프리픽스가 타이핑되어 있으면 새 정의가 프리픽스를 중복 삽입하지 않고 해당 범위를 교체하도록 개선
+- **샘플 정의 생성 라우팅 안정화**: `sampleDefinitionCreated` 메시지가 동적으로 순서가 바뀐 유닛 오퍼레이션에서도 올바른 섹션에 삽입되도록 `opId`/`secHeading` 기반 조회를 우선 사용(인덱스는 폴백)
+- **샘플 정보 패널 한국어화**: `Sample Info` → `샘플 정보`, `Rename` → `이름 변경`, `Replace` → `다른 ID로 교체`, `Sources` → `출처` 등으로 통일. 패널 생성 HTML 전체에 `escapeHtml` 일관 적용으로 특수문자 안전성 강화
+- **샘플 디스플레이 메타 단일 소스화**: `getSampleDisplayMeta(customTypes)`를 `sampleUtils`에 신설하고 Section Editor의 `availableTypes`/`sampleTypeColors`/`customTypesUpdated` 메시지가 모두 이 단일 엔트리에서 파생되도록 통합
+- **자동완성 성능 개선**: `SampleCompletionProvider`가 `@`가 없는 라인에서 조기 반환하고, 로컬·글로벌 샘플 JSON의 `mtimeMs` 기반 인메모리 캐시를 도입해 타이핑 중 디스크 재읽기를 최소화. 트리거 문자도 `@`, `;`, `:` 3개로 축소
+- **샘플 생성 모달 UX**: 모달 오픈 시 자동 포커스, 필수 항목 표시, 비정상 문자 검증, `submitting` 상태 시 로딩 표시 및 중복 제출 방지, Enter 키 폼 제출 지원
+- **샘플 하이라이트 클릭 통과**: 투명 textarea 오버레이 위의 샘플 토큰 클릭 시에도 실제 textarea 캐럿이 정확한 위치로 이동하도록 개선. "정의로 이동" 버튼은 정의가 없을 때 비활성화되며 툴팁으로 이유 안내
+- **샘플 설명 편집 동작**: Edit 다이얼로그에서 설명 필드를 수정/비우면 기존 설명 배열을 덮어써 저장하도록 변경 (이전에는 누적되어 InfoPanel/TreeView에 과거 설명이 남아 있었음)
+
+### Fixed
+- **커서 위치 폴백 일관화**: 샘플·텍스트·이미지 삽입 시 `cursorPos`가 없을 때 `original.length`로 일관되게 폴백해 삽입 후 실제 위치(`actualPos`)가 정확히 반영되도록 수정
+- **ID 패턴 통일**: `buildSampleIdPattern`으로 저장 추출·본문 하이라이팅·InfoPanel 교체가 모두 `(?:-\d+)*` 세그먼트를 공유하게 되어 `DNA-1737000000000-3` 같은 충돌 해결 ID도 동일하게 매칭됨
+
 ## [0.45.1] - 2026-04-18
 
 ### Fixed

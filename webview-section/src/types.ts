@@ -74,6 +74,8 @@ export type ExtensionToWebviewMessage =
         parentLabNotePath?: string;
         docBaseUri?: string;
         availableTypes?: string[];
+        /** Built-in + custom sample type → hex color map, injected from extension sampleUtils. */
+        sampleTypeColors?: Record<string, string>;
         sampleDefs?: SampleDefMap;
       };
     }
@@ -82,12 +84,12 @@ export type ExtensionToWebviewMessage =
   | { type: 'sampleInserted'; data: { text: string } }
   | { type: 'textInserted'; data: { text: string } }
   | { type: 'workflowAdded'; data: WorkflowReference & { workflow?: WorkflowDocument } }
-  | { type: 'sampleDefinitionCreated'; data: { definitionText: string; opIndex: number; secIndex: number } }
+  | { type: 'sampleDefinitionCreated'; data: { definitionText: string; opIndex: number; secIndex: number; opId?: string; secHeading?: string } }
   | { type: 'documentChanged'; data: { labNote?: LabNoteDocument; workflow?: WorkflowDocument } }
   | { type: 'saveCompleted' }
   | { type: 'imagePasted'; data: { markdownText: string } }
   | { type: 'productSearchResult'; data: { alias: string; description: string } }
-  | { type: 'customTypesUpdated'; data: { availableTypes: string[] } }
+  | { type: 'customTypesUpdated'; data: { availableTypes: string[]; sampleTypeColors?: Record<string, string> } }
   | { type: 'scrollToSample'; data: { area: string; sectionIndex?: number; opIndex?: number; secIndex?: number; localOffset: number } }
   | {
       type: 'fileAttached';
@@ -106,7 +108,7 @@ export type WebviewToExtensionMessage =
   | { type: 'save'; data: any }
   | { type: 'openAsText' }
   | { type: 'openImagePreview'; data: { imagePath: string; altText?: string } }
-  | { type: 'createSampleFromModal'; data: { sampleType: string; alias: string; description: string; opIndex: number; secIndex: number } }
+  | { type: 'createSampleFromModal'; data: { sampleType: string; alias: string; description: string; opIndex: number; secIndex: number; opId?: string; secHeading?: string } }
   | { type: 'searchProducts'; data: { sampleType: string } }
   | { type: 'addCustomType'; data: { typeName: string } }
   | { type: 'navigateToSample'; data: { sampleId: string; sampleType: string } }

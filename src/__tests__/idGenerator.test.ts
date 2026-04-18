@@ -1,4 +1,3 @@
-import { describe, it, expect, beforeEach } from 'vitest';
 import { generateSampleId, resetIdCounter, SAMPLE_TYPES } from '../lib/sampleUtils';
 
 describe('ID Generator', () => {

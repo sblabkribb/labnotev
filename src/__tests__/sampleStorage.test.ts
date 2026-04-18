@@ -1,4 +1,3 @@
-import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import * as fs from 'fs';
 import * as path from 'path';
 import * as os from 'os';
@@ -154,6 +153,38 @@ describe('Sample Storage', () => {
       expect(samples.length).toBe(1);
       expect(samples[0].id).toBe('DNA-100');
       expect(samples[0].alias).toBe('Test');
+    });
+
+    // Phase C-3: alias with unicode/spaces/trademark roundtrips through
+    // extract + buildSampleDatabase without truncation. ';', '|', ':' are
+    // delimiters, so we don't test those here (they're expected to break the
+    // alias), but ™/spaces/한글 should survive.
+    it('should roundtrip alias containing unicode, spaces and ™ symbol', async () => {
+      const { extractSampleInfoFromText, buildSampleDatabase } = await import('../lib/sampleStorage');
+
+      const text = '@reagent;Reagent-1;UltraPure™ Buffer (PBS);완충액 설명';
+      const samples = extractSampleInfoFromText(text);
+      const db = buildSampleDatabase(samples, 'exp.md');
+
+      expect(samples).toHaveLength(1);
+      expect(samples[0].alias).toBe('UltraPure™ Buffer (PBS)');
+      expect(samples[0].description).toBe('완충액 설명');
+      expect(db['Reagent']['Reagent-1'].alias).toBe('UltraPure™ Buffer (PBS)');
+    });
+
+    // Phase C-3: DNA-1 and RNA-1 share the numeric counter but live in different
+    // type namespaces; buildSampleDatabase groups by type, so both should be
+    // preserved instead of colliding on the `-1` suffix.
+    it('should preserve DNA-1 and RNA-1 as separate entries under their types', async () => {
+      const { extractSampleInfoFromText, buildSampleDatabase } = await import('../lib/sampleStorage');
+
+      const text = '@dna;DNA-1;aliasD\n@rna;RNA-1;aliasR';
+      const samples = extractSampleInfoFromText(text);
+      const db = buildSampleDatabase(samples, 'x.md');
+
+      expect(samples).toHaveLength(2);
+      expect(db['DNA']?.['DNA-1']?.alias).toBe('aliasD');
+      expect(db['RNA']?.['RNA-1']?.alias).toBe('aliasR');
     });
   });
 
@@ -398,6 +429,35 @@ Sample Tracking: YES
       const data = JSON.parse(fs.readFileSync(dnaPath, 'utf8')) as Record<string, { alias?: string | null }>;
       expect(data['DNA-1']).toBeDefined();
       expect(data['DNA-1'].alias).toBe('myAlias');
+    });
+
+    // Phase C-3 regression: on Windows the filesystem is case-insensitive, so
+    // two folder paths that only differ in case must be treated as the same
+    // labsamples folder (no duplicate writes, no "already exists in global"
+    // false positive). This test runs on win32 only — on POSIX these would be
+    // genuinely distinct directories and the behaviour is covered by the
+    // sibling test above.
+    const winIt = process.platform === 'win32' ? it : it.skip;
+    winIt('treats case-variant Windows paths as the same labsamples folder', async () => {
+      const { saveSamplesFromDocument } = await import('../lib/sampleStorage');
+      tmpRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'lnv-win-case-'));
+      const docPath = path.join(tmpRoot, 'note.labnote.md');
+      fs.mkdirSync(path.dirname(docPath), { recursive: true });
+      const globalFolderLower = path.join(tmpRoot, 'resources', 'labsamples');
+      const globalFolderUpper = path.join(tmpRoot, 'RESOURCES', 'LABSAMPLES');
+
+      // First write with one casing, second with the other. If the case check
+      // doesn't normalise, we'd see duplicate local/global writes.
+      saveSamplesFromDocument(docPath, '@dna;DNA-1;first', globalFolderLower);
+      saveSamplesFromDocument(docPath, '@dna;DNA-1;second', globalFolderUpper);
+
+      const dnaPath = path.join(globalFolderLower, 'dna.json');
+      expect(fs.existsSync(dnaPath)).toBe(true);
+      const data = JSON.parse(fs.readFileSync(dnaPath, 'utf8')) as Record<string, { alias?: string | null }>;
+      expect(data['DNA-1']).toBeDefined();
+      // The second write must overwrite, not create an orphan in the upper
+      // case variant that is actually the same on-disk folder.
+      expect(data['DNA-1'].alias).toBe('second');
     });
 
     it('does not write to local dna.json when sample id already exists in a distinct global labsamples folder', async () => {

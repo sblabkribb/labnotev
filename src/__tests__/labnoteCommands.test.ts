@@ -1,4 +1,3 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { mockVscode } from './setup';
 
 // We will test the command handlers through the extension activation

@@ -3,11 +3,27 @@
  * Pure functions and constants that can be shared between Extension and Webview
  */
 
+import { escapeRegExp } from './regexUtils';
+
 /**
  * Sample types available
  */
 export const SAMPLE_TYPES = ['DNA', 'RNA', 'Plasmid', 'Reagent', 'Primer', 'Protein', 'Equip', 'Labware'] as const;
 export type SampleType = typeof SAMPLE_TYPES[number];
+
+/**
+ * Canonical sample-id regex segment used everywhere: storage extraction,
+ * document highlighting, SampleInfoPanel replace. Kept as (?:-\d+)* so that
+ * collision-resolved ids (e.g. DNA-1737000000000-3) still match, and future
+ * multi-segment counters do not drift the three consumers apart.
+ *
+ * The returned RegExp carries the `g` flag so callers can use `match()` /
+ * `replace()` directly; each call returns a *new* instance to avoid the
+ * stateful `lastIndex` footgun on shared regex objects.
+ */
+export function buildSampleIdPattern(type: string): RegExp {
+  return new RegExp(`\\b${escapeRegExp(type)}-\\d+(?:-\\d+)*\\b`, 'g');
+}
 
 /**
  * Colors for each sample type (used in highlighting and UI)
@@ -22,6 +38,41 @@ export const sampleTypeColors: Record<SampleType, string> = {
   Equip: '#FFA07A',
   Labware: '#D8BFD8',
 };
+
+/**
+ * Fallback color for user-defined custom types that do not have an explicit
+ * entry in `sampleTypeColors`. Kept in sync with the webview's default.
+ */
+export const CUSTOM_SAMPLE_TYPE_FALLBACK_COLOR = '#607D8B';
+
+/**
+ * Single source of truth for "what sample types exist right now and what
+ * colors do they use" on the extension side. Previously the `SectionEditor`
+ * provider maintained two parallel helpers (`getAvailableTypes`,
+ * `getSampleTypeColorMap`) that each re-read the user's
+ * `labnotev.customSampleTypes` setting and applied slightly different merge
+ * rules. Having a single entry point keeps the init payload consistent and
+ * guarantees the webview sees `types` and `colors` that agree — every built-in
+ * + custom type ends up in both collections, with a stable fallback color so
+ * no lookup ever returns undefined.
+ */
+export interface SampleDisplayMeta {
+  types: string[];
+  colors: Record<string, string>;
+}
+
+export function getSampleDisplayMeta(customTypes: readonly string[] = []): SampleDisplayMeta {
+  const builtins = SAMPLE_TYPES as readonly string[];
+  const merged = [...builtins];
+  for (const t of customTypes) {
+    if (t && !merged.includes(t)) merged.push(t);
+  }
+  const colors: Record<string, string> = { ...(sampleTypeColors as Record<string, string>) };
+  for (const t of merged) {
+    if (!(t in colors)) colors[t] = CUSTOM_SAMPLE_TYPE_FALLBACK_COLOR;
+  }
+  return { types: merged, colors };
+}
 
 // Counter for generating unique IDs within the same millisecond
 let idCounter = 0;
