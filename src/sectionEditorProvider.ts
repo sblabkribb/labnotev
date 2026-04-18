@@ -177,6 +177,11 @@ export class SectionEditorProvider implements vscode.CustomTextEditorProvider {
   public static readonly viewType = 'labnotev.sectionEditor';
 
   private activeEditor: ActiveEditor | undefined;
+  // Kept in sync with `activeEditor` but NOT cleared when the webview becomes
+  // inactive (e.g. when focusing the TreeView). Used as a fallback so that
+  // sample inserts from the TreeView still post messages to the last webview
+  // the user was editing. Cleared only on dispose.
+  private _lastActiveEditor: ActiveEditor | undefined;
   private _suppressDocChange = false;
   private _sampleTreeProvider: SampleTreeViewProvider | undefined;
 
@@ -187,16 +192,17 @@ export class SectionEditorProvider implements vscode.CustomTextEditorProvider {
   }
 
   public getActiveDocument(): vscode.TextDocument | undefined {
-    return this.activeEditor?.document;
+    return (this.activeEditor ?? this._lastActiveEditor)?.document;
   }
 
   public getEditorMode(): MdFileType | undefined {
-    return this.activeEditor?.mode;
+    return (this.activeEditor ?? this._lastActiveEditor)?.mode;
   }
 
   public getDocumentFolder(): string | undefined {
-    if (!this.activeEditor) return undefined;
-    return path.dirname(this.activeEditor.document.uri.fsPath);
+    const editor = this.activeEditor ?? this._lastActiveEditor;
+    if (!editor) return undefined;
+    return path.dirname(editor.document.uri.fsPath);
   }
 
   public async appendUnitOpToDocument(
@@ -231,8 +237,11 @@ export class SectionEditorProvider implements vscode.CustomTextEditorProvider {
     document: vscode.TextDocument,
     sampleText: string
   ): Promise<void> {
-    if (this.activeEditor?.document === document) {
-      this.activeEditor.webviewPanel.webview.postMessage({
+    const editor = this.activeEditor?.document === document
+      ? this.activeEditor
+      : (this._lastActiveEditor?.document === document ? this._lastActiveEditor : undefined);
+    if (editor) {
+      editor.webviewPanel.webview.postMessage({
         type: 'sampleInserted',
         data: { text: sampleText },
       });
@@ -240,8 +249,9 @@ export class SectionEditorProvider implements vscode.CustomTextEditorProvider {
   }
 
   public async insertTextToActiveEditor(text: string): Promise<void> {
-    if (this.activeEditor) {
-      this.activeEditor.webviewPanel.webview.postMessage({
+    const editor = this.activeEditor ?? this._lastActiveEditor;
+    if (editor) {
+      editor.webviewPanel.webview.postMessage({
         type: 'textInserted',
         data: { text },
       });
@@ -269,6 +279,7 @@ export class SectionEditorProvider implements vscode.CustomTextEditorProvider {
     const mode = detectMdFileType(content);
 
     this.activeEditor = { document, webviewPanel, mode };
+    this._lastActiveEditor = this.activeEditor;
     if (document.uri.fsPath.endsWith('.labnote.md') && this._sampleTreeProvider) {
       const experimentFolder = path.dirname(document.uri.fsPath);
       this._sampleTreeProvider.updateDocumentFolder(experimentFolder);
@@ -499,11 +510,14 @@ export class SectionEditorProvider implements vscode.CustomTextEditorProvider {
     webviewPanel.onDidChangeViewState(() => {
       if (webviewPanel.active) {
         this.activeEditor = { document, webviewPanel, mode };
+        this._lastActiveEditor = this.activeEditor;
         if (document.uri.fsPath.endsWith('.labnote.md') && this._sampleTreeProvider) {
           const experimentFolder = path.dirname(document.uri.fsPath);
           this._sampleTreeProvider.updateDocumentFolder(experimentFolder);
         }
       } else if (this.activeEditor?.document === document) {
+        // Only clear `activeEditor`; keep `_lastActiveEditor` so TreeView
+        // inserts still target the last webview the user was editing.
         this.activeEditor = undefined;
       }
     });
@@ -511,6 +525,9 @@ export class SectionEditorProvider implements vscode.CustomTextEditorProvider {
     webviewPanel.onDidDispose(() => {
       if (this.activeEditor?.document === document) {
         this.activeEditor = undefined;
+      }
+      if (this._lastActiveEditor?.document === document) {
+        this._lastActiveEditor = undefined;
       }
     });
 

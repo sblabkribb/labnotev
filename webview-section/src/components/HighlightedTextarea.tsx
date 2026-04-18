@@ -89,7 +89,7 @@ export const HighlightedTextarea = forwardRef<HTMLTextAreaElement, HighlightedTe
       if (!requestFocusAt) return;
       const ta = textareaRef.current;
       if (!ta) return;
-      requestAnimationFrame(() => {
+      const rafId = requestAnimationFrame(() => {
         // `preventScroll: true` stops the browser from scrolling the outer
         // container to bring the caret into view. The caret offset itself is
         // still set correctly; this avoids the visual "cursor jumped" effect
@@ -98,6 +98,10 @@ export const HighlightedTextarea = forwardRef<HTMLTextAreaElement, HighlightedTe
         ta.selectionStart = ta.selectionEnd = requestFocusAt.pos;
         reportCursor();
       });
+      // Cancel a pending rAF if `tick` changes before the callback fires, or
+      // if the component unmounts. Without this, stale callbacks can race
+      // with a newer focus request and leave the caret at the old offset.
+      return () => cancelAnimationFrame(rafId);
       // Only re-run when `tick` changes; `reportCursor` intentionally not in deps.
       // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [requestFocusAt?.tick]);

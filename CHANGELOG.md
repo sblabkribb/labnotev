@@ -5,6 +5,13 @@
 형식은 [Keep a Changelog](https://keepachangelog.com/ko/1.1.0/)를 기반으로 하며,
 이 프로젝트는 [유의적 버전 관리](https://semver.org/lang/ko/)를 따릅니다.
 
+## [0.47.3] - 2026-03-26
+
+### Fixed
+- **TreeView Insert 버튼 무응답**: 샘플 TreeView 항목을 클릭하면 포커스가 TreeView로 이동해 `webviewPanel.active`가 `false`가 되고, 이때 `activeEditor`가 해제되어 삽입이 아무 반응 없이 조용히 무시되던 문제 수정. 마지막 활성 웹뷰를 기억하는 `_lastActiveEditor` fallback을 추가해 TreeView 포커스 상태에서도 정상적으로 Insert 메시지가 전달되도록 개선
+- **샘플 삽입 직후 커서 점프**: `pendingCursor` 상태가 소비된 뒤에도 리셋되지 않아, 아코디언을 접었다 다시 펼치는 등 컴포넌트가 리마운트될 때 오래된 caret 위치가 재적용되어 엉뚱한 곳으로 이동하던 문제 수정. 샘플/이미지/`scrollToSample` 삽입 후 다음 렌더 사이클에서 `pendingCursor`를 명시적으로 해제
+- **연속 포커스 요청 레이스 컨디션**: `HighlightedTextarea`의 `requestFocusAt` 처리에서 `requestAnimationFrame` 핸들이 취소되지 않아, 빠른 연속 삽입 시 이전 rAF 콜백이 뒤늦게 실행되어 caret이 엇갈리던 문제 수정 (`cancelAnimationFrame` cleanup 추가)
+
 ## [0.47.2] - 2026-03-26
 
 ### Changed

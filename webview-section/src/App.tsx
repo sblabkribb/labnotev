@@ -251,6 +251,11 @@ export default function App() {
             });
           }
           setPendingCursor({ pos: actualPos + text.length, tick: Date.now() });
+          // Clear pendingCursor after the next render cycle consumes it.
+          // Without this, a stale pendingCursor is re-applied whenever the
+          // textarea component remounts (e.g. when the accordion is folded
+          // and unfolded), causing the caret to jump unexpectedly.
+          setTimeout(() => setPendingCursor(null), 100);
           markDirty();
           break;
         }
@@ -364,6 +369,7 @@ export default function App() {
             });
           }
           setPendingCursor({ pos: actualPos + imgText.length, tick: Date.now() });
+          setTimeout(() => setPendingCursor(null), 100);
           markDirty();
           break;
         }
@@ -442,6 +448,7 @@ export default function App() {
             activeSectionRef.current = { area: 'tailContent' };
           }
           setPendingCursor({ pos: localOffset, tick: Date.now() });
+          setTimeout(() => setPendingCursor(null), 100);
           break;
         }
       }
