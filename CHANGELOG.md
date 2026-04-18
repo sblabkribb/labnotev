@@ -5,6 +5,13 @@
 형식은 [Keep a Changelog](https://keepachangelog.com/ko/1.1.0/)를 기반으로 하며,
 이 프로젝트는 [유의적 버전 관리](https://semver.org/lang/ko/)를 따릅니다.
 
+## [0.47.4] - 2026-03-26
+
+### Fixed
+- **샘플 Insert 후 caret이 "첫 줄"로 보이는 문제**: `HighlightedTextarea`가 포커스 시 `preventScroll: true`로 부모 컨테이너 스크롤까지 차단해, 긴 본문(공백·줄바꿈이 포함된 여러 라인) 중간에 샘플을 삽입하면 caret이 뷰포트 아래로 빠져 사용자에게는 커서가 첫 줄로 튄 것처럼 보이던 문제 수정. `requestFocusAt`에 `scroll` 힌트(`'none' | 'nearest' | 'center'`)를 추가하고, TreeView Insert/텍스트 삽입/이미지 붙여넣기 경로는 `'nearest'`로 동작해 caret이 화면을 벗어난 경우에만 최소한으로 스크롤하도록 개선
+- **"정의로 이동" 화면 이동 안 됨**: 샘플 호버 후 "정의로 이동"을 눌러도 Section Editor의 아코디언이 접혀 있으면 대상 textarea가 DOM에 없어 커서/스크롤이 적용되지 않던 문제 수정. `UnitOpAccordion`을 controlled multiple Accordion으로 전환하고, `scrollToSample` 핸들러에서 대상 UnitOp을 자동으로 펼친 뒤 두 프레임 뒤에 `scroll: 'center'`로 포커스를 적용해 정의 위치가 뷰 중앙으로 오도록 개선
+- **포커스 적용 중 stale cursor 보고**: 프로그래밍적 포커스 설정 시 `focus()`가 동기적으로 발화하는 onFocus에서 `reportCursor`가 아직 이동 전 `selectionStart`를 부모에게 보고해 `activeSectionRef.cursorPos`를 잠깐 잘못 덮어쓰던 레이스 수정 (`isApplyingFocusRef` 가드 추가, `setSelectionRange` → `focus` 순서로 보정)
+
 ## [0.47.3] - 2026-03-26
 
 ### Fixed

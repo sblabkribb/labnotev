@@ -56,7 +56,12 @@ export default function App() {
   const [parentLabNotePath, setParentLabNotePath] = useState<string | null>(null);
   const [docBaseUri, setDocBaseUri] = useState<string>('');
   const activeSectionRef = useRef<FocusTarget | null>(null);
-  const [pendingCursor, setPendingCursor] = useState<{ pos: number; tick: number } | null>(null);
+  const [pendingCursor, setPendingCursor] = useState<{ pos: number; tick: number; scroll?: 'none' | 'nearest' | 'center' } | null>(null);
+  // Controlled opened state for the UnitOp accordion. Currently only used
+  // to auto-expand the target UnitOp when "정의로 이동" lands inside a
+  // collapsed section; user-driven opens fall through `onOpenedChange`
+  // without the App overriding them.
+  const [openedOpIds, setOpenedOpIds] = useState<string[]>([]);
   const [availableTypes, setAvailableTypes] = useState<string[]>([]);
   const [sampleTypeColors, setSampleTypeColors] = useState<Record<string, string>>({});
   const [sampleDefs, setSampleDefs] = useState<SampleDefMap>({});
@@ -250,7 +255,7 @@ export default function App() {
               return { ...prev, tailContent: insertAt(prev.tailContent ?? '') };
             });
           }
-          setPendingCursor({ pos: actualPos + text.length, tick: Date.now() });
+          setPendingCursor({ pos: actualPos + text.length, tick: Date.now(), scroll: 'nearest' });
           // Clear pendingCursor after the next render cycle consumes it.
           // Without this, a stale pendingCursor is re-applied whenever the
           // textarea component remounts (e.g. when the accordion is folded
@@ -368,7 +373,7 @@ export default function App() {
               return { ...prev, tailContent: insertImg(prev.tailContent ?? '') };
             });
           }
-          setPendingCursor({ pos: actualPos + imgText.length, tick: Date.now() });
+          setPendingCursor({ pos: actualPos + imgText.length, tick: Date.now(), scroll: 'nearest' });
           setTimeout(() => setPendingCursor(null), 100);
           markDirty();
           break;
@@ -447,8 +452,34 @@ export default function App() {
           } else if (area === 'tail') {
             activeSectionRef.current = { area: 'tailContent' };
           }
-          setPendingCursor({ pos: localOffset, tick: Date.now() });
-          setTimeout(() => setPendingCursor(null), 100);
+
+          // If the target lives inside a UnitOp accordion that is currently
+          // collapsed, the target textarea isn't in the DOM yet and
+          // `requestFocusAt` would be a no-op. Expand the accordion first
+          // and defer the cursor/scroll to the next frame so the textarea
+          // has time to mount.
+          let needsDefer = false;
+          if (area === 'unitOp' && opIndex !== undefined) {
+            const wf = workflowRef.current;
+            const targetOpId = wf?.unitOperations[opIndex]?.id;
+            if (targetOpId) {
+              setOpenedOpIds(prev => (prev.includes(targetOpId) ? prev : [...prev, targetOpId]));
+              needsDefer = true;
+            }
+          }
+
+          const applyCursor = () => {
+            setPendingCursor({ pos: localOffset, tick: Date.now(), scroll: 'center' });
+            setTimeout(() => setPendingCursor(null), 100);
+          };
+          if (needsDefer) {
+            // Two rAFs: first to let React commit the openedOpIds change and
+            // Mantine mount the panel; second to run after layout so
+            // scrollIntoView sees the final textarea position.
+            requestAnimationFrame(() => requestAnimationFrame(applyCursor));
+          } else {
+            applyCursor();
+          }
           break;
         }
       }
@@ -747,6 +778,8 @@ export default function App() {
                 docBaseUri={docBaseUri}
                 getCursorForSection={(opI, secI) => getCursorForArea('unitOp', { opIndex: opI, secIndex: secI })}
                 onAttachFile={(opI, secI) => handleAttachFile({ area: 'unitOp', opIndex: opI, secIndex: secI })}
+                openedOpIds={openedOpIds}
+                onOpenedChange={setOpenedOpIds}
               />
             </Paper>
 

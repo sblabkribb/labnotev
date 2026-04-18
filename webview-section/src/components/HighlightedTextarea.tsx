@@ -13,8 +13,23 @@ export interface HighlightedTextareaProps {
   availableTypes?: string[];
   sampleTypeColors?: Record<string, string>;
   sampleDefs?: SampleDefMap;
-  /** Bumping `tick` (any new object) imperatively focuses the textarea and moves the caret to `pos`. */
-  requestFocusAt?: { pos: number; tick: number } | null;
+  /**
+   * Bumping `tick` (any new object) imperatively focuses the textarea and
+   * moves the caret to `pos`.
+   *
+   * `scroll` controls how the viewport follows the caret:
+   * - `'none'`: keep current viewport (legacy behaviour; used for onClick
+   *   `+Sample` and similar in-place actions where the user already sees the
+   *   target section).
+   * - `'nearest'` (default): scroll the textarea into view only if it is
+   *   outside the viewport. This keeps TreeView inserts into already-visible
+   *   sections stable while still following the caret when it would
+   *   otherwise land offscreen (e.g. inserting into a long section whose
+   *   bottom is below the fold).
+   * - `'center'`: scroll the textarea so the caret area sits near the
+   *   middle of the viewport (used by "정의로 이동").
+   */
+  requestFocusAt?: { pos: number; tick: number; scroll?: 'none' | 'nearest' | 'center' } | null;
   ariaLabel?: string;
 }
 
@@ -53,6 +68,12 @@ export const HighlightedTextarea = forwardRef<HTMLTextAreaElement, HighlightedTe
     const textareaRef = useRef<HTMLTextAreaElement>(null);
     const overlayRef = useRef<HTMLDivElement>(null);
     const [hasSamples, setHasSamples] = useState(false);
+    // While true, the imperative focus useEffect is mid-flight — onFocus
+    // fires synchronously from `ta.focus()` before `selectionStart` has been
+    // repositioned, so any `reportCursor()` during that window would latch
+    // the old caret into the parent's `activeSectionRef.cursorPos`. Guard
+    // onFocus/onClick reporters against this stale read.
+    const isApplyingFocusRef = useRef(false);
 
     useImperativeHandle(forwardedRef, () => textareaRef.current as HTMLTextAreaElement, []);
 
@@ -80,6 +101,7 @@ export const HighlightedTextarea = forwardRef<HTMLTextAreaElement, HighlightedTe
     }, []);
 
     const reportCursor = () => {
+      if (isApplyingFocusRef.current) return;
       if (textareaRef.current && onCursorChange) {
         onCursorChange(textareaRef.current.selectionStart);
       }
@@ -89,14 +111,32 @@ export const HighlightedTextarea = forwardRef<HTMLTextAreaElement, HighlightedTe
       if (!requestFocusAt) return;
       const ta = textareaRef.current;
       if (!ta) return;
+      const scrollMode = requestFocusAt.scroll ?? 'nearest';
       const rafId = requestAnimationFrame(() => {
-        // `preventScroll: true` stops the browser from scrolling the outer
-        // container to bring the caret into view. The caret offset itself is
-        // still set correctly; this avoids the visual "cursor jumped" effect
-        // reported when inserting samples via the TreeView.
-        ta.focus({ preventScroll: true });
-        ta.selectionStart = ta.selectionEnd = requestFocusAt.pos;
-        reportCursor();
+        isApplyingFocusRef.current = true;
+        try {
+          // Order matters: set the selection first, then focus. This way the
+          // synchronous onFocus fired by `ta.focus()` would read the already
+          // updated `selectionStart`, though `isApplyingFocusRef` still
+          // suppresses the report to avoid any edge cases.
+          ta.selectionStart = ta.selectionEnd = requestFocusAt.pos;
+          // `preventScroll: true` stops the browser from jumping the outer
+          // container to the caret — we opt into scrolling explicitly via
+          // `scrollIntoView` below based on `scroll`.
+          ta.focus({ preventScroll: true });
+
+          if (scrollMode === 'nearest') {
+            // Only scrolls when the textarea is outside the viewport, which
+            // keeps TreeView inserts into already-visible sections stable
+            // and rescues the caret when it would otherwise be offscreen.
+            ta.scrollIntoView({ block: 'nearest' });
+          } else if (scrollMode === 'center') {
+            ta.scrollIntoView({ block: 'center' });
+          }
+        } finally {
+          isApplyingFocusRef.current = false;
+        }
+        if (onCursorChange) onCursorChange(ta.selectionStart);
       });
       // Cancel a pending rAF if `tick` changes before the callback fires, or
       // if the component unmounts. Without this, stale callbacks can race

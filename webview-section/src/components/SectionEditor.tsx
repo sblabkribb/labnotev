@@ -16,7 +16,7 @@ interface SectionEditorProps {
   headingLevel?: 'h2' | 'h3' | 'h4';
   minRows?: number;
   docBaseUri?: string;
-  requestFocusAt?: { pos: number; tick: number } | null;
+  requestFocusAt?: { pos: number; tick: number; scroll?: 'none' | 'nearest' | 'center' } | null;
   availableTypes?: string[];
   sampleTypeColors?: Record<string, string>;
   sampleDefs?: SampleDefMap;

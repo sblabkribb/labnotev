@@ -42,8 +42,13 @@ interface UnitOpAccordionProps {
   sampleDefs?: SampleDefMap;
   onAddCustomType?: (typeName: string) => void;
   docBaseUri?: string;
-  getCursorForSection?: (opIndex: number, secIndex: number) => { pos: number; tick: number } | null | undefined;
+  getCursorForSection?: (opIndex: number, secIndex: number) => { pos: number; tick: number; scroll?: 'none' | 'nearest' | 'center' } | null | undefined;
   onAttachFile?: (opIndex: number, secIndex: number) => void;
+  /** Controlled list of currently-opened Accordion item IDs (op.id values).
+   * When omitted, the Accordion falls back to its internal uncontrolled
+   * state so existing callers keep working unchanged. */
+  openedOpIds?: string[];
+  onOpenedChange?: (ids: string[]) => void;
 }
 
 function GripIcon() {
@@ -74,7 +79,7 @@ interface UnitOpSectionTextareaProps {
   sampleDefs?: SampleDefMap;
   onAddCustomType?: (typeName: string) => void;
   docBaseUri?: string;
-  requestFocusAt?: { pos: number; tick: number } | null;
+  requestFocusAt?: { pos: number; tick: number; scroll?: 'none' | 'nearest' | 'center' } | null;
   onAttachFile?: () => void;
   minRows?: number;
 }
@@ -244,7 +249,7 @@ interface SortableUnitOpProps {
   sampleDefs?: SampleDefMap;
   onAddCustomType?: (typeName: string) => void;
   docBaseUri?: string;
-  getCursorForSection?: (opIndex: number, secIndex: number) => { pos: number; tick: number } | null | undefined;
+  getCursorForSection?: (opIndex: number, secIndex: number) => { pos: number; tick: number; scroll?: 'none' | 'nearest' | 'center' } | null | undefined;
   onAttachFile?: (opIndex: number, secIndex: number) => void;
 }
 
@@ -371,7 +376,7 @@ function SortableUnitOp({ op, opIndex, onUpdateSection, onUpdateAlias, onSection
   );
 }
 
-export function UnitOpAccordion({ unitOperations, onChange, onSectionFocus, onCursorActivity, onCreateSample, onSearchProducts, productSearchResult, availableTypes, sampleTypeColors, sampleDefs, onAddCustomType, docBaseUri, getCursorForSection, onAttachFile }: UnitOpAccordionProps) {
+export function UnitOpAccordion({ unitOperations, onChange, onSectionFocus, onCursorActivity, onCreateSample, onSearchProducts, productSearchResult, availableTypes, sampleTypeColors, sampleDefs, onAddCustomType, docBaseUri, getCursorForSection, onAttachFile, openedOpIds, onOpenedChange }: UnitOpAccordionProps) {
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 8 } }),
     useSensor(KeyboardSensor)
@@ -417,10 +422,22 @@ export function UnitOpAccordion({ unitOperations, onChange, onSectionFocus, onCu
     );
   }
 
+  // Fall back to uncontrolled behaviour when the caller doesn't provide
+  // `openedOpIds` / `onOpenedChange`. This keeps older call sites working
+  // while giving the Section Editor a way to programmatically expand the
+  // target UnitOp from "정의로 이동".
+  const controlled = openedOpIds !== undefined;
+
   return (
     <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
       <SortableContext items={unitOperations.map(op => op.id)} strategy={verticalListSortingStrategy}>
-        <Accordion variant="separated">
+        <Accordion
+          multiple
+          variant="separated"
+          {...(controlled
+            ? { value: openedOpIds ?? [], onChange: (v: string[]) => onOpenedChange?.(v) }
+            : {})}
+        >
           {unitOperations.map((op, opIndex) => (
             <SortableUnitOp
               key={op.id}
