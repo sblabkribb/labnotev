@@ -5,6 +5,13 @@
 형식은 [Keep a Changelog](https://keepachangelog.com/ko/1.1.0/)를 기반으로 하며,
 이 프로젝트는 [유의적 버전 관리](https://semver.org/lang/ko/)를 따릅니다.
 
+## [0.48.1] - 2026-03-26
+
+### Fixed
+- **샘플 Insert 후 caret이 textarea 첫 줄로 튀는 문제 (재수정)**: v0.47.4의 `scrollIntoView({ block: 'nearest' })` 접근이 이 프로젝트에 맞지 않았던 것을 교정. Section Editor의 `HighlightedTextarea`는 `scrollHeight` 기반 auto-resize + `overflow: hidden`을 쓰므로 textarea 엘리먼트 자체가 뷰포트보다 커질 수 있다. 이 상태에서 `scrollIntoView({ block: 'nearest' })`는 caret 위치가 아니라 textarea **블록의 top edge**를 뷰포트에 맞춰, caret은 아래쪽에 있는데도 textarea 첫 줄이 화면에 나타나 사용자에겐 "커서가 첫 줄로 튐"으로 보이던 문제가 남아 있었음
+- **caret mirror 기반 최소 스크롤로 교체**: [`webview-section/src/utils/caretPosition.ts`](webview-section/src/utils/caretPosition.ts) 신규 추가. textarea와 동일한 글꼴·패딩·폭의 hidden div에 `value.slice(0, pos)` + zero-width marker span을 넣어 `getBoundingClientRect()`로 실제 caret 뷰포트 좌표를 계산하고, `'nearest'`는 caret이 상·하 margin 밖에 있을 때만 `window.scrollBy`로 최소한만 이동, `'center'`는 caret을 뷰포트 중앙으로 정렬. 이미 보이는 caret에는 스크롤을 발생시키지 않음
+- 대상 파일: [`webview-section/src/components/HighlightedTextarea.tsx`](webview-section/src/components/HighlightedTextarea.tsx) `requestFocusAt` useEffect의 `scrollIntoView` 호출을 `getTextareaCaretRect` + `scrollCaretIntoView`로 교체
+
 ## [0.48.0] - 2026-03-26
 
 ### Changed

@@ -1,6 +1,7 @@
 import { forwardRef, useEffect, useImperativeHandle, useRef, useState } from 'react';
 import { SampleHighlighter, highlightSampleIds } from './SampleHighlighter';
 import type { SampleDefMap } from '../types';
+import { getTextareaCaretRect, scrollCaretIntoView } from '../utils/caretPosition';
 
 export interface HighlightedTextareaProps {
   value: string;
@@ -112,6 +113,7 @@ export const HighlightedTextarea = forwardRef<HTMLTextAreaElement, HighlightedTe
       const ta = textareaRef.current;
       if (!ta) return;
       const scrollMode = requestFocusAt.scroll ?? 'nearest';
+      const pos = requestFocusAt.pos;
       const rafId = requestAnimationFrame(() => {
         isApplyingFocusRef.current = true;
         try {
@@ -119,19 +121,26 @@ export const HighlightedTextarea = forwardRef<HTMLTextAreaElement, HighlightedTe
           // synchronous onFocus fired by `ta.focus()` would read the already
           // updated `selectionStart`, though `isApplyingFocusRef` still
           // suppresses the report to avoid any edge cases.
-          ta.selectionStart = ta.selectionEnd = requestFocusAt.pos;
+          ta.selectionStart = ta.selectionEnd = pos;
           // `preventScroll: true` stops the browser from jumping the outer
-          // container to the caret — we opt into scrolling explicitly via
-          // `scrollIntoView` below based on `scroll`.
+          // container to the caret — we opt into scrolling explicitly based
+          // on the real caret position computed below.
           ta.focus({ preventScroll: true });
 
-          if (scrollMode === 'nearest') {
-            // Only scrolls when the textarea is outside the viewport, which
-            // keeps TreeView inserts into already-visible sections stable
-            // and rescues the caret when it would otherwise be offscreen.
-            ta.scrollIntoView({ block: 'nearest' });
-          } else if (scrollMode === 'center') {
-            ta.scrollIntoView({ block: 'center' });
+          // Why not `ta.scrollIntoView({ block: 'nearest' })`?
+          // This project auto-resizes the textarea to `scrollHeight` with
+          // `overflow: hidden`, so the <textarea> element can be taller
+          // than the viewport. `scrollIntoView` then aligns the textarea's
+          // top/bottom edge to the viewport — when the top is above the
+          // fold it pulls the textarea's *first line* into view, which the
+          // user perceives as the caret "jumping to line 1" even though
+          // selectionStart is correct. Instead, compute where the caret
+          // actually lands and scroll only enough to reveal *that* point.
+          if (scrollMode !== 'none') {
+            const caretRect = getTextareaCaretRect(ta, pos);
+            if (caretRect) {
+              scrollCaretIntoView(caretRect, scrollMode);
+            }
           }
         } finally {
           isApplyingFocusRef.current = false;
@@ -141,7 +150,9 @@ export const HighlightedTextarea = forwardRef<HTMLTextAreaElement, HighlightedTe
       // Cancel a pending rAF if `tick` changes before the callback fires, or
       // if the component unmounts. Without this, stale callbacks can race
       // with a newer focus request and leave the caret at the old offset.
-      return () => cancelAnimationFrame(rafId);
+      return () => {
+        cancelAnimationFrame(rafId);
+      };
       // Only re-run when `tick` changes; `reportCursor` intentionally not in deps.
       // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [requestFocusAt?.tick]);
