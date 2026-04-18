@@ -12,11 +12,18 @@ import {
 } from './commands';
 import { SectionEditorProvider } from './sectionEditorProvider';
 
+// Captures the time when this module finishes being required by the extension
+// host. Comparing this against `activateStart` reveals how long VS Code waits
+// between loading the bundle and actually invoking `activate()`. Large values
+// point at bundle size / top-level import cost rather than activation logic.
+const moduleLoadedAt = performance.now();
+
 export async function activate(context: vscode.ExtensionContext) {
   const activateStart = performance.now();
   const logStep = (step: string) => {
     console.log(`[labnotev] step=${step} elapsed=${(performance.now() - activateStart).toFixed(1)}ms`);
   };
+  console.log(`[labnotev] step=beforeActivate elapsed=${(activateStart - moduleLoadedAt).toFixed(1)}ms`);
   console.log('Lab Note Editor is now active');
 
   // Phase 1: MongoDB connection is now lazy. We no longer await it here so

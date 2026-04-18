@@ -5,6 +5,13 @@
 형식은 [Keep a Changelog](https://keepachangelog.com/ko/1.1.0/)를 기반으로 하며,
 이 프로젝트는 [유의적 버전 관리](https://semver.org/lang/ko/)를 따릅니다.
 
+## [0.47.2] - 2026-03-26
+
+### Changed
+- **MongoDB 번들 분리 유지**: `esbuild` 설정에서 `mongodb`를 `external`로 지정해 확장 번들에서 제외. 지연 로드(`await import('mongodb')`) 시점에만 런타임 `node_modules`에서 해석되도록 하여 활성화 시 거대한 의존성 트리 평가를 회피
+- **VSIX 패키징 규칙 보정**: `.vscodeignore`에서 `mongodb` 및 하위 의존 패키지(`@mongodb-js`, `bson`, `whatwg-url` 등)를 화이트리스트로 복원해, `external`로 분리된 모듈이 VSIX에 정상 포함되도록 수정
+- **활성화 지연 구간 가시화**: `extension.ts`에 모듈 로드 시점(`moduleLoadedAt`) 대비 `activate()` 호출까지의 경과 시간을 기록하는 `beforeActivate` 로그 추가. 번들 크기/로드 비용으로 인한 지연을 활성화 로직과 구분해 진단 가능
+
 ## [0.47.1] - 2026-04-18
 
 ### Fixed

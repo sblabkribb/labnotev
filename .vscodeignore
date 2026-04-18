@@ -16,6 +16,16 @@ webview-section/tsconfig.json
 webview-section/vite.config.ts
 webview-section/index.html
 node_modules/**
+!node_modules/mongodb/**
+!node_modules/@mongodb-js/**
+!node_modules/bson/**
+!node_modules/mongodb-connection-string-url/**
+!node_modules/whatwg-url/**
+!node_modules/sparse-bitfield/**
+!node_modules/memory-pager/**
+!node_modules/tr46/**
+!node_modules/webidl-conversions/**
+!node_modules/punycode/**
 coverage/**
 .gitignore
 esbuild.js
