@@ -225,14 +225,15 @@ VS Code에서 실험 노트를 마크다운으로 작성할 수 있도록 돕는
   - `Ctrl+Shift+D` / `Cmd+Shift+D`: 날짜/시간 삽입
   - `Ctrl+Shift+U` / `Cmd+Shift+U`: 날짜 필드 업데이트
 
-### MongoDB 연동 (선택)
+### MongoDB 연동 (선택, 기본 비활성)
 
-Equip, Labware 타입의 샘플은 SBLIMS MongoDB 데이터베이스에서 자동으로 로드됩니다.
+Equip, Labware 타입의 샘플은 SBLIMS MongoDB 데이터베이스에서 자동으로 로드됩니다. v0.48.0부터 **기본값은 비활성**이며, 명시적으로 켜야 연결을 시도합니다.
 
 #### 설정 방법
 1. VS Code 설정 열기 (`Ctrl+,`)
 2. "Lab Note Editor" 검색
 3. 다음 설정 입력:
+   - `Enable Mongo`: SBLIMS MongoDB 연동 활성화 (기본값: `false`)
    - `Mongo Url`: MongoDB 연결 URL
    - `Mongo Db Name`: 데이터베이스 이름 (기본값: SBLIMS)
 
@@ -242,10 +243,11 @@ Equip, Labware 타입의 샘플은 SBLIMS MongoDB 데이터베이스에서 자�
 mongodb://username:password@host:port/?authMechanism=SCRAM-SHA-256&authSource=SBLIMS
 ```
 
-#### 지연 로드 동작
+#### 지연 로드 및 opt-in 동작
 
-- MongoDB 연결은 확장 활성화 시점이 아니라 Equip/Labware 관련 기능(자동완성, 샘플 트리 Equip 타입, Labware 후보 피커 등)이 처음 호출될 때 한 번만 비동기로 수행됩니다. 덕분에 Mongo 서버에 도달할 수 없는 환경에서도 확장 기동이 느려지지 않습니다.
-- 설정을 바꾸거나 서버 접속이 복구된 뒤 즉시 다시 시도하려면 명령 팔레트에서 `Labnote: Reload Remote Data (MongoDB)`를 실행하세요. 재로드가 끝나면 샘플 트리의 Equip/Labware 목록이 자동으로 갱신됩니다.
+- `labnotev.enableMongo`가 `false`이면 확장은 MongoDB 드라이버를 전혀 로드하지 않고 Equip/Labware 자동완성·피커는 로컬/글로벌 JSON에서만 데이터를 얻습니다. 서버 도달 불가로 인한 5–10초 블로킹을 원천적으로 제거하기 위함입니다.
+- `labnotev.enableMongo`를 `true`로 켜면, MongoDB 연결은 확장 활성화 시점이 아니라 Equip/Labware 관련 기능(자동완성, 샘플 트리 Equip 타입, Labware 후보 피커 등)이 처음 호출될 때 한 번만 비동기로 수행됩니다.
+- `labnotev.enableMongo` / `labnotev.mongoUrl` / `labnotev.mongoDbName` 중 하나라도 바꾸면 VS Code 재시작 없이 자동으로 재로드됩니다. 수동으로 즉시 다시 시도하려면 명령 팔레트에서 `Labnote: Reload Remote Data (MongoDB)`를 실행하세요. 재로드가 끝나면 샘플 트리의 Equip/Labware 목록이 자동으로 갱신됩니다.
 
 ## 설치
 
@@ -309,8 +311,8 @@ VS Code `settings.json`에 다음을 추가합니다:
 
 ### MongoDB를 쓰지 않는 경우
 
-- MongoDB 설정이 없어도 기본 샘플 관리, 워크플로, 유닛 오퍼레이션 기능은 사용할 수 있습니다.
-- MongoDB 연동은 Equip/Labware 같은 외부 목록을 불러오고 싶을 때만 선택적으로 설정하면 됩니다.
+- v0.48.0부터 MongoDB 연동은 기본 비활성(`labnotev.enableMongo` = `false`)이므로 별도 작업 없이 로컬/글로벌 JSON 기반의 샘플 관리, 워크플로, 유닛 오퍼레이션 기능을 그대로 사용할 수 있습니다.
+- MongoDB 연동은 Equip/Labware 같은 외부 목록을 불러오고 싶을 때만 선택적으로 `labnotev.enableMongo`를 켜고 연결 URL을 설정하면 됩니다.
 
 ## 파일 저장 형식
 

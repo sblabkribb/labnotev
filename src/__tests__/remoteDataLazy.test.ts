@@ -15,11 +15,13 @@
 const createdEmitters: Array<{ fire: ReturnType<typeof vi.fn>; event: ReturnType<typeof vi.fn> }> = [];
 
 let mongoUrlMock = '';
+let enableMongoMock = true;
 
 vi.mock('vscode', () => ({
   workspace: {
     getConfiguration: vi.fn(() => ({
       get: vi.fn((key: string, defaultValue?: unknown) => {
+        if (key === 'enableMongo') return enableMongoMock;
         if (key === 'mongoUrl') return mongoUrlMock;
         if (key === 'mongoDbName') return 'SBLIMS';
         return defaultValue;
@@ -68,6 +70,7 @@ describe('ensureRemoteDataLoaded (Phase 1)', () => {
     vi.clearAllMocks();
     createdEmitters.length = 0;
     mongoUrlMock = '';
+    enableMongoMock = true;
 
     // Reset dataLoader module state between tests so `loaded` / `loadingPromise`
     // start fresh. Also reset mongodb mock calls.
@@ -88,6 +91,24 @@ describe('ensureRemoteDataLoaded (Phase 1)', () => {
     expect(MongoClientSpy).not.toHaveBeenCalled();
     // Warning should be emitted at most once even across multiple calls.
     expect(warnSpy).toHaveBeenCalledTimes(1);
+    warnSpy.mockRestore();
+  });
+
+  it('is a no-op when enableMongo is false, regardless of mongoUrl', async () => {
+    enableMongoMock = false;
+    mongoUrlMock = 'mongodb://fake';
+    const { ensureRemoteDataLoaded } = await import('../lib/dataLoader');
+
+    const logSpy = vi.spyOn(console, 'log').mockImplementation(() => {});
+    const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
+
+    await ensureRemoteDataLoaded();
+    await ensureRemoteDataLoaded();
+
+    expect(MongoClientSpy).not.toHaveBeenCalled();
+    expect(warnSpy).not.toHaveBeenCalled();
+
+    logSpy.mockRestore();
     warnSpy.mockRestore();
   });
 

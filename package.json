@@ -2,7 +2,7 @@
   "name": "LabnoteV",
   "displayName": "Labnote Assistant for VSCode",
   "description": "Markdown-based labnote assistant with sample tracking and workflow management",
-  "version": "0.47.4",
+  "version": "0.48.0",
   "license": "MIT",
   "publisher": "korea-biofoundry",
   "repository": {
@@ -362,6 +362,12 @@
           "items": { "type": "string" },
           "default": [],
           "description": "Custom sample types in addition to built-in types (DNA, RNA, Plasmid, etc.)"
+        },
+        "labnotev.enableMongo": {
+          "type": "boolean",
+          "default": false,
+          "description": "Enable SBLIMS MongoDB integration for Equip/Labware auto-completion. Disabled by default to keep startup fast and avoid 5–10s timeouts when the server is unreachable. Requires labnotev.mongoUrl.",
+          "order": 9
         },
         "labnotev.mongoUrl": {
           "type": "string",

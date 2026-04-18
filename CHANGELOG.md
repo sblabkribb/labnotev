@@ -5,6 +5,12 @@
 형식은 [Keep a Changelog](https://keepachangelog.com/ko/1.1.0/)를 기반으로 하며,
 이 프로젝트는 [유의적 버전 관리](https://semver.org/lang/ko/)를 따릅니다.
 
+## [0.48.0] - 2026-03-26
+
+### Changed
+- **MongoDB 통합 기본 비활성화 (opt-in 전환)**: 새 설정 `labnotev.enableMongo` (기본값 `false`)를 추가. `@equip`/`@labware` 자동완성이나 Labware 제품 피커가 처음 호출될 때 SBLIMS 서버가 도달 불가한 경우 `serverSelectionTimeoutMS: 5000` + `connectTimeoutMS: 10000`에 의해 최대 5–10초 가량 블로킹되던 현상을 제거. 기존에 `labnotev.mongoUrl`만 설정해둔 사용자는 업그레이드 후 Equip/Labware 항목이 사라진 것처럼 보일 수 있으며, 계속 사용하려면 설정에서 `labnotev.enableMongo`를 `true`로 켜야 함
+- **설정 변경 즉시 반영**: `labnotev.enableMongo`, `labnotev.mongoUrl`, `labnotev.mongoDbName` 중 하나라도 변경되면 VS Code 재시작 없이 `reloadRemoteData()`가 자동 호출돼 연결을 해제하거나 재시도. 토글을 끄면 `warnedDisabled` 플래그가 리셋되어 다음 호출에서 디버그 로그가 한 번만 남도록 유지
+
 ## [0.47.4] - 2026-03-26
 
 ### Fixed

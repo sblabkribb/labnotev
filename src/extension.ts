@@ -62,6 +62,15 @@ export async function activate(context: vscode.ExtensionContext) {
         const newValue = vscode.workspace.getConfiguration('labnotev').get<boolean>('sampleTracking', true);
         vscode.commands.executeCommand('setContext', 'labnotev.sampleTrackingEnabled', newValue);
       }
+      // Re-evaluate MongoDB state when the toggle or URL changes so users can
+      // opt in/out at runtime without restarting VS Code.
+      if (
+        e.affectsConfiguration('labnotev.enableMongo') ||
+        e.affectsConfiguration('labnotev.mongoUrl') ||
+        e.affectsConfiguration('labnotev.mongoDbName')
+      ) {
+        void reloadRemoteData();
+      }
     })
   );
 

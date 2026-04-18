@@ -39,29 +39,31 @@ const mongoDocCache: Partial<Record<SampleType, Record<string, any>>> = {};
 let loadingPromise: Promise<void> | null = null;
 let loaded = false;
 let warnedNoMongoUrl = false;
+let warnedDisabled = false;
 const remoteDataLoadedEmitter = new vscode.EventEmitter<void>();
 export const onRemoteDataLoaded: vscode.Event<void> = remoteDataLoadedEmitter.event;
 
 /**
  * Get MongoDB configuration from VS Code settings
  */
-function getMongoConfig(): { mongoUrl: string; dbName: string } {
+function getMongoConfig(): { enableMongo: boolean; mongoUrl: string; dbName: string } {
   const config = vscode.workspace.getConfiguration('labnotev');
-  
+
+  const enableMongo = config.get<boolean>('enableMongo', false);
   let mongoUrl = config.get<string>('mongoUrl', '');
   let dbName = config.get<string>('mongoDbName', 'SBLIMS');
-  
+
   // Environment variable fallback (for development)
   if (!mongoUrl && process.env.SBLIMS_MONGO_URL) {
     mongoUrl = process.env.SBLIMS_MONGO_URL;
     console.log('[labnotev] Using SBLIMS_MONGO_URL from environment');
   }
-  
+
   if (!dbName && process.env.SBLIMS_MONGO_DB_NAME) {
     dbName = process.env.SBLIMS_MONGO_DB_NAME;
   }
-  
-  return { mongoUrl, dbName };
+
+  return { enableMongo, mongoUrl, dbName };
 }
 
 /**
@@ -71,7 +73,15 @@ export async function initRemoteData(): Promise<void> {
   if (mongoClient) return;
 
   const config = getMongoConfig();
-  
+
+  if (!config.enableMongo) {
+    if (!warnedDisabled) {
+      console.log('[labnotev] MongoDB integration is disabled (set labnotev.enableMongo=true to enable).');
+      warnedDisabled = true;
+    }
+    return;
+  }
+
   if (!config.mongoUrl) {
     console.warn('[labnotev] MongoDB URL is not configured.');
     console.warn('[labnotev] Equip/Labware auto-completion will be disabled.');
@@ -183,6 +193,7 @@ export async function disposeRemoteData(): Promise<void> {
   loaded = false;
   loadingPromise = null;
   warnedNoMongoUrl = false;
+  warnedDisabled = false;
 }
 
 /**
@@ -202,7 +213,14 @@ export function ensureRemoteDataLoaded(): Promise<void> {
   if (loaded) return Promise.resolve();
   if (loadingPromise) return loadingPromise;
 
-  const { mongoUrl } = getMongoConfig();
+  const { enableMongo, mongoUrl } = getMongoConfig();
+  if (!enableMongo) {
+    if (!warnedDisabled) {
+      console.log('[labnotev] MongoDB integration is disabled (set labnotev.enableMongo=true to enable).');
+      warnedDisabled = true;
+    }
+    return Promise.resolve();
+  }
   if (!mongoUrl) {
     if (!warnedNoMongoUrl) {
       console.warn('[labnotev] MongoDB URL is not configured; Equip/Labware auto-completion is disabled.');
