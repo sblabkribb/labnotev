@@ -22,6 +22,7 @@ import type {
   SampleDefMap,
 } from './types';
 import { postMessage } from './vscodeApi';
+import { resolveInsertPosition, type FocusTarget } from './lib/resolveInsertPosition';
 
 const LABNOTE_FM_FIELDS = [
   { key: 'title', label: 'Title' },
@@ -44,11 +45,6 @@ const WORKFLOW_FM_FIELDS = [
   { key: 'end_date', label: 'End Date', type: 'datetime' as const },
 ];
 
-type FocusTarget =
-  | { area: 'labnoteSection'; sectionIndex: number; cursorPos?: number }
-  | { area: 'unitOp'; opIndex: number; secIndex: number; linkedWfIndex?: number; cursorPos?: number }
-  | { area: 'tailContent'; cursorPos?: number };
-
 type SaveStatus = 'saved' | 'saving' | 'unsaved';
 
 export default function App() {
@@ -66,6 +62,21 @@ export default function App() {
   const [sampleDefs, setSampleDefs] = useState<SampleDefMap>({});
   const [productSearchResult, setProductSearchResult] = useState<{ alias: string; description: string } | null>(null);
   const [colorScheme, setColorScheme] = useState<ColorScheme>(loadColorScheme);
+  const [insertWarning, setInsertWarning] = useState<string | null>(null);
+  const insertWarningTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const showInsertWarning = useCallback((message: string) => {
+    setInsertWarning(message);
+    if (insertWarningTimerRef.current) clearTimeout(insertWarningTimerRef.current);
+    insertWarningTimerRef.current = setTimeout(() => {
+      setInsertWarning(null);
+      insertWarningTimerRef.current = null;
+    }, 3000);
+  }, []);
+
+  useEffect(() => () => {
+    if (insertWarningTimerRef.current) clearTimeout(insertWarningTimerRef.current);
+  }, []);
 
   const toggleColorScheme = useCallback(() => {
     setColorScheme(prev => {
@@ -165,7 +176,10 @@ export default function App() {
         case 'textInserted': {
           const text = message.data.text;
           const target = activeSectionRef.current;
-          if (!target) break;
+          if (!target) {
+            showInsertWarning('먼저 삽입할 섹션의 텍스트 영역을 클릭하세요.');
+            break;
+          }
           // Phase A-4: unify the fallback so pendingCursor matches where the
           // text was actually spliced. Previously `actualPos` defaulted to 0
           // while `insertAt` defaulted to original.length, so the caret focus
@@ -273,7 +287,16 @@ export default function App() {
             }
             const sec = sections[resolvedSecIndex];
             if (!sec) return prev;
-            const pos = curTarget?.cursorPos ?? sec.content.length;
+            // Only reuse the tracked cursor position when the focused textarea
+            // actually corresponds to the resolved section; otherwise fall
+            // back to end-of-section so we don't splice into an unrelated
+            // location (e.g. clicking +Sample in section B while the caret
+            // lived in section A).
+            const pos = resolveInsertPosition(
+              curTarget,
+              { opId: op.opId, secHeading: sec.heading },
+              sec.content,
+            );
             const separator = pos > 0 && sec.content[pos - 1] !== '\n' ? '\n' : '';
             sections[resolvedSecIndex] = {
               ...sec,
@@ -452,7 +475,7 @@ export default function App() {
       window.removeEventListener('message', handler);
       window.removeEventListener('paste', handlePaste);
     };
-  }, [markDirty]);
+  }, [markDirty, showInsertWarning]);
 
   const handleOpenAsText = useCallback(() => {
     postMessage({ type: 'openAsText' });
@@ -541,6 +564,11 @@ export default function App() {
             >
               {saveStatus === 'saved' ? '저장됨' : saveStatus === 'saving' ? '저장 중...' : '변경사항 있음'}
             </Badge>
+            {insertWarning && (
+              <Badge size="sm" variant="filled" color="orange" role="alert">
+                {insertWarning}
+              </Badge>
+            )}
           </Group>
           <Group gap="xs">
             <Tooltip label={colorScheme === 'light' ? '다크 모드' : '라이트 모드'} position="bottom" withArrow>
@@ -698,8 +726,8 @@ export default function App() {
                   setWorkflow({ ...workflow, unitOperations: ops });
                   markDirty();
                 }}
-                onSectionFocus={(opIndex, secIndex) => {
-                  activeSectionRef.current = { area: 'unitOp', opIndex, secIndex };
+                onSectionFocus={(opIndex, secIndex, opId, secHeading) => {
+                  activeSectionRef.current = { area: 'unitOp', opIndex, secIndex, opId, secHeading };
                 }}
                 onCursorActivity={updateCursorPos}
                 onCreateSample={handleCreateSample}

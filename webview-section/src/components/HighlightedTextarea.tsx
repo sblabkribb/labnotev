@@ -90,7 +90,11 @@ export const HighlightedTextarea = forwardRef<HTMLTextAreaElement, HighlightedTe
       const ta = textareaRef.current;
       if (!ta) return;
       requestAnimationFrame(() => {
-        ta.focus();
+        // `preventScroll: true` stops the browser from scrolling the outer
+        // container to bring the caret into view. The caret offset itself is
+        // still set correctly; this avoids the visual "cursor jumped" effect
+        // reported when inserting samples via the TreeView.
+        ta.focus({ preventScroll: true });
         ta.selectionStart = ta.selectionEnd = requestFocusAt.pos;
         reportCursor();
       });
@@ -239,6 +243,7 @@ export const HighlightedTextarea = forwardRef<HTMLTextAreaElement, HighlightedTe
             onFocus?.();
             reportCursor();
           }}
+          onBlur={reportCursor}
           onClick={reportCursor}
           onKeyUp={reportCursor}
           onKeyDown={onKeyDown}

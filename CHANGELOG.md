@@ -5,6 +5,14 @@
 형식은 [Keep a Changelog](https://keepachangelog.com/ko/1.1.0/)를 기반으로 하며,
 이 프로젝트는 [유의적 버전 관리](https://semver.org/lang/ko/)를 따릅니다.
 
+## [0.47.1] - 2026-04-18
+
+### Fixed
+- **+Sample 버튼 커서 위치 오작동**: 섹션 헤더의 +Sample 버튼으로 샘플 정의를 추가할 때, 직전에 다른 섹션을 포커스했다면 그 섹션의 커서 오프셋이 잘못 적용돼 엉뚱한 위치(또는 섹션 끝)에 삽입되던 문제 수정. 버튼 클릭 시 해당 textarea를 먼저 포커스·커서 보고하고, `sampleDefinitionCreated` 핸들러가 `opId`/`secHeading`이 실제로 일치할 때만 추적된 커서 위치를 사용하도록 가드
+- **TreeView Insert 후 스크롤 튐**: `Insert to Editor` / `Insert Definition`으로 샘플 참조를 넣은 직후 브라우저의 자동 `scroll-into-view` 때문에 caret이 다른 곳으로 이동한 것처럼 보이던 문제 수정 (`textarea.focus({ preventScroll: true })`)
+- **섹션 미포커스 상태 Insert 조용한 무시**: 어떤 textarea도 포커스된 적이 없는 상태에서 Insert를 호출하면 아무 반응 없이 무시되던 동작을, 상단 상태 뱃지 옆에 3초간 표시되는 경고 뱃지(“먼저 삽입할 섹션의 텍스트 영역을 클릭하세요.”)로 교체
+- **드래그 후 blur된 커서 누락**: 텍스트 영역 내부에서 드래그가 바깥에서 끝나거나 모달 포커스 트랩으로 blur되는 경우 직전 caret이 보고되지 않던 문제 수정 (`onBlur`에서도 커서 위치 보고)
+
 ## [0.47.0] - 2026-04-18
 
 ### Added

@@ -32,7 +32,7 @@ function serializeMetaContent(fields: Record<string, string>): string {
 interface UnitOpAccordionProps {
   unitOperations: UnitOperationBlock[];
   onChange: (unitOperations: UnitOperationBlock[]) => void;
-  onSectionFocus?: (opIndex: number, secIndex: number) => void;
+  onSectionFocus?: (opIndex: number, secIndex: number, opId: string, secHeading: string) => void;
   onCursorActivity?: (pos: number) => void;
   onCreateSample?: (opIndex: number, secIndex: number, sampleType: string, alias: string, description: string) => void;
   onSearchProducts?: (sampleType: string) => void;
@@ -111,7 +111,25 @@ function UnitOpSectionTextarea({
         <Group gap={4}>
           {showSampleButton && onCreateSample && (
             <Tooltip label="샘플 추가" position="bottom" withArrow>
-              <ActionIcon variant="subtle" size="xs" onClick={() => setSampleModalOpen(true)} aria-label="샘플 추가">
+              <ActionIcon
+                variant="subtle"
+                size="xs"
+                onClick={() => {
+                  // Sync activeSectionRef/cursorPos to this textarea BEFORE the
+                  // modal opens so `sampleDefinitionCreated` can splice at the
+                  // caret the user currently sees. Without this, clicking the
+                  // +Sample button in section B while the caret was last in
+                  // section A would apply A's caret offset to B.
+                  const ta = textareaRef.current;
+                  if (ta) {
+                    ta.focus({ preventScroll: true });
+                    onFocus?.();
+                    onCursorActivity?.(ta.selectionStart);
+                  }
+                  setSampleModalOpen(true);
+                }}
+                aria-label="샘플 추가"
+              >
                 <SampleIcon />
               </ActionIcon>
             </Tooltip>
@@ -216,7 +234,7 @@ interface SortableUnitOpProps {
   opIndex: number;
   onUpdateSection: (opIndex: number, secIndex: number, content: string) => void;
   onUpdateAlias: (opIndex: number, alias: string) => void;
-  onSectionFocus?: (opIndex: number, secIndex: number) => void;
+  onSectionFocus?: (opIndex: number, secIndex: number, opId: string, secHeading: string) => void;
   onCursorActivity?: (pos: number) => void;
   onCreateSample?: (opIndex: number, secIndex: number, sampleType: string, alias: string, description: string) => void;
   onSearchProducts?: (sampleType: string) => void;
@@ -331,7 +349,7 @@ function SortableUnitOp({ op, opIndex, onUpdateSection, onUpdateAlias, onSection
                   content={section.content}
                   showSampleButton={hasSamples}
                   onChange={(c) => onUpdateSection(opIndex, secIndex, c)}
-                  onFocus={() => onSectionFocus?.(opIndex, secIndex)}
+                  onFocus={() => onSectionFocus?.(opIndex, secIndex, op.opId, section.heading)}
                   onCursorActivity={onCursorActivity}
                   onCreateSample={onCreateSample ? (type: string, alias: string, desc: string) => onCreateSample(opIndex, secIndex, type, alias, desc) : undefined}
                   onSearchProducts={onSearchProducts}
