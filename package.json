@@ -2,7 +2,7 @@
   "name": "LabnoteV",
   "displayName": "Labnote Assistant for VSCode",
   "description": "Markdown-based labnote assistant with sample tracking and workflow management",
-  "version": "0.46.0",
+  "version": "0.47.0",
   "license": "MIT",
   "publisher": "korea-biofoundry",
   "repository": {
@@ -20,7 +20,7 @@
     "Other"
   ],
   "activationEvents": [
-    "onLanguage:markdown",
+    "workspaceContains:**/*.labnote.md",
     "onCustomEditor:labnotev.sectionEditor"
   ],
   "main": "./dist/extension.js",
@@ -220,6 +220,10 @@
         "command": "labnotev.openPreview",
         "title": "Labnote: 미리보기 열기",
         "icon": "$(open-preview)"
+      },
+      {
+        "command": "labnotev.reloadRemoteData",
+        "title": "Labnote: Reload Remote Data (MongoDB)"
       }
     ],
     "menus": {

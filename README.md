@@ -242,6 +242,11 @@ Equip, Labware 타입의 샘플은 SBLIMS MongoDB 데이터베이스에서 자�
 mongodb://username:password@host:port/?authMechanism=SCRAM-SHA-256&authSource=SBLIMS
 ```
 
+#### 지연 로드 동작
+
+- MongoDB 연결은 확장 활성화 시점이 아니라 Equip/Labware 관련 기능(자동완성, 샘플 트리 Equip 타입, Labware 후보 피커 등)이 처음 호출될 때 한 번만 비동기로 수행됩니다. 덕분에 Mongo 서버에 도달할 수 없는 환경에서도 확장 기동이 느려지지 않습니다.
+- 설정을 바꾸거나 서버 접속이 복구된 뒤 즉시 다시 시도하려면 명령 팔레트에서 `Labnote: Reload Remote Data (MongoDB)`를 실행하세요. 재로드가 끝나면 샘플 트리의 Equip/Labware 목록이 자동으로 갱신됩니다.
+
 ## 설치
 
 ### GitHub Releases에서 설치
@@ -263,6 +268,7 @@ mongodb://username:password@host:port/?authMechanism=SCRAM-SHA-256&authSource=SB
 | `Labnote: Insert Current Date` | 현재 날짜 삽입 (텍스트 에디터) |
 | `Labnote: Insert Current Date and Time` | 현재 날짜/시간 삽입 (텍스트 에디터) |
 | `Labnote: Manage Templates` | 워크플로/유닛 오퍼레이션 JSON 카탈로그 편집 |
+| `Labnote: Reload Remote Data (MongoDB)` | MongoDB Equip/Labware 캐시를 수동으로 재로드 |
 
 ## 문제 해결
 

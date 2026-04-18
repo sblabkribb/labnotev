@@ -33,6 +33,15 @@ let mongoDb: any = null;
 const mongoIdCache: Partial<Record<SampleType, string[]>> = {};
 const mongoDocCache: Partial<Record<SampleType, Record<string, any>>> = {};
 
+// Phase 1: ensureRemoteDataLoaded guard + completion event.
+// These let the extension skip Mongo work during `activate()` and only pay
+// the connection cost the first time Equip/Labware data is actually needed.
+let loadingPromise: Promise<void> | null = null;
+let loaded = false;
+let warnedNoMongoUrl = false;
+const remoteDataLoadedEmitter = new vscode.EventEmitter<void>();
+export const onRemoteDataLoaded: vscode.Event<void> = remoteDataLoadedEmitter.event;
+
 /**
  * Get MongoDB configuration from VS Code settings
  */
@@ -87,9 +96,15 @@ export async function initRemoteData(): Promise<void> {
     console.log('[labnotev] MongoDB connected successfully!');
 
     // Load Equip data
+    // Phase 4: projection-limit to the fields actually consumed downstream
+    // (id build + completion alias/description). Reduces wire/deserialization
+    // cost on large collections.
     const equipDocs = await mongoDb
       .collection('equip_list')
-      .find({ status: { $ne: 0 } })
+      .find(
+        { status: { $ne: 0 } },
+        { projection: { _id: 0, equip: 1, equip_num: 1, subname: 1 } }
+      )
       .toArray();
 
     const equipIds: string[] = [];
@@ -112,9 +127,14 @@ export async function initRemoteData(): Promise<void> {
     mongoDocCache['Equip'] = equipRecords;
 
     // Load Labware/Item data
+    // Phase 4: projection-limit. productPicker uses `물품명` (falls back to
+    // `name`), and the id is built from CID + 물품명.
     const itemDocs = await mongoDb
       .collection('Item_Catalog')
-      .find({ status: { $ne: 0 } })
+      .find(
+        { status: { $ne: 0 } },
+        { projection: { _id: 0, CID: 1, '물품명': 1, name: 1 } }
+      )
       .toArray();
 
     type ItemTmp = { doc: any; cidRaw: string; name: string };
@@ -160,6 +180,67 @@ export async function disposeRemoteData(): Promise<void> {
     mongoClient = null;
     mongoDb = null;
   }
+  loaded = false;
+  loadingPromise = null;
+  warnedNoMongoUrl = false;
+}
+
+/**
+ * Phase 1: Lazy/idempotent entry point for MongoDB initialization.
+ *
+ * - Returns immediately when `labnotev.mongoUrl` is unset (log once).
+ * - Returns the in-flight promise if a load is already running.
+ * - Returns immediately if a previous load has completed successfully.
+ * - On success, fires the `onRemoteDataLoaded` event so that listeners
+ *   (e.g. the sample TreeView) can refresh to include Equip/Labware ids.
+ *
+ * Callers should invoke this fire-and-forget (`void ensureRemoteDataLoaded()`);
+ * the current caller's request is served from the existing empty cache and
+ * subsequent calls will see the populated cache.
+ */
+export function ensureRemoteDataLoaded(): Promise<void> {
+  if (loaded) return Promise.resolve();
+  if (loadingPromise) return loadingPromise;
+
+  const { mongoUrl } = getMongoConfig();
+  if (!mongoUrl) {
+    if (!warnedNoMongoUrl) {
+      console.warn('[labnotev] MongoDB URL is not configured; Equip/Labware auto-completion is disabled.');
+      warnedNoMongoUrl = true;
+    }
+    return Promise.resolve();
+  }
+
+  loadingPromise = (async () => {
+    try {
+      await initRemoteData();
+      // Mark as loaded even when the connection failed: we don't want the
+      // completion provider to re-attempt (and re-wait the 5–10s timeout) on
+      // every keystroke. Users can call `labnotev.reloadRemoteData` to retry.
+      if (mongoClient) {
+        try {
+          remoteDataLoadedEmitter.fire();
+        } catch (err) {
+          console.error('[labnotev] onRemoteDataLoaded listener threw:', err);
+        }
+      }
+    } finally {
+      loaded = true;
+      loadingPromise = null;
+    }
+  })();
+
+  return loadingPromise;
+}
+
+/**
+ * Phase 1: force a reload of the MongoDB-backed cache. Used by the
+ * `labnotev.reloadRemoteData` command so users can re-pull ids after the
+ * server becomes reachable without restarting VS Code.
+ */
+export async function reloadRemoteData(): Promise<void> {
+  await disposeRemoteData();
+  await ensureRemoteDataLoaded();
 }
 
 /**

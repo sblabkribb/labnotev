@@ -5,6 +5,21 @@
 형식은 [Keep a Changelog](https://keepachangelog.com/ko/1.1.0/)를 기반으로 하며,
 이 프로젝트는 [유의적 버전 관리](https://semver.org/lang/ko/)를 따릅니다.
 
+## [0.47.0] - 2026-04-18
+
+### Added
+- **수동 MongoDB 재로드 커맨드**: `Labnote: Reload Remote Data (MongoDB)` 커맨드 추가. 확장 기동 후 `mongoUrl` 설정을 변경하거나 서버가 뒤늦게 도달 가능해진 경우 VS Code 재시작 없이 Equip/Labware 캐시를 다시 불러올 수 있음
+- **활성화 타이밍 계측 로그**: `activate()`의 주요 단계(`registerCompletionProvider`, `createSampleTreeView`, `createWorkflowTreeView`, `registerCustomEditor`, `registerCommands`, `activateEnd`)에 대해 `performance.now()` 기반 경과 시간 로그를 Output에 기록
+
+### Changed
+- **확장 활성화 속도 개선**: MongoDB 초기화를 `activate()` 경로에서 제거하고 지연 로드로 전환. Mongo 서버가 도달 불가능해도 기동이 최대 10–15초 지연되던 문제 해소. 연결 완료 후에는 `onRemoteDataLoaded` 이벤트로 샘플 트리가 자동 갱신되어 Equip/Labware ID가 뒤늦게 나타남
+- **활성화 이벤트 축소**: `activationEvents`에서 `onLanguage:markdown`을 제거하고 `workspaceContains:**/*.labnote.md`로 대체. 라보노트와 무관한 일반 마크다운 파일을 열 때 확장이 더 이상 로드되지 않음 (커맨드/뷰는 호출 시 자동 활성화)
+- **Workflow TreeView 지연 로딩**: Workflow/Unit Operation 카탈로그 JSON 로드가 생성자에서 제거되어, 사용자가 해당 트리뷰를 펼치기 전까지 동기 파일 I/O가 발생하지 않음
+- **MongoDB 질의 경량화**: `equip_list`/`Item_Catalog` 조회에 projection을 적용해 실제 사용되는 필드(`equip`/`equip_num`/`subname`, `CID`/`물품명`/`name`)만 네트워크로 전송
+
+### Fixed
+- **Mongo 실패 시 재시도 폭주 방지**: 자동완성 트리거마다 MongoDB 재접속이 반복되던 문제 해결. 한 번 실패한 세션에서는 재시도를 중단하고, 필요 시 `Labnote: Reload Remote Data`로 수동 재시도하도록 동작 변경
+
 ## [0.46.0] - 2026-04-18
 
 ### Added

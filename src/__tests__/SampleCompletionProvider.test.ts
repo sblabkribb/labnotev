@@ -63,6 +63,7 @@ vi.mock('../lib/dataLoader', () => ({
   MONGO_BACKED_TYPES: ['Equip', 'Labware'],
   getMongoIds: vi.fn(() => []),
   getMongoRecord: vi.fn(() => undefined),
+  ensureRemoteDataLoaded: vi.fn(() => Promise.resolve()),
 }));
 
 // Mock sampleStorage (completion uses same paths as Sample TreeView)

@@ -3,7 +3,7 @@ import * as path from 'path';
 import { SampleTreeViewProvider, SampleTreeDragAndDropController } from './views/SampleTreeViewProvider';
 import { WorkflowTreeViewProvider } from './views/WorkflowTreeViewProvider';
 import { createSampleCompletionProvider } from './providers/SampleCompletionProvider';
-import { initRemoteData, disposeRemoteData } from './lib/dataLoader';
+import { disposeRemoteData, onRemoteDataLoaded, reloadRemoteData } from './lib/dataLoader';
 import {
   registerSampleCommands,
   registerWorkflowCommands,
@@ -13,17 +13,20 @@ import {
 import { SectionEditorProvider } from './sectionEditorProvider';
 
 export async function activate(context: vscode.ExtensionContext) {
+  const activateStart = performance.now();
+  const logStep = (step: string) => {
+    console.log(`[labnotev] step=${step} elapsed=${(performance.now() - activateStart).toFixed(1)}ms`);
+  };
   console.log('Lab Note Editor is now active');
 
-  // Initialize MongoDB connection (for Equip/Labware)
-  try {
-    await initRemoteData();
-  } catch (error) {
-    console.warn('[LabNoteV] MongoDB initialization failed:', error);
-  }
+  // Phase 1: MongoDB connection is now lazy. We no longer await it here so
+  // activation stays responsive even when the Mongo server is unreachable.
+  // `ensureRemoteDataLoaded` is invoked on-demand from completion/product
+  // picker code paths.
 
   // Register Sample Completion Provider for @ based auto-completion
   context.subscriptions.push(createSampleCompletionProvider());
+  logStep('registerCompletionProvider');
 
   // Sample TreeView setup
   const workspaceFoldersForTree = vscode.workspace.workspaceFolders;
@@ -64,6 +67,15 @@ export async function activate(context: vscode.ExtensionContext) {
     dragAndDropController: sampleDndController,
   });
   context.subscriptions.push(treeView);
+  logStep('createSampleTreeView');
+
+  // Phase 1: refresh the sample tree when MongoDB-backed data finishes
+  // loading so Equip/Labware counts and ids appear without manual refresh.
+  context.subscriptions.push(
+    onRemoteDataLoaded(() => {
+      sampleTreeProvider.refresh();
+    })
+  );
 
   // Track last active .labnote.md URI (for Preview → Section Editor fallback)
   let lastLabnoteUri: vscode.Uri | undefined;
@@ -105,6 +117,7 @@ export async function activate(context: vscode.ExtensionContext) {
     showCollapseAll: true,
   });
   context.subscriptions.push(workflowTreeView);
+  logStep('createWorkflowTreeView');
 
   // ========================================
   // Section Editor Setup
@@ -121,6 +134,7 @@ export async function activate(context: vscode.ExtensionContext) {
       }
     )
   );
+  logStep('registerCustomEditor');
 
   // ========================================
   // Register All Commands
@@ -162,8 +176,15 @@ export async function activate(context: vscode.ExtensionContext) {
       if (uri) {
         vscode.commands.executeCommand('markdown.showPreview', uri);
       }
+    }),
+    // Phase 1: manual MongoDB reload for users who configure/change the URL
+    // after activation.
+    vscode.commands.registerCommand('labnotev.reloadRemoteData', async () => {
+      await reloadRemoteData();
     })
   );
+  logStep('registerCommands');
+  logStep('activateEnd');
 }
 
 export async function deactivate() {

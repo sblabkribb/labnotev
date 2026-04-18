@@ -207,11 +207,13 @@ export class WorkflowTreeViewProvider implements vscode.TreeDataProvider<Workflo
   private workflows: WorkflowItem[] = [];
   private hwUnitOps: UnitOperationItem[] = [];
   private swUnitOps: UnitOperationItem[] = [];
+  // Phase 3: defer disk I/O out of the constructor. We only touch the file
+  // system when the tree view is actually expanded (first `getChildren`).
+  private loaded = false;
 
   constructor(extensionPath: string, workspaceRoot: string) {
     this.extensionPath = extensionPath;
     this.workspaceRoot = workspaceRoot;
-    this.loadData();
   }
 
   /**
@@ -237,11 +239,19 @@ export class WorkflowTreeViewProvider implements vscode.TreeDataProvider<Workflo
     }
   }
 
+  private ensureLoaded(): void {
+    if (this.loaded) return;
+    this.loadData();
+    this.loaded = true;
+  }
+
   /**
    * Refresh the tree view
    */
   refresh(): void {
-    this.loadData();
+    // Phase 3: invalidate the lazy-load flag and re-fire the change event.
+    // The next `getChildren` call will trigger the actual disk read.
+    this.loaded = false;
     this._onDidChangeTreeData.fire();
   }
 
@@ -258,6 +268,7 @@ export class WorkflowTreeViewProvider implements vscode.TreeDataProvider<Workflo
   }
 
   async getChildren(element?: WorkflowTreeItem): Promise<WorkflowTreeItem[]> {
+    this.ensureLoaded();
     if (!element) {
       // Return root items
       return this.getRootItems();

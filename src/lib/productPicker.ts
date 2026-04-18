@@ -4,7 +4,7 @@
  */
 
 import * as vscode from 'vscode';
-import { getMongoIds, getMongoRecord, MONGO_BACKED_TYPES } from './dataLoader';
+import { ensureRemoteDataLoaded, getMongoIds, getMongoRecord, MONGO_BACKED_TYPES } from './dataLoader';
 import { getLabsamplesFolder, getGlobalLabsamplesFolder, loadReferenceSamplesByType } from './sampleStorage';
 
 export interface ProductCandidate {
@@ -61,6 +61,8 @@ export function getProductCandidates(
   }
 
   if (type === 'Labware' && (MONGO_BACKED_TYPES as readonly string[]).includes(type)) {
+    // Phase 1: ensure Mongo data is being loaded for subsequent invocations.
+    void ensureRemoteDataLoaded();
     const mongoIds = getMongoIds(type);
     for (const id of mongoIds) {
       if (!seenIds.has(id)) {

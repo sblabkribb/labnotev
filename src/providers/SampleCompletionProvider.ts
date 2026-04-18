@@ -13,6 +13,7 @@ import {
   getMongoIds,
   getMongoRecord,
   MONGO_BACKED_TYPES,
+  ensureRemoteDataLoaded,
 } from '../lib/dataLoader';
 import { getLabsamplesFolder, getGlobalLabsamplesFolder, loadSamplesByType, loadReferenceSamplesByType } from '../lib/sampleStorage';
 import { generateSampleId } from '../lib/sampleUtils';
@@ -311,6 +312,14 @@ export class SampleCompletionProvider implements vscode.CompletionItemProvider {
     // Determine which types to search
     const specificType = matchSampleType(fullPrefix);
     const typesToSearch = isSamplePrefix(fullPrefix) ? [...SAMPLE_TYPES] : (specificType ? [specificType] : []);
+
+    // Phase 1: kick off MongoDB load the first time a Mongo-backed type is
+    // referenced. We intentionally don't await — the current completion
+    // request uses whatever cache is available now, and the tree view will
+    // refresh on `onRemoteDataLoaded` once ids are populated.
+    if (typesToSearch.some(t => (MONGO_BACKED_TYPES as readonly string[]).includes(t))) {
+      void ensureRemoteDataLoaded();
+    }
 
     // Range to replace: from @ to cursor (match.index so it works with or without colon in document)
     const replaceRange = new vscode.Range(

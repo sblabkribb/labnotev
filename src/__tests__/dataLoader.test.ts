@@ -17,6 +17,11 @@ vi.mock('vscode', () => ({
   Uri: {
     file: (path: string) => ({ fsPath: path }),
   },
+  EventEmitter: class {
+    event = vi.fn();
+    fire = vi.fn();
+    dispose = vi.fn();
+  },
 }));
 
 describe('dataLoader', () => {
