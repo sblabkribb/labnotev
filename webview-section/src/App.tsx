@@ -305,6 +305,38 @@ export default function App() {
           // attached to the right section no matter what.
           const { definitionText, opIndex, secIndex, opId, secHeading } = message.data;
           const curTarget = activeSectionRef.current;
+          // Pre-resolve target section synchronously (same lookup logic as
+          // the updater below) so we can compute the final caret position
+          // before React batches the setState. Mirrors v0.48.2's fix for
+          // sampleInserted: `pendingCursor` must be computed from data
+          // visible at call time, not from an updater's mutated closure.
+          const preWf = workflowRef.current;
+          let preOp: UnitOperationBlock | undefined;
+          if (preWf) {
+            let idx = typeof opId === 'string' && opId.length > 0
+              ? preWf.unitOperations.findIndex(o => o.opId === opId)
+              : -1;
+            if (idx < 0 && typeof opIndex === 'number') idx = opIndex;
+            preOp = preWf.unitOperations[idx];
+          }
+          let preSec: { heading: string; content: string } | undefined;
+          if (preOp) {
+            let sIdx = typeof secHeading === 'string' && secHeading.length > 0
+              ? preOp.sections.findIndex(s => s.heading === secHeading)
+              : -1;
+            if (sIdx < 0 && typeof secIndex === 'number') sIdx = secIndex;
+            preSec = preOp.sections[sIdx];
+          }
+          let pendingDefCursorPos: number | null = null;
+          if (preOp && preSec) {
+            const pPos = resolveInsertPosition(
+              curTarget,
+              { opId: preOp.opId, secHeading: preSec.heading },
+              preSec.content,
+            );
+            const pSep = pPos > 0 && preSec.content[pPos - 1] !== '\n' ? '\n' : '';
+            pendingDefCursorPos = pPos + pSep.length + definitionText.length;
+          }
           setWorkflow(prev => {
             if (!prev) return prev;
             const ops = [...prev.unitOperations];
@@ -345,6 +377,10 @@ export default function App() {
             ops[resolvedOpIndex] = { ...op, sections };
             return { ...prev, unitOperations: ops };
           });
+          if (pendingDefCursorPos !== null) {
+            setPendingCursor({ pos: pendingDefCursorPos, tick: Date.now(), scroll: 'nearest' });
+            setTimeout(() => setPendingCursor(null), 100);
+          }
           markDirty();
           break;
         }

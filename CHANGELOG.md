@@ -5,6 +5,12 @@
 형식은 [Keep a Changelog](https://keepachangelog.com/ko/1.1.0/)를 기반으로 하며,
 이 프로젝트는 [유의적 버전 관리](https://semver.org/lang/ko/)를 따릅니다.
 
+## [0.48.3] - 2026-03-26
+
+### Fixed
+- **섹션 헤더의 `+Sample` 버튼으로 생성한 샘플 정의가 엉뚱한 위치에 삽입되던 문제**: `App.tsx`의 `sampleDefinitionCreated` 핸들러가 `setWorkflow`로 콘텐츠를 삽입한 뒤 `pendingCursor`를 설정하지 않아, caret이 이전 위치에 멈춰 있거나 섹션 끝으로 드리프트된 상태로 유지되었고, 다음번 `+Sample` 클릭 시 `resolveInsertPosition`이 stale한 `activeCursorPos`(섹션 말미)를 사용하여 정의 텍스트가 섹션 끝에 계속 추가되던 문제 수정
+- **동기적 삽입 위치 사전 계산**: v0.48.2의 `sampleInserted` 패턴과 동일하게, 대상 UnitOperation/Section을 `workflowRef.current`와 메시지 `opId`/`secHeading`으로 동기적으로 사전 해석하고 `pendingDefCursorPos`를 React 배치 상태 업데이트 **이전**에 계산. `setWorkflow` 이후 `setPendingCursor({ pos, scroll: 'nearest' })`를 명시적으로 호출하여 caret이 삽입된 정의의 끝으로 이동하고 뷰포트가 따라가도록 보장
+
 ## [0.48.2] - 2026-03-26
 
 ### Fixed
