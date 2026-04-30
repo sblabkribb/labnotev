@@ -7,6 +7,7 @@ import {
   looksLikeTsv,
   tsvToMarkdownTable,
 } from '../utils/markdownTable';
+import { applyIndent } from '../utils/indent';
 
 export function useTableEditing(
   textareaRef: RefObject<HTMLTextAreaElement | null>,
@@ -56,30 +57,48 @@ export function useTableEditing(
     }
 
     if (e.key === 'Tab' && !e.ctrlKey && !e.altKey) {
-      if (!isInsideTable(content, pos)) return;
-      e.preventDefault();
+      if (isInsideTable(content, pos)) {
+        e.preventDefault();
 
-      if (e.shiftKey) {
-        const prev = getPrevCellPosition(content, pos);
-        if (prev !== null) {
-          ta.selectionStart = ta.selectionEnd = prev;
-          reportCursor();
-        }
-      } else {
-        const next = getNextCellPosition(content, pos);
-        if (next) {
-          if (next.newText) {
-            onChange(next.newText);
-            requestAnimationFrame(() => {
-              ta.selectionStart = ta.selectionEnd = next.pos;
-              reportCursor();
-            });
-          } else {
-            ta.selectionStart = ta.selectionEnd = next.pos;
+        if (e.shiftKey) {
+          const prev = getPrevCellPosition(content, pos);
+          if (prev !== null) {
+            ta.selectionStart = ta.selectionEnd = prev;
             reportCursor();
           }
+        } else {
+          const next = getNextCellPosition(content, pos);
+          if (next) {
+            if (next.newText) {
+              onChange(next.newText);
+              requestAnimationFrame(() => {
+                ta.selectionStart = ta.selectionEnd = next.pos;
+                reportCursor();
+              });
+            } else {
+              ta.selectionStart = ta.selectionEnd = next.pos;
+              reportCursor();
+            }
+          }
         }
+        return;
       }
+
+      // Issue #18-2: outside tables, Tab indents and Shift+Tab outdents
+      // instead of moving focus to the next focusable element.
+      e.preventDefault();
+      const selStart = ta.selectionStart;
+      const selEnd = ta.selectionEnd;
+      const result = applyIndent(content, selStart, selEnd, e.shiftKey ? 'outdent' : 'indent');
+      if (result.text === content && result.selStart === selStart && result.selEnd === selEnd) {
+        return;
+      }
+      onChange(result.text);
+      requestAnimationFrame(() => {
+        ta.selectionStart = result.selStart;
+        ta.selectionEnd = result.selEnd;
+        reportCursor();
+      });
     }
   }, [content, onChange, handleAlignTable, reportCursor]);
 

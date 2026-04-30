@@ -5,6 +5,12 @@
 형식은 [Keep a Changelog](https://keepachangelog.com/ko/1.1.0/)를 기반으로 하며,
 이 프로젝트는 [유의적 버전 관리](https://semver.org/lang/ko/)를 따릅니다.
 
+## [0.50.0] - 2026-04-30
+
+### Added
+- **Section editor Tab 들여쓰기 / Shift+Tab 내어쓰기 (이슈 #18-2)**: 테이블 밖에서 Tab은 커서 위치에 2 공백을 삽입하고, Shift+Tab은 줄 시작의 공백을 최대 2칸 제거합니다. 여러 줄을 선택한 상태에서는 모든 줄에 일괄 적용되어 마크다운 리스트의 하위 그룹 들여쓰기에 그대로 활용 가능. 테이블 안에서 Tab은 기존대로 다음 셀로 이동합니다
+- **`webview-section/src/utils/indent.ts` 새 헬퍼 모듈**: `applyIndent(text, selStart, selEnd, mode)`로 들여쓰기 결과 텍스트와 새 선택 범위를 순수 함수로 계산해 단위 테스트 가능
+
 ## [0.49.0] - 2026-04-30
 
 ### Added
