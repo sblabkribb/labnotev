@@ -5,6 +5,12 @@
 형식은 [Keep a Changelog](https://keepachangelog.com/ko/1.1.0/)를 기반으로 하며,
 이 프로젝트는 [유의적 버전 관리](https://semver.org/lang/ko/)를 따릅니다.
 
+## [0.49.0] - 2026-04-30
+
+### Added
+- **Lab Samples 트리뷰 드래그앤드롭 순서 변경 (이슈 #18-1)**: 같은 scope(Local/Global)와 같은 타입(DNA/RNA/Reagent 등) 안에서 샘플을 다른 샘플 위로 끌어다 놓으면 순서가 바뀌고 JSON 파일에 즉시 저장됨. 타입 노드 위에 놓으면 맨 끝으로 이동, 다중 선택 시 상대 순서 보존. 다른 타입/scope로의 D&D는 무시되며 범위 이동은 기존 `Move to Global/Local` 명령이 담당
+- **`SampleTreeViewProvider.reorderSamples` / `getSampleIds` 공개 메서드**: D&D 컨트롤러가 새 키 순서를 계산해 위임할 수 있도록 추가. 누락된 ID는 끝에 보존되어 데이터 손실을 방지
+
 ## [0.48.3] - 2026-03-26
 
 ### Fixed

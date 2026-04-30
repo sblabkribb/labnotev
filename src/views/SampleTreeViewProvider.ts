@@ -214,11 +214,34 @@ export class SampleTreeItem extends vscode.TreeItem {
  */
 export const SAMPLE_TREE_DND_MIME = 'application/vnd.code.tree.labnotevsampletreeview';
 
+/**
+ * Subset of SampleTreeViewProvider used by the drag-and-drop controller.
+ * Declared as an interface so tests can inject a stub without constructing a
+ * full provider (which requires extension context + workspace folders).
+ */
+export interface SampleReorderProvider {
+  getSampleIds(scope: 'local' | 'global', sampleType: string): string[];
+  reorderSamples(scope: 'local' | 'global', sampleType: string, orderedIds: string[]): void;
+}
+
+interface DragSourcePayload {
+  scope: 'local' | 'global';
+  sampleType: string;
+  sampleId: string;
+  alias: string | null;
+  sampleDescription: string | null;
+}
+
 export class SampleTreeDragAndDropController
   implements vscode.TreeDragAndDropController<SampleTreeItem>
 {
   readonly dropMimeTypes: readonly string[] = [SAMPLE_TREE_DND_MIME];
   readonly dragMimeTypes: readonly string[] = ['text/plain', SAMPLE_TREE_DND_MIME];
+
+  // Issue #18-1: provider is optional so existing call sites that only need
+  // the drag-out-to-editor behaviour keep working. When provided, in-tree
+  // drops trigger reordering within the same scope+type bucket.
+  constructor(private readonly provider?: SampleReorderProvider) {}
 
   public handleDrag(
     source: readonly SampleTreeItem[],
@@ -231,10 +254,10 @@ export class SampleTreeDragAndDropController
     const textPayload = samples.map(item => getDefinitionText(item)).join('\n');
     dataTransfer.set('text/plain', new vscode.DataTransferItem(textPayload));
 
-    const structuredPayload = samples.map(item => ({
+    const structuredPayload: DragSourcePayload[] = samples.map(item => ({
       scope: item.scope,
-      sampleType: item.sampleType,
-      sampleId: item.sampleId,
+      sampleType: item.sampleType ?? '',
+      sampleId: item.sampleId ?? '',
       alias: item.alias ?? null,
       sampleDescription: item.sampleDescription ?? null,
     }));
@@ -242,13 +265,75 @@ export class SampleTreeDragAndDropController
   }
 
   /**
-   * Internal drops (inside the tree view) are not meaningful yet — moving a
-   * sample between local/global is handled by dedicated commands. We keep the
-   * handler so VS Code can still show the drop affordance; it intentionally
-   * performs no mutation.
+   * Issue #18-1: reorder samples within the same scope+type bucket.
+   *
+   * - Source must be one or more Sample nodes in the same scope+type as the
+   *   target. Drops crossing scope/type boundaries are ignored — moving
+   *   between local and global still goes through the dedicated commands.
+   * - Drop on a Sample target: insert source ids immediately *before* target.
+   * - Drop on a Type target (or undefined): append source ids to the end.
+   * - Multi-selection preserves the relative order of the source ids.
    */
-  public handleDrop(): void {
-    // no-op
+  public async handleDrop(
+    target: SampleTreeItem | undefined,
+    dataTransfer: vscode.DataTransfer,
+    _token: vscode.CancellationToken
+  ): Promise<void> {
+    if (!this.provider) return;
+
+    const item = dataTransfer.get(SAMPLE_TREE_DND_MIME);
+    if (!item) return;
+    const raw = (item as { value: unknown }).value;
+    if (!Array.isArray(raw) || raw.length === 0) return;
+    const sources = raw as DragSourcePayload[];
+
+    // All sources must share scope+type, and that bucket must match the drop
+    // target's bucket. Otherwise reordering does not make sense; bail out.
+    const first = sources[0];
+    if (!first || !first.sampleType || !first.scope) return;
+    const bucketScope = first.scope;
+    const bucketType = first.sampleType;
+    const sameBucket = sources.every(s => s.scope === bucketScope && s.sampleType === bucketType);
+    if (!sameBucket) return;
+
+    if (target) {
+      if (target.itemType === SampleTreeItemType.Sample) {
+        if (target.scope !== bucketScope || target.sampleType !== bucketType) return;
+      } else if (target.itemType === SampleTreeItemType.Type) {
+        if (target.scope !== bucketScope || target.sampleType !== bucketType) return;
+      } else {
+        return;
+      }
+    }
+
+    const sourceIds = sources.map(s => s.sampleId).filter((id): id is string => Boolean(id));
+    if (sourceIds.length === 0) return;
+
+    const currentIds = this.provider.getSampleIds(bucketScope, bucketType);
+    const sourceSet = new Set(sourceIds);
+    const remaining = currentIds.filter(id => !sourceSet.has(id));
+
+    let insertAt: number;
+    if (target && target.itemType === SampleTreeItemType.Sample && target.sampleId) {
+      const idx = remaining.indexOf(target.sampleId);
+      insertAt = idx === -1 ? remaining.length : idx;
+    } else {
+      insertAt = remaining.length;
+    }
+
+    const orderedIds = [
+      ...remaining.slice(0, insertAt),
+      ...sourceIds,
+      ...remaining.slice(insertAt),
+    ];
+
+    // No-op if order is unchanged.
+    const sameOrder =
+      orderedIds.length === currentIds.length &&
+      orderedIds.every((id, i) => id === currentIds[i]);
+    if (sameOrder) return;
+
+    this.provider.reorderSamples(bucketScope, bucketType, orderedIds);
   }
 }
 
@@ -516,6 +601,48 @@ export class SampleTreeViewProvider implements vscode.TreeDataProvider<SampleTre
       this.saveSamples(folder, sampleType, samples);
       this.refresh();
     }
+  }
+
+  /**
+   * Issue #18-1: list the current sample ids for a scope+type bucket, in the
+   * order they appear in the underlying JSON file. Used by the drag-and-drop
+   * controller to compute a new key order before persisting it.
+   */
+  public getSampleIds(scope: 'local' | 'global', sampleType: string): string[] {
+    const folder = scope === 'local' ? this.localFolder : this.globalFolder;
+    const samples = this.loadSamples(folder, sampleType);
+    return Object.keys(samples);
+  }
+
+  /**
+   * Issue #18-1: persist a user-defined sample order for a scope+type bucket.
+   *
+   * The JSON file is rewritten with keys in `orderedIds` order. Any existing
+   * ids that were omitted from `orderedIds` (e.g. because they were added
+   * concurrently) are appended at the end so we never silently drop data.
+   */
+  public reorderSamples(
+    scope: 'local' | 'global',
+    sampleType: string,
+    orderedIds: string[]
+  ): void {
+    const folder = scope === 'local' ? this.localFolder : this.globalFolder;
+    const samples = this.loadSamples(folder, sampleType);
+
+    const reordered: Record<string, SampleRecord> = {};
+    for (const id of orderedIds) {
+      if (samples[id]) {
+        reordered[id] = samples[id];
+      }
+    }
+    for (const id of Object.keys(samples)) {
+      if (!reordered[id]) {
+        reordered[id] = samples[id];
+      }
+    }
+
+    this.saveSamples(folder, sampleType, reordered);
+    this.refresh();
   }
 
   /**

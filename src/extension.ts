@@ -76,7 +76,7 @@ export async function activate(context: vscode.ExtensionContext) {
 
   // Register tree view. Phase D-3: attach drag-and-drop controller so users
   // can drag sample leaf nodes into any editor to insert their definition.
-  const sampleDndController = new SampleTreeDragAndDropController();
+  const sampleDndController = new SampleTreeDragAndDropController(sampleTreeProvider);
   const treeView = vscode.window.createTreeView('labnotev.sampleTreeView', {
     treeDataProvider: sampleTreeProvider,
     showCollapseAll: true,
