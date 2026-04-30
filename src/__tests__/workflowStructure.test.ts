@@ -128,13 +128,13 @@ describe('Workflow Structure', () => {
   describe('createWorkflowContent', () => {
     it('should include YAML front matter', async () => {
       const { createWorkflowContent } = await import('../lib/workflowStructure');
-      
+
       const result = createWorkflowContent({
         id: 'WD010',
         name: 'General Design of Experiment',
         description: 'Test description',
-      }, '', 'John Doe');
-      
+      }, 'John Doe');
+
       expect(result).toContain('---');
       expect(result).toContain('title:');
       expect(result).toContain('experimenter: John Doe');
@@ -145,37 +145,25 @@ describe('Workflow Structure', () => {
 
     it('should include workflow header with ID and name', async () => {
       const { createWorkflowContent } = await import('../lib/workflowStructure');
-      
-      const result = createWorkflowContent({
-        id: 'WD010',
-        name: 'General Design of Experiment',
-        description: 'Test description',
-      }, '', '');
-      
-      expect(result).toContain('## [WD010 General Design of Experiment]');
-    });
 
-    it('should include user description if provided', async () => {
-      const { createWorkflowContent } = await import('../lib/workflowStructure');
-      
       const result = createWorkflowContent({
         id: 'WD010',
         name: 'General Design of Experiment',
         description: 'Test description',
-      }, 'Day 1 prep', '');
-      
-      expect(result).toContain('Day 1 prep');
+      }, '');
+
+      expect(result).toContain('## [WD010 General Design of Experiment]');
     });
 
     it('should include Related Unit Operations section', async () => {
       const { createWorkflowContent } = await import('../lib/workflowStructure');
-      
+
       const result = createWorkflowContent({
         id: 'WD010',
         name: 'Test',
         description: 'Desc',
-      }, '', '');
-      
+      }, '');
+
       expect(result).toContain('## Related Unit Operations');
     });
   });
@@ -183,26 +171,14 @@ describe('Workflow Structure', () => {
   describe('createWorkflowFileName', () => {
     it('should create filename with .labnote.md extension', async () => {
       const { createWorkflowFileName } = await import('../lib/workflowStructure');
-      
+
       const result = createWorkflowFileName('001', {
         id: 'WD010',
         name: 'General Design of Experiment',
         description: '',
-      }, '');
-      
-      expect(result).toBe('001_WD010_General_Design_of_Experiment.labnote.md');
-    });
+      });
 
-    it('should include description if provided', async () => {
-      const { createWorkflowFileName } = await import('../lib/workflowStructure');
-      
-      const result = createWorkflowFileName('002', {
-        id: 'WB010',
-        name: 'DNA Assembly',
-        description: '',
-      }, 'Day 1');
-      
-      expect(result).toBe('002_WB010_DNA_Assembly_Day_1.labnote.md');
+      expect(result).toBe('001_WD010_General_Design_of_Experiment.labnote.md');
     });
   });
 
@@ -296,15 +272,15 @@ Content here
 
   describe('Workflow interface', () => {
     it('should export WorkflowInfo interface', async () => {
-      const module = await import('../lib/workflowStructure');
-      
+      type WorkflowInfo = import('../lib/workflowStructure').WorkflowInfo;
+
       // Type check - this will fail at compile time if interface is wrong
-      const workflow: typeof module.WorkflowInfo = {
+      const workflow: WorkflowInfo = {
         id: 'WD010',
         name: 'Test',
         description: 'Desc',
       };
-      
+
       expect(workflow).toBeDefined();
     });
   });

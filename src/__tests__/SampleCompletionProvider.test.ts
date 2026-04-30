@@ -32,7 +32,7 @@ vi.mock('vscode', () => ({
   CompletionList: class MockCompletionList extends Array {
     isIncomplete: boolean;
     constructor(items: unknown[], isIncomplete: boolean) {
-      super(...items);
+      super(...(items as unknown[]) as never[]);
       this.isIncomplete = isIncomplete;
     }
   },
@@ -246,8 +246,8 @@ describe('SampleCompletionProvider', () => {
       const sampleItem = result.find((item: any) => item.sortText?.startsWith('1_'));
       
       expect(sampleItem).toBeDefined();
-      // insertText should be "ID|Alias" without description
-      expect(sampleItem.insertText).toBe('DNA-123|SampleA');
+      // insertText should be "ID;Alias" without description (v0.46.0+ uses ; delimiter)
+      expect(sampleItem.insertText).toBe('DNA-123;SampleA');
       // Should NOT contain description
       expect(sampleItem.insertText).not.toContain('Test description');
     });

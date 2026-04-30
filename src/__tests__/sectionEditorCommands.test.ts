@@ -60,7 +60,7 @@ describe('commands with SectionEditorProvider', () => {
       const { labnoteDirFromTarget } = await import('../lib/labnoteWorkflowContext');
       const target = {
         mode: 'section' as const,
-        document: { uri: { fsPath: '/workspace/labnote/001_Test/README.labnote.md' } },
+        document: { uri: { fsPath: '/workspace/labnote/001_Test/README.labnote.md' } } as unknown as import('vscode').TextDocument,
         provider: {} as any,
       };
       const dir = labnoteDirFromTarget(target);

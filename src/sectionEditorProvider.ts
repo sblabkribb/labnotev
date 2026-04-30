@@ -218,6 +218,7 @@ export class SectionEditorProvider implements vscode.CustomTextEditorProvider {
       document.positionAt(0),
       document.positionAt(content.length)
     );
+    edit.replace(document.uri, fullRange, newContent);
     this._suppressDocChange = true;
     try {
       await vscode.workspace.applyEdit(edit);

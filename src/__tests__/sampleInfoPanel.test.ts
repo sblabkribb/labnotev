@@ -1,4 +1,5 @@
 import { mockVscode } from './setup';
+import type { SampleDisplayInfo } from '../views/SampleInfoPanel';
 
 describe('Sample Info Panel', () => {
   beforeEach(() => {
@@ -118,8 +119,8 @@ describe('Sample Info Panel', () => {
 
   describe('Extended HTML generation with sample info', () => {
     it('should generate HTML with alias and description', async () => {
-      const { generateSampleInfoHtml, SampleDisplayInfo } = await import('../views/SampleInfoPanel');
-      
+      const { generateSampleInfoHtml } = await import('../views/SampleInfoPanel');
+
       const samples: SampleDisplayInfo[] = [
         { id: 'DNA-123', type: 'DNA', alias: '샘플1', description: '설명 내용', sources: ['test.md'] }
       ];
@@ -131,7 +132,7 @@ describe('Sample Info Panel', () => {
     });
 
     it('should include action buttons (Rename, Replace, Go to)', async () => {
-      const { generateSampleInfoHtml, SampleDisplayInfo } = await import('../views/SampleInfoPanel');
+      const { generateSampleInfoHtml } = await import('../views/SampleInfoPanel');
 
       const samples: SampleDisplayInfo[] = [
         { id: 'DNA-123', type: 'DNA', alias: null, description: null, sources: [] }
@@ -144,7 +145,7 @@ describe('Sample Info Panel', () => {
     });
 
     it('should escape HTML in sample id, type, alias and description', async () => {
-      const { generateSampleInfoHtml, SampleDisplayInfo } = await import('../views/SampleInfoPanel');
+      const { generateSampleInfoHtml } = await import('../views/SampleInfoPanel');
 
       const samples: SampleDisplayInfo[] = [
         { id: 'DNA-<script>', type: 'DNA"bad"', alias: '<img onerror>', description: '<b>x</b>', sources: ['<a>src</a>'] }

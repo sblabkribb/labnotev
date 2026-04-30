@@ -1,26 +1,37 @@
 import { vi } from 'vitest';
 
+// Generic VS Code listener / handler stub — mocks register-style APIs use this
+// shape so callers can read `mock.calls[i][0]` (event/command id) and
+// `mock.calls[i][1]` (handler) with proper tuple typing instead of `[]`.
+type AnyHandler = (...args: any[]) => any;
+type Disposable = { dispose: () => void };
+const makeDisposable = (): Disposable => ({ dispose: vi.fn() });
+
 // Mock VSCode API
 export const mockVscode = {
   window: {
-    registerCustomEditorProvider: vi.fn(() => ({ dispose: vi.fn() })),
-    registerTreeDataProvider: vi.fn(() => ({ dispose: vi.fn() })),
-    createTreeView: vi.fn(() => ({
+    registerCustomEditorProvider: vi.fn(
+      (_viewType: string, _provider: unknown, _options?: unknown): Disposable => makeDisposable()
+    ),
+    registerTreeDataProvider: vi.fn(
+      (_viewId: string, _provider: unknown): Disposable => makeDisposable()
+    ),
+    createTreeView: vi.fn((_viewId: string, _options: unknown) => ({
       dispose: vi.fn(),
       reveal: vi.fn(),
-      onDidChangeSelection: vi.fn(() => ({ dispose: vi.fn() })),
-      onDidExpandElement: vi.fn(() => ({ dispose: vi.fn() })),
-      onDidCollapseElement: vi.fn(() => ({ dispose: vi.fn() })),
+      onDidChangeSelection: vi.fn((_listener: AnyHandler) => makeDisposable()),
+      onDidExpandElement: vi.fn((_listener: AnyHandler) => makeDisposable()),
+      onDidCollapseElement: vi.fn((_listener: AnyHandler) => makeDisposable()),
     })),
-    showErrorMessage: vi.fn(),
-    showWarningMessage: vi.fn(),
-    showInformationMessage: vi.fn(),
-    showInputBox: vi.fn(),
-    showQuickPick: vi.fn(),
-    showOpenDialog: vi.fn(),
+    showErrorMessage: vi.fn((_msg: string, ..._items: string[]) => Promise.resolve(undefined)),
+    showWarningMessage: vi.fn((_msg: string, ..._items: string[]) => Promise.resolve(undefined)),
+    showInformationMessage: vi.fn((_msg: string, ..._items: string[]) => Promise.resolve(undefined)),
+    showInputBox: vi.fn((_options?: unknown) => Promise.resolve(undefined as string | undefined)),
+    showQuickPick: vi.fn((_items: unknown, _options?: unknown) => Promise.resolve(undefined as unknown)),
+    showOpenDialog: vi.fn((_options?: unknown) => Promise.resolve(undefined as unknown[] | undefined)),
     activeTextEditor: undefined as unknown,
-    onDidChangeActiveTextEditor: vi.fn(() => ({ dispose: vi.fn() })),
-    createTextEditorDecorationType: vi.fn(() => ({
+    onDidChangeActiveTextEditor: vi.fn((_listener: AnyHandler) => makeDisposable()),
+    createTextEditorDecorationType: vi.fn((_options: unknown) => ({
       dispose: vi.fn(),
     })),
   },
@@ -68,16 +79,24 @@ export const mockVscode = {
     OpenClosed: 3,
   },
   commands: {
-    registerCommand: vi.fn(() => ({ dispose: vi.fn() })),
-    executeCommand: vi.fn(),
+    registerCommand: vi.fn(
+      (_command: string, _callback: AnyHandler, _thisArg?: unknown): Disposable => makeDisposable()
+    ),
+    executeCommand: vi.fn((..._args: unknown[]) => Promise.resolve(undefined as unknown)),
   },
   env: {
     openExternal: vi.fn(),
   },
   languages: {
-    registerDocumentLinkProvider: vi.fn(() => ({ dispose: vi.fn() })),
-    registerHoverProvider: vi.fn(() => ({ dispose: vi.fn() })),
-    registerCompletionItemProvider: vi.fn(() => ({ dispose: vi.fn() })),
+    registerDocumentLinkProvider: vi.fn(
+      (_selector: unknown, _provider: unknown): Disposable => makeDisposable()
+    ),
+    registerHoverProvider: vi.fn(
+      (_selector: unknown, _provider: unknown): Disposable => makeDisposable()
+    ),
+    registerCompletionItemProvider: vi.fn(
+      (_selector: unknown, _provider: unknown, ..._triggers: string[]): Disposable => makeDisposable()
+    ),
   },
   CompletionItem: vi.fn().mockImplementation((label, kind) => ({
     label,
@@ -122,10 +141,10 @@ export const mockVscode = {
       createDirectory: vi.fn(),
       readFile: vi.fn(),
     },
-    onDidChangeTextDocument: vi.fn(() => ({ dispose: vi.fn() })),
-    onDidSaveTextDocument: vi.fn(() => ({ dispose: vi.fn() })),
-    onDidChangeConfiguration: vi.fn(() => ({ dispose: vi.fn() })),
-    applyEdit: vi.fn(),
+    onDidChangeTextDocument: vi.fn((_listener: AnyHandler) => makeDisposable()),
+    onDidSaveTextDocument: vi.fn((_listener: AnyHandler) => makeDisposable()),
+    onDidChangeConfiguration: vi.fn((_listener: AnyHandler) => makeDisposable()),
+    applyEdit: vi.fn((_edit: unknown) => Promise.resolve(true)),
     getConfiguration: vi.fn(() => ({
       get: vi.fn((key: string, defaultValue?: unknown) => defaultValue),
       has: vi.fn(() => false),

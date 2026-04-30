@@ -106,7 +106,7 @@ describe('Sample Command Insertion - Prefix Duplication Fix', () => {
       );
 
       expect(generateSampleIdCall).toBeDefined();
-      const handler = generateSampleIdCall[1];
+      const handler = generateSampleIdCall![1];
 
       // Execute handler
       await handler('Labware', mockDocument.uri);
@@ -145,7 +145,7 @@ describe('Sample Command Insertion - Prefix Duplication Fix', () => {
       const generateSampleIdCall = commandCalls.find(
         (call: any[]) => call[0] === 'labnotev.generateSampleId'
       );
-      const handler = generateSampleIdCall[1];
+      const handler = generateSampleIdCall![1];
 
       await handler('DNA', mockDocument.uri);
 
@@ -175,7 +175,7 @@ describe('Sample Command Insertion - Prefix Duplication Fix', () => {
       const generateSampleIdCall = commandCalls.find(
         (call: any[]) => call[0] === 'labnotev.generateSampleId'
       );
-      const handler = generateSampleIdCall[1];
+      const handler = generateSampleIdCall![1];
 
       await handler('DNA', mockDocument.uri);
 
@@ -209,7 +209,7 @@ describe('Sample Command Insertion - Prefix Duplication Fix', () => {
       );
 
       expect(inputSampleInfoCall).toBeDefined();
-      const handler = inputSampleInfoCall[1];
+      const handler = inputSampleInfoCall![1];
 
       await handler('Labware', mockDocument.uri);
 
@@ -245,7 +245,7 @@ describe('Sample Command Insertion - Prefix Duplication Fix', () => {
       const inputSampleInfoCall = commandCalls.find(
         (call: any[]) => call[0] === 'labnotev.inputSampleInfo'
       );
-      const handler = inputSampleInfoCall[1];
+      const handler = inputSampleInfoCall![1];
 
       await handler('RNA', mockDocument.uri);
 

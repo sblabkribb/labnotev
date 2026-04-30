@@ -43,7 +43,7 @@ vi.mock('vscode', () => ({
   CompletionList: class extends Array {
     isIncomplete: boolean;
     constructor(items: unknown[], isIncomplete: boolean) {
-      super(...items);
+      super(...(items as unknown[]) as never[]);
       this.isIncomplete = isIncomplete;
     }
   },

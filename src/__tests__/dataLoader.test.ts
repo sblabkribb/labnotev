@@ -5,6 +5,7 @@ import {
   SAMPLE_TYPES,
   MONGO_BACKED_TYPES,
 } from '../lib/dataLoader';
+import type { JsonSampleRecord } from '../lib/dataLoader';
 
 // Mock vscode
 vi.mock('vscode', () => ({
@@ -59,17 +60,15 @@ describe('dataLoader', () => {
   });
 
   describe('JsonSampleRecord interface', () => {
-    it('should allow creating JsonSampleRecord objects', async () => {
-      const { JsonSampleRecord } = await import('../lib/dataLoader');
-      
+    it('should allow creating JsonSampleRecord objects', () => {
       // Type assertion to test interface structure
-      const sample: typeof JsonSampleRecord = {
+      const sample: JsonSampleRecord = {
         type: 'DNA',
         alias: 'TestAlias',
         descriptions: ['Test description'],
         sources: ['test.md'],
       };
-      
+
       expect(sample.type).toBe('DNA');
       expect(sample.alias).toBe('TestAlias');
     });

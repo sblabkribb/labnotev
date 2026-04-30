@@ -5,6 +5,19 @@
 형식은 [Keep a Changelog](https://keepachangelog.com/ko/1.1.0/)를 기반으로 하며,
 이 프로젝트는 [유의적 버전 관리](https://semver.org/lang/ko/)를 따릅니다.
 
+## [0.50.1] - 2026-04-30
+
+### Fixed
+- **`appendUnitOpToDocument`의 누락된 문서 반영**: `WorkspaceEdit`를 만들고 `applyEdit`까지 호출했지만 `edit.replace(document.uri, fullRange, newContent)`가 빠져 있어 유닛 오퍼레이션을 추가해도 webview의 자동 저장 디바운스가 발화하기 전에 에디터를 닫으면 변경분이 손실되던 문제 수정 (TDD로 회귀 테스트 추가)
+- **테스트 실패 3건 갱신**: `workflowStructure.test.ts`의 `createWorkflowContent` / `createWorkflowFileName` 호출이 v0.37.0에서 변경된 2-인자 시그니처를 따르도록 수정하고, 사용자 설명 인자가 제거된 기능과 관련된 테스트 2건 제거. `SampleCompletionProvider.test.ts`의 샘플 ID 구분자 기대값을 v0.46.0 표준인 `;`로 갱신
+
+### Changed
+- **테스트 mock 타입 매개변수 정비 (TS 에러 60건 일괄 정리)**: `src/__tests__/setup.ts`에서 `vi.fn`에 명시적 타입 매개변수(`<[command, callback], Disposable>`)를 부여해 `mock.calls[i][n]`의 추론을 정상화. 더불어 테스트 파일에서 `import type`로 인터페이스를 분리(`SampleDisplayInfo`, `JsonSampleRecord`, `WorkflowInfo`)하고, mock 객체에 `as unknown as vscode.TextDocument` 등 안전 캐스팅을 적용해 `tsc --noEmit`이 0 에러로 통과하도록 정리
+- **webview 번들 경고 한도 700KB**: `webview-section/vite.config.ts`에 `chunkSizeWarningLimit: 700`을 추가. Custom Editor webview는 로컬 디스크에서 로드되므로 500KB 기본 경고가 의미 없는 노이즈였음
+
+### Removed
+- **워크스페이스 루트의 stray `nul` 파일 정리**: Windows bash 리다이렉션 부산물(0 byte) 삭제 및 `.gitignore`에 `/nul` 항목 추가로 재생성 방지
+
 ## [0.50.0] - 2026-04-30
 
 ### Added

@@ -12,3 +12,6 @@ coverage/
 docs/
 docs2/
 *.stackdump
+# Windows bash `2>nul` redirection occasionally leaves a stray file named `nul`
+# in the workspace root.
+/nul

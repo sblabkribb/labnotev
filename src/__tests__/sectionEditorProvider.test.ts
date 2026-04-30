@@ -98,4 +98,68 @@ Some content here.
     const provider = new SectionEditorProvider(mockContext);
     expect(provider.getEditorMode()).toBeUndefined();
   });
+
+  // Regression guard: appendUnitOpToDocument must persist the new unit op to
+  // the underlying TextDocument via WorkspaceEdit.replace. Earlier revisions
+  // built the WorkspaceEdit but never called `.replace`, so the change relied
+  // on the webview's auto-save path and was lost if the editor closed during
+  // the 1.5s debounce window.
+  it('should persist appended unit op via WorkspaceEdit.replace', async () => {
+    const { SectionEditorProvider, buildUnitOperationBlock } = await import('../sectionEditorProvider');
+    const mockContext = {
+      subscriptions: [],
+      extensionUri: { fsPath: '/test' },
+      extensionPath: '/test',
+    } as any;
+    const provider = new SectionEditorProvider(mockContext);
+
+    const initialContent = `---
+title: WD010 Test
+experimenter: Tester
+created_date: 2026-01-01
+last_updated_date: 2026-01-01
+end_date: ''
+---
+
+## [WD010 Test]
+
+> Test workflow
+
+## Related Unit Operations
+
+`;
+
+    const mockDoc = {
+      uri: { fsPath: '/test.labnote.md', toString: () => 'file:///test.labnote.md' },
+      getText: vi.fn(() => initialContent),
+      positionAt: vi.fn((offset: number) => ({ line: 0, character: offset })),
+    } as any;
+
+    // Capture WorkspaceEdit instances so we can inspect `.replace` per-instance
+    const editInstances: Array<{ replace: ReturnType<typeof vi.fn> }> = [];
+    const OriginalWE = mockVscode.WorkspaceEdit;
+    mockVscode.WorkspaceEdit = class MockSpyWE extends OriginalWE {
+      constructor() {
+        super();
+        editInstances.push(this as unknown as { replace: ReturnType<typeof vi.fn> });
+      }
+    } as typeof OriginalWE;
+
+    try {
+      const block = buildUnitOperationBlock('HW001', 'Centrifugation', 'Separate by centrifugal force', 'hw', 'Tester');
+      await provider.appendUnitOpToDocument(mockDoc, block);
+    } finally {
+      mockVscode.WorkspaceEdit = OriginalWE;
+    }
+
+    expect(editInstances).toHaveLength(1);
+    expect(editInstances[0].replace).toHaveBeenCalledTimes(1);
+    const replaceArgs = editInstances[0].replace.mock.calls[0];
+    // [uri, range, newContent]
+    expect(replaceArgs[0]).toBe(mockDoc.uri);
+    expect(typeof replaceArgs[2]).toBe('string');
+    expect(replaceArgs[2]).toContain('HW001');
+    expect(replaceArgs[2]).toContain('Centrifugation');
+    expect(mockVscode.workspace.applyEdit).toHaveBeenCalled();
+  });
 });
