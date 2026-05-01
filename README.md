@@ -48,6 +48,7 @@ VS Code에서 실험 노트를 마크다운으로 작성할 수 있도록 돕는
    - 문서는 편집 시 **자동 저장**되며 (1.5초뒤 자동 저장), 상단 배지에 저장 상태가 표시됨
    - **다크 모드**: 에디터 오른쪽 상단의 달/해 아이콘으로 다크/라이트 모드 전환 (설정은 자동 저장)
    - 에디터 타이틀 바 오른쪽 상단에서 Text Editor, Section Editor (플라스크아이콘), Preview 간 전환 가능
+   - **Markdown Preview 줄바꿈**: 익스텐션이 `markdown.preview.breaks: true`를 기본값으로 적용해, 내장 Preview에서 Enter 한 번이 그대로 줄바꿈으로 렌더링됨 (사용자가 `settings.json`에서 직접 `false`로 덮어쓰면 그 값이 우선)
 
 ## 주요 기능
 

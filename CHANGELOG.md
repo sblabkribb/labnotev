@@ -5,6 +5,11 @@
 형식은 [Keep a Changelog](https://keepachangelog.com/ko/1.1.0/)를 기반으로 하며,
 이 프로젝트는 [유의적 버전 관리](https://semver.org/lang/ko/)를 따릅니다.
 
+## [0.50.2] - 2026-05-01
+
+### Added
+- **VS Code 내장 Markdown Preview의 한 줄 Enter 줄바꿈 기본 적용 (이슈 #18-3)**: `package.json`의 `contributes.configurationDefaults`에 `markdown.preview.breaks: true`를 추가하여, LabnoteV가 활성화된 환경에서 `Ctrl+Shift+V` 미리보기가 단일 Enter도 줄바꿈으로 렌더링하도록 기본값을 변경. 사용자가 `settings.json`에 직접 `markdown.preview.breaks: false`를 두면 그 값이 우선 적용됨
+
 ## [0.50.1] - 2026-04-30
 
 ### Fixed
