@@ -5,6 +5,12 @@
 형식은 [Keep a Changelog](https://keepachangelog.com/ko/1.1.0/)를 기반으로 하며,
 이 프로젝트는 [유의적 버전 관리](https://semver.org/lang/ko/)를 따릅니다.
 
+## [0.50.3] - 2026-05-01
+
+### Fixed
+- **이슈 #18-1 샘플 트리 D&D 재정렬 미동작 수정**: `SAMPLE_TREE_DND_MIME` 상수 값을 비표준 `application/vnd.code.tree.labnotevsampletreeview`에서 VS Code 표준인 `application/vnd.code.tree.labnotev.sampleTreeView`(viewId와 동일한 형식)로 교정. 이전 값은 same-view drop을 자동 라우팅받지 못해 `handleDrop`이 호출되지 않아 드래그해도 순서가 바뀌지 않던 원인이었음
+- **이슈 #18-2 Section editor Tab 들여쓰기 미동작 수정**: 일부 webview 환경에서 React 합성 이벤트의 `e.preventDefault()`가 textarea의 native focus traversal을 완전히 막지 못하던 문제를 보강. `HighlightedTextarea`에 capture 단계 native keydown 리스너를 추가해 Tab의 기본 동작을 가장 먼저 차단하고, `useTableEditing`의 핸들러에서도 `stopPropagation` / `nativeEvent.preventDefault`를 함께 호출하도록 다층 방어를 적용
+
 ## [0.50.2] - 2026-05-01
 
 ### Added

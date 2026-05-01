@@ -101,6 +101,24 @@ export const HighlightedTextarea = forwardRef<HTMLTextAreaElement, HighlightedTe
       return () => observer.disconnect();
     }, []);
 
+    // Issue #18-2 hotfix: in some webview environments React's synthetic
+    // onKeyDown preventDefault is not enough to stop the textarea's native
+    // Tab focus traversal. Register a capture-phase native keydown listener
+    // that swallows the default Tab action *before* React's bubble phase.
+    // The actual indent/outdent logic still runs from the React onKeyDown
+    // path (see useTableEditing.handleKeyDown).
+    useEffect(() => {
+      const ta = textareaRef.current;
+      if (!ta) return;
+      const block = (e: KeyboardEvent) => {
+        if (e.key === 'Tab' && !e.ctrlKey && !e.altKey && !e.metaKey) {
+          e.preventDefault();
+        }
+      };
+      ta.addEventListener('keydown', block, { capture: true });
+      return () => ta.removeEventListener('keydown', block, { capture: true } as EventListenerOptions);
+    }, []);
+
     const reportCursor = () => {
       if (isApplyingFocusRef.current) return;
       if (textareaRef.current && onCursorChange) {

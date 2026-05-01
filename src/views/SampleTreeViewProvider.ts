@@ -212,7 +212,11 @@ export class SampleTreeItem extends vscode.TreeItem {
  * Only `Sample` items emit a payload — dragging a root/type/detail node is a
  * no-op, which keeps the UX predictable.
  */
-export const SAMPLE_TREE_DND_MIME = 'application/vnd.code.tree.labnotevsampletreeview';
+// Issue #18-1 hotfix: VS Code TreeView same-view drag-and-drop only routes
+// drops to handleDrop when the MIME exactly matches `application/vnd.code.tree.<treeId>`,
+// where <treeId> is the createTreeView viewId. Our viewId is
+// `labnotev.sampleTreeView`, so the MIME must include the dot.
+export const SAMPLE_TREE_DND_MIME = 'application/vnd.code.tree.labnotev.sampleTreeView';
 
 /**
  * Subset of SampleTreeViewProvider used by the drag-and-drop controller.

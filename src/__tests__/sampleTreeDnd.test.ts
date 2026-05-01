@@ -154,7 +154,7 @@ describe('SampleTreeDragAndDropController reordering (issue #18-1)', () => {
   function dataTransferFor(samples: Sample[]): FakeDataTransfer {
     const dt = new FakeDataTransfer();
     dt.set(
-      'application/vnd.code.tree.labnotevsampletreeview',
+      'application/vnd.code.tree.labnotev.sampleTreeView',
       { value: samples.map(s => ({ ...s, alias: null, sampleDescription: null })) }
     );
     return dt;

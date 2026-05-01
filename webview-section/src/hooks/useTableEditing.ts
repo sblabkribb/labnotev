@@ -57,9 +57,14 @@ export function useTableEditing(
     }
 
     if (e.key === 'Tab' && !e.ctrlKey && !e.altKey) {
-      if (isInsideTable(content, pos)) {
-        e.preventDefault();
+      // Belt-and-braces: also stop the native event so the webview's
+      // default focus-traversal cannot fire after the React handler runs.
+      e.preventDefault();
+      e.stopPropagation();
+      e.nativeEvent?.preventDefault?.();
+      e.nativeEvent?.stopImmediatePropagation?.();
 
+      if (isInsideTable(content, pos)) {
         if (e.shiftKey) {
           const prev = getPrevCellPosition(content, pos);
           if (prev !== null) {
@@ -86,7 +91,6 @@ export function useTableEditing(
 
       // Issue #18-2: outside tables, Tab indents and Shift+Tab outdents
       // instead of moving focus to the next focusable element.
-      e.preventDefault();
       const selStart = ta.selectionStart;
       const selEnd = ta.selectionEnd;
       const result = applyIndent(content, selStart, selEnd, e.shiftKey ? 'outdent' : 'indent');
