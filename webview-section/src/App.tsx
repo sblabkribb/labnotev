@@ -23,6 +23,8 @@ import type {
 } from './types';
 import { postMessage } from './vscodeApi';
 import { resolveInsertPosition, type FocusTarget } from './lib/resolveInsertPosition';
+import { insertAttachmentLinkAt } from './lib/insertAttachmentLink';
+import { isFocusedOn, type AttachPayload } from './lib/isFocusedOn';
 
 const LABNOTE_FM_FIELDS = [
   { key: 'title', label: 'Title' },
@@ -31,11 +33,6 @@ const LABNOTE_FM_FIELDS = [
   { key: 'created_date', label: 'Created Date', type: 'datetime' as const },
   { key: 'last_updated_date', label: 'Last Updated', type: 'datetime' as const },
 ];
-
-function appendAttachmentLinkAtEnd(content: string, markdownLink: string): string {
-  if (!content.trim()) return `${markdownLink}\n`;
-  return content.endsWith('\n') ? `${content}${markdownLink}\n` : `${content}\n${markdownLink}\n`;
-}
 
 const WORKFLOW_FM_FIELDS = [
   { key: 'title', label: 'Title' },
@@ -446,8 +443,27 @@ export default function App() {
         }
 
         case 'fileAttached': {
-          const { markdownLink, area, opIndex, secIndex, sectionIndex, linkedWfIndex } = message.data;
-          const append = appendAttachmentLinkAtEnd;
+          const { markdownLink, area, opIndex, secIndex, sectionIndex, linkedWfIndex, cursorPos } = message.data;
+          // Issue #20: when the extension echoes back a valid caret position
+          // (set by handleAttachFile only after isFocusedOn), splice the link
+          // at that position inline. Otherwise fall back to appending at the
+          // section end with the previous newline-padded behaviour so casual
+          // attachments still look right in non-textarea contexts.
+          const hasCursor = typeof cursorPos === 'number' && Number.isFinite(cursorPos);
+          let nextCaret = -1;
+
+          const insertInline = (content: string): string => {
+            const { text, newPos } = insertAttachmentLinkAt(content, cursorPos as number, markdownLink);
+            nextCaret = newPos;
+            return text;
+          };
+
+          const appendAtEnd = (content: string): string => {
+            if (!content.trim()) return `${markdownLink}\n`;
+            return content.endsWith('\n') ? `${content}${markdownLink}\n` : `${content}\n${markdownLink}\n`;
+          };
+
+          const apply = hasCursor ? insertInline : appendAtEnd;
 
           if (area === 'labnoteSection' && sectionIndex !== undefined) {
             setLabNote(prev => {
@@ -455,14 +471,14 @@ export default function App() {
               const sections = [...prev.sections];
               const sec = sections[sectionIndex];
               if (!sec || !('content' in sec)) return prev;
-              sections[sectionIndex] = { ...sec, content: append(sec.content, markdownLink) };
+              sections[sectionIndex] = { ...sec, content: apply(sec.content) };
               return { ...prev, sections };
             });
             markDirty();
           } else if (area === 'tailContent') {
             setWorkflow(prev => {
               if (!prev) return prev;
-              return { ...prev, tailContent: append(prev.tailContent ?? '', markdownLink) };
+              return { ...prev, tailContent: apply(prev.tailContent ?? '') };
             });
             markDirty();
           } else if (area === 'unitOp' && opIndex !== undefined && secIndex !== undefined) {
@@ -474,7 +490,7 @@ export default function App() {
               const secs = [...op.sections];
               const sec = secs[secIndex];
               if (!sec) return prev;
-              secs[secIndex] = { ...sec, content: append(sec.content, markdownLink) };
+              secs[secIndex] = { ...sec, content: apply(sec.content) };
               ops[opIndex] = { ...op, sections: secs };
               return { ...prev, unitOperations: ops };
             });
@@ -490,12 +506,17 @@ export default function App() {
               const secs = [...op.sections];
               const sec = secs[secIndex];
               if (!sec) return prev;
-              secs[secIndex] = { ...sec, content: append(sec.content, markdownLink) };
+              secs[secIndex] = { ...sec, content: apply(sec.content) };
               ops[opIndex] = { ...op, sections: secs };
               updated[linkedWfIndex] = { ...wf, unitOperations: ops };
               return updated;
             });
             markDirty();
+          }
+
+          if (hasCursor && nextCaret >= 0) {
+            setPendingCursor({ pos: nextCaret, tick: Date.now(), scroll: 'nearest' });
+            setTimeout(() => setPendingCursor(null), 100);
           }
           break;
         }
@@ -611,14 +632,14 @@ export default function App() {
   }, []);
 
   const handleAttachFile = useCallback(
-    (payload: {
-      area: 'unitOp' | 'labnoteSection' | 'tailContent' | 'linkedUnitOp';
-      opIndex?: number;
-      secIndex?: number;
-      sectionIndex?: number;
-      linkedWfIndex?: number;
-    }) => {
-      postMessage({ type: 'attachFile', data: payload });
+    (payload: AttachPayload) => {
+      // Issue #20: forward the textarea caret position to the extension so it
+      // can echo it back with `fileAttached`. Only do this when the currently
+      // focused textarea unambiguously matches the click target — otherwise a
+      // stale caret from another section would be applied to this one.
+      const active = activeSectionRef.current;
+      const cursorPos = isFocusedOn(payload, active) ? active!.cursorPos : undefined;
+      postMessage({ type: 'attachFile', data: { ...payload, cursorPos } });
     },
     []
   );

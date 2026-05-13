@@ -445,6 +445,11 @@ export class SectionEditorProvider implements vscode.CustomTextEditorProvider {
 
         case 'attachFile': {
           const { area, opIndex, secIndex, sectionIndex, linkedWfIndex } = message.data || {};
+          // Issue #20: webview sends the textarea caret position so we can
+          // echo it back verbatim on `fileAttached`. Guard the value strictly
+          // since postMessage round-trips through JSON serialisation.
+          const rawCursor = (message.data as { cursorPos?: unknown } | undefined)?.cursorPos;
+          const cursorPos = typeof rawCursor === 'number' && Number.isFinite(rawCursor) ? rawCursor : undefined;
           if (!area) break;
           const uris = await vscode.window.showOpenDialog({
             canSelectMany: false,
@@ -479,6 +484,7 @@ export class SectionEditorProvider implements vscode.CustomTextEditorProvider {
               secIndex,
               sectionIndex,
               linkedWfIndex,
+              cursorPos,
             },
           });
           break;

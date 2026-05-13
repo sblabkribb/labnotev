@@ -100,6 +100,14 @@ export type ExtensionToWebviewMessage =
         secIndex?: number;
         sectionIndex?: number;
         linkedWfIndex?: number;
+        /**
+         * Issue #20: caret offset within the target section content at the
+         * moment the user clicked the paperclip. Echoed back by the extension
+         * verbatim so the webview can insert the link inline. Omitted when the
+         * webview could not unambiguously match the focused textarea to the
+         * click target, in which case the link is appended at the end.
+         */
+        cursorPos?: number;
       };
     };
 
@@ -122,6 +130,8 @@ export type WebviewToExtensionMessage =
         secIndex?: number;
         sectionIndex?: number;
         linkedWfIndex?: number;
+        /** Issue #20: see `fileAttached.data.cursorPos`. */
+        cursorPos?: number;
       };
     }
   | { type: 'openAttachment'; data: { path: string } };
