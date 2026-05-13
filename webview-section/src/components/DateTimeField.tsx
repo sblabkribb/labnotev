@@ -136,7 +136,7 @@ export function DateTimeField({
           onChange={handleDateChange}
           valueFormat="YYYY-MM-DD"
           clearable={clearable}
-          placeholder="날짜 선택"
+          placeholder="Select date"
           style={{ flex: 1 }}
         />
         <TextInput
@@ -149,12 +149,12 @@ export function DateTimeField({
           style={{ width: 100 }}
           maxLength={5}
         />
-        <Tooltip label="현재 시간" position="bottom" withArrow>
+        <Tooltip label="Now" position="bottom" withArrow>
           <ActionIcon
             variant="subtle"
             size="sm"
             onClick={handleNow}
-            aria-label="현재 시간"
+            aria-label="Now"
           >
             <ClockIcon />
           </ActionIcon>
@@ -165,7 +165,7 @@ export function DateTimeField({
             size="xs"
             color="gray"
             onClick={handleTimeClear}
-            aria-label="시간 지우기"
+            aria-label="Clear time"
           >
             ×
           </ActionIcon>

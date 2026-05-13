@@ -5,6 +5,23 @@
 형식은 [Keep a Changelog](https://keepachangelog.com/ko/1.1.0/)를 기반으로 하며,
 이 프로젝트는 [유의적 버전 관리](https://semver.org/lang/ko/)를 따릅니다.
 
+## [0.53.0] - 2026-05-14
+
+### Added
+- **확장 영문 전환 + VS Code l10n 인프라 도입**: 확장의 UI 메시지, 명령 라벨, 안내/에러 메시지를 모두 영문 기본으로 전환. VS Code의 표시 언어가 한국어(`ko`)이면 명령 팔레트의 명령 타이틀(`%key%` 참조)과 런타임 메시지(`vscode.l10n.t()` 호출)가 자동으로 한국어로 표시됨. 번역 사전은 워크스페이스 루트의 `package.nls.json` / `package.nls.ko.json`(선언적 문자열) 및 `l10n/bundle.l10n.ko.json`(런타임 메시지)에 분리 관리
+- **영문 README + 한국어 README 분리 운영**: 기존 한국어 README를 `README.ko.md`로 분리하고, `README.md`를 영문으로 새로 작성. 양쪽 문서 상단에 상호 링크를 두어 사용자가 원하는 언어로 진입 가능. 최신 코드베이스(v0.49~v0.52)의 모든 기능을 반영하도록 본문 갱신
+- **새 명령 타이틀의 한국어 번역 제공**: `Labnote: Open with Section Editor` / `Open as Markdown Editor` / `Open Preview` 등이 한국어 로케일에서 각각 `Section Editor로 열기` / `Markdown 편집기로 열기` / `미리보기 열기`로 표시됨
+
+### Changed
+- **신규 워크플로/유닛 오퍼레이션 본문은 항상 영문 고정 저장**: SW/HW UnitOp 8개 섹션의 placeholder 안내문과 워크플로 초기 본문의 `## Related Unit Operations` 블록쿼트 안내가 활성 로케일과 무관하게 영문으로 디스크에 기록되도록 변경. 한국어 사용자가 만든 노트를 영문 환경에서 열 때 본문이 깨지는 호환성 문제를 원천 차단. 기존 한글 본문은 사용자 데이터로 그대로 유지됨
+- **SW/HW UnitOp 템플릿을 공통 헬퍼로 추출**: 동일 본문을 4곳(`sectionEditorProvider`, `workflowCommands`, `creationCommands`, `workflowStructure`)에서 따로 관리하던 중복을 `src/lib/unitOpTemplate.ts`로 통합. 향후 UnitOp 템플릿 변경 시 한 곳만 수정하면 됨
+- **`workflowRename` 에러 모델을 discriminated union(`code` 필드)으로 리팩터**: 메시지 문자열 기반 분기를 `code: 'invalid_filename' | 'empty_name' | 'sanitized_empty' | 'no_change' | 'ambiguous_readme'`로 전환해 언어 무관 테스트와 다국어 메시지를 분리. 테스트는 `expect(result).toEqual({ error: { code: '...' } })` 형태로 안정화
+- **auto-versioning 규칙 업데이트**: `frontend/package.json` → `package.json`으로 정정하고, README 동기화 단계에서 `README.md`(영문)와 `README.ko.md`(한국어)를 동시에 갱신하도록 명시. `git add` 예시에 `README.ko.md` 포함
+
+### Removed
+- **`TEST_GUIDE.md` 제거**: 사용자 요청에 따라 별도 테스트 가이드 문서 삭제 (개발자 참고 사항은 README에 통합)
+- **`src/lib/josa.ts` + 관련 테스트 제거**: 한국어 조사 처리 유틸리티는 UI 영문화 이후 호출처가 없어 삭제. `SampleInfoPanel.ts`의 4 callsite는 영문 문장 패턴(`Rename {0}`, `Renamed {0} → {1}` 등)으로 치환
+
 ## [0.52.0] - 2026-05-14
 
 ### Added

@@ -44,7 +44,7 @@ describe('planRenameWorkflow', () => {
       newName: 'Design v2',
     });
 
-    if ('error' in result) throw new Error(`unexpected error: ${result.error}`);
+    if ('error' in result) throw new Error(`unexpected error: ${result.error.code}`);
 
     expect(result.newFilePath.endsWith('001_WD010_Design_v2.labnote.md')).toBe(true);
     expect(result.newFileContent).toContain('title: WD010 Design v2');
@@ -68,7 +68,7 @@ describe('planRenameWorkflow', () => {
       oldReadmeContent: ORIGINAL_README,
       newName: 'Design',
     });
-    expect('error' in result && result.error).toMatch(/변경 사항/);
+    expect(result).toEqual({ error: { code: 'no_change' } });
   });
 
   it('rejects an empty name', async () => {
@@ -80,7 +80,7 @@ describe('planRenameWorkflow', () => {
       oldReadmeContent: ORIGINAL_README,
       newName: '   ',
     });
-    expect('error' in result && result.error).toMatch(/이름/);
+    expect(result).toEqual({ error: { code: 'empty_name' } });
   });
 
   it('rejects a name that sanitises to an empty string', async () => {
@@ -92,7 +92,7 @@ describe('planRenameWorkflow', () => {
       oldReadmeContent: ORIGINAL_README,
       newName: '???',
     });
-    expect('error' in result && result.error).toMatch(/영문|숫자|언더스코어/);
+    expect(result).toEqual({ error: { code: 'sanitized_empty' } });
   });
 
   it('does not touch other workflow checklist items in the README', async () => {
@@ -135,7 +135,7 @@ describe('planRenameWorkflow', () => {
       oldReadmeContent: null,
       newName: 'Foo',
     });
-    expect('error' in result && result.error).toMatch(/파일명/);
+    expect(result).toEqual({ error: { code: 'invalid_filename' } });
   });
 
   it('rejects when the README has multiple checklist items pointing to the same workflow file', async () => {
@@ -151,7 +151,7 @@ describe('planRenameWorkflow', () => {
       oldReadmeContent: dupReadme,
       newName: 'NewLabel',
     });
-    expect('error' in result && result.error).toMatch(/여러 개|2개|중복/);
+    expect(result).toEqual({ error: { code: 'ambiguous_readme' } });
   });
 
   it('only touches the front matter title, not a stray `title:` line inside the body', async () => {
@@ -167,7 +167,7 @@ describe('planRenameWorkflow', () => {
       oldReadmeContent: null,
       newName: 'Updated',
     });
-    if ('error' in result) throw new Error(`unexpected error: ${result.error}`);
+    if ('error' in result) throw new Error(`unexpected error: ${result.error.code}`);
     expect(result.newFileContent).toContain('title: WD010 Updated');
     expect(result.newFileContent).toContain('title: ignore me'); // preserved verbatim
   });
@@ -185,7 +185,7 @@ describe('planRenameWorkflow', () => {
       oldReadmeContent: null,
       newName: 'Updated',
     });
-    if ('error' in result) throw new Error(`unexpected error: ${result.error}`);
+    if ('error' in result) throw new Error(`unexpected error: ${result.error.code}`);
     expect(result.newFileContent).toContain('## [WD010 Updated]');
     expect(result.newFileContent).toContain('## [WS180 Unrelated]'); // untouched
   });

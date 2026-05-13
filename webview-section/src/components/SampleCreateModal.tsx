@@ -64,25 +64,25 @@ export function SampleCreateModal({
   const customTypes = availableTypes.filter(t => !BUILTIN_TYPES.includes(t));
 
   const selectData = [
-    { group: '기본 타입', items: BUILTIN_TYPES.map(t => ({ value: t, label: t })) },
+    { group: 'Built-in types', items: BUILTIN_TYPES.map(t => ({ value: t, label: t })) },
     ...(customTypes.length > 0
-      ? [{ group: '커스텀 타입', items: customTypes.map(t => ({ value: t, label: t })) }]
+      ? [{ group: 'Custom types', items: customTypes.map(t => ({ value: t, label: t })) }]
       : []),
-    { group: '', items: [{ value: NEW_TYPE_VALUE, label: '+ 새 타입 추가' }] },
+    { group: '', items: [{ value: NEW_TYPE_VALUE, label: '+ Add new type' }] },
   ];
 
   const trimmedNewType = newTypeName.trim();
   const newTypeError = useMemo((): string | null => {
     if (!addingNewType || trimmedNewType.length === 0) return null;
     if (INVALID_TYPE_CHAR_RE.test(trimmedNewType)) {
-      return '공백, 하이픈, 특수문자는 사용할 수 없습니다';
+      return 'Spaces, hyphens, and special characters are not allowed.';
     }
     const existing = new Set([
       ...BUILTIN_TYPES.map(t => t.toLowerCase()),
       ...availableTypes.map(t => t.toLowerCase()),
     ]);
     if (existing.has(trimmedNewType.toLowerCase())) {
-      return '이미 사용 중인 타입 이름입니다';
+      return 'This type name is already in use.';
     }
     return null;
   }, [addingNewType, trimmedNewType, availableTypes]);
@@ -125,13 +125,13 @@ export function SampleCreateModal({
   const showSearchButton = selectedType && SEARCHABLE_TYPES.includes(selectedType) && onSearchProducts;
 
   return (
-    <Modal opened={opened} onClose={onClose} title="새 샘플 생성" size="sm" centered>
+    <Modal opened={opened} onClose={onClose} title="Create new sample" size="sm" centered>
       <form onSubmit={onFormSubmit} noValidate>
         <Stack gap="sm">
           <Select
             ref={typeSelectRef}
-            label={<RequiredLabel>샘플 타입</RequiredLabel>}
-            placeholder="타입 선택"
+            label={<RequiredLabel>Sample type</RequiredLabel>}
+            placeholder="Select type"
             data={selectData}
             value={addingNewType ? NEW_TYPE_VALUE : selectedType}
             onChange={handleTypeChange}
@@ -145,7 +145,7 @@ export function SampleCreateModal({
               <Group gap="xs">
                 <TextInput
                   flex={1}
-                  placeholder="새 타입 이름 (예: Oligo)"
+                  placeholder="New type name (e.g. Oligo)"
                   value={newTypeName}
                   onChange={(e) => setNewTypeName(e.currentTarget.value)}
                   onKeyDown={(e) => {
@@ -162,7 +162,7 @@ export function SampleCreateModal({
                   disabled={!trimmedNewType || Boolean(newTypeError)}
                   type="button"
                 >
-                  추가
+                  Add
                 </Button>
               </Group>
             </>
@@ -172,8 +172,8 @@ export function SampleCreateModal({
             <TextInput
               ref={aliasRef}
               flex={1}
-              label="별칭"
-              placeholder="예: Sample-A"
+              label="Alias"
+              placeholder="e.g. Sample-A"
               value={alias}
               onChange={(e) => setAlias(e.currentTarget.value)}
             />
@@ -185,14 +185,14 @@ export function SampleCreateModal({
                 style={{ marginBottom: 1 }}
                 type="button"
               >
-                제품 검색
+                Search product
               </Button>
             )}
           </Group>
 
           <Textarea
-            label="설명 (선택)"
-            placeholder="예: 실험 1에서 사용된 샘플"
+            label="Description (optional)"
+            placeholder="e.g. Sample used in experiment 1"
             value={description}
             onChange={(e) => setDescription(e.currentTarget.value)}
             autosize
@@ -202,7 +202,7 @@ export function SampleCreateModal({
 
           <Group justify="flex-end" mt="xs">
             <Button variant="default" size="xs" onClick={onClose} type="button" disabled={isSubmitting}>
-              취소
+              Cancel
             </Button>
             <Button
               size="xs"
@@ -210,7 +210,7 @@ export function SampleCreateModal({
               disabled={!selectedType || isSubmitting}
               loading={isSubmitting}
             >
-              생성
+              Create
             </Button>
           </Group>
         </Stack>

@@ -11,7 +11,7 @@ import { postMessage } from '../vscodeApi';
 
 const DEFAULT_CUSTOM_COLOR = '#607D8B';
 
-/** Vitest에서 HoverCard가 바로 열리도록 (fake timers와 호환). */
+/** Open the HoverCard immediately in Vitest (compatible with fake timers). */
 const HOVER_OPEN_DELAY = import.meta.env.MODE === 'test' ? 0 : 250;
 const HOVER_CLOSE_DELAY = import.meta.env.MODE === 'test' ? 0 : 150;
 
@@ -60,15 +60,15 @@ function SampleHoverDropdown({
 }) {
   const def = sampleDefs?.[sampleId];
   const hasMeta = Boolean(def?.alias || def?.description);
-  // Phase B-3: "정의로 이동" is only meaningful when the document actually
+  // Phase B-3: "Go to definition" is only meaningful when the document actually
   // contains this sample's definition. If `sampleDefs` does not know about
   // the id, clicking the button used to silently do nothing — which was
   // indistinguishable from the navigation failing. Disable it instead and
   // surface the reason through a native tooltip.
   const canNavigate = def !== undefined;
   const navTitle = canNavigate
-    ? '이 샘플의 정의(@type;id;...)가 있는 위치로 이동합니다'
-    : '이 문서에서 아직 정의되지 않은 샘플입니다';
+    ? 'Jump to where this sample is defined (@type;id;...)'
+    : 'This sample is not yet defined in this document';
 
   return (
     <Stack gap="xs">
@@ -77,7 +77,7 @@ function SampleHoverDropdown({
       </Text>
       {def === undefined ? (
         <Text size="sm" c="dimmed">
-          정의 정보 없음
+          No definition info
         </Text>
       ) : hasMeta ? (
         <>
@@ -90,7 +90,7 @@ function SampleHoverDropdown({
         </>
       ) : (
         <Text size="sm" c="dimmed">
-          등록된 별칭·설명 없음
+          No alias or description registered
         </Text>
       )}
       <Button
@@ -100,7 +100,7 @@ function SampleHoverDropdown({
         title={navTitle}
         onClick={() => navigateSampleToDefinition(sampleId, sampleType)}
       >
-        정의로 이동
+        Go to definition
       </Button>
     </Stack>
   );

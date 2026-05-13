@@ -55,7 +55,7 @@ export default function App() {
   const activeSectionRef = useRef<FocusTarget | null>(null);
   const [pendingCursor, setPendingCursor] = useState<{ pos: number; tick: number; scroll?: 'none' | 'nearest' | 'center' } | null>(null);
   // Controlled opened state for the UnitOp accordion. Currently only used
-  // to auto-expand the target UnitOp when "정의로 이동" lands inside a
+  // to auto-expand the target UnitOp when "Go to definition" lands inside a
   // collapsed section; user-driven opens fall through `onOpenedChange`
   // without the App overriding them.
   const [openedOpIds, setOpenedOpIds] = useState<string[]>([]);
@@ -179,7 +179,7 @@ export default function App() {
           const text = message.data.text;
           const target = activeSectionRef.current;
           if (!target) {
-            showInsertWarning('먼저 삽입할 섹션의 텍스트 영역을 클릭하세요.');
+            showInsertWarning('Click the textarea of the section you want to insert into first.');
             break;
           }
           // Phase A-4: unify the fallback so pendingCursor matches where the
@@ -296,7 +296,7 @@ export default function App() {
           // Phase C-1: Route by opId + section heading (preferred) and fall
           // back to opIndex/secIndex when the extension hasn't supplied them
           // (older versions / stale message shape). Between the user clicking
-          // "샘플 생성" and the extension echoing the definition back, the user
+          // "Create Sample" and the extension echoing the definition back, the user
           // may have reordered or removed unit operations, which would shift
           // the numeric indices. Looking up by id/heading keeps the definition
           // attached to the right section no matter what.
@@ -687,7 +687,7 @@ export default function App() {
               variant="light"
               color={saveStatus === 'saved' ? 'green' : saveStatus === 'saving' ? 'yellow' : 'orange'}
             >
-              {saveStatus === 'saved' ? '저장됨' : saveStatus === 'saving' ? '저장 중...' : '변경사항 있음'}
+              {saveStatus === 'saved' ? 'Saved' : saveStatus === 'saving' ? 'Saving...' : 'Unsaved changes'}
             </Badge>
             {insertWarning && (
               <Badge size="sm" variant="filled" color="orange" role="alert">
@@ -696,19 +696,19 @@ export default function App() {
             )}
           </Group>
           <Group gap="xs">
-            <Tooltip label={colorScheme === 'light' ? '다크 모드' : '라이트 모드'} position="bottom" withArrow>
-              <ActionIcon variant="subtle" size="md" onClick={toggleColorScheme} aria-label="테마 전환">
+            <Tooltip label={colorScheme === 'light' ? 'Dark mode' : 'Light mode'} position="bottom" withArrow>
+              <ActionIcon variant="subtle" size="md" onClick={toggleColorScheme} aria-label="Toggle theme">
                 {colorScheme === 'light' ? <MoonIcon /> : <SunIcon />}
               </ActionIcon>
             </Tooltip>
             <Button size="xs" variant="subtle" onClick={handleOpenAsText}>
-              텍스트로 열기
+              Open as text
             </Button>
           </Group>
         </Group>
 
         <Alert variant="light" color="blue" styles={{ root: { padding: '8px 12px' } }}>
-          <Text size="xs">이 문서는 편집 시 자동 저장됩니다. "텍스트로 열기" 버튼으로 원본 Markdown을 확인할 수 있습니다.</Text>
+          <Text size="xs">This document is auto-saved as you edit. Use "Open as text" to view the raw Markdown.</Text>
         </Alert>
 
         {mode === 'labnote' && labNote && (
@@ -895,8 +895,8 @@ export default function App() {
 
         {mode === 'unknown' && (
           <Paper p="md" withBorder>
-            <Text>이 파일은 Lab Note 또는 Workflow 형식이 아닙니다.</Text>
-            <Button mt="sm" onClick={handleOpenAsText}>텍스트 에디터로 열기</Button>
+            <Text>This file is not in Lab Note or Workflow format.</Text>
+            <Button mt="sm" onClick={handleOpenAsText}>Open in text editor</Button>
           </Paper>
         )}
       </Stack>

@@ -123,7 +123,7 @@ export function getTextareaCaretRect(
  *   visible caret stays put, offscreen caret is pulled back with minimal
  *   movement.
  * - `'center'`: pulls the caret to the vertical centre of the viewport.
- *   Used by "정의로 이동" so the definition pops into the middle.
+ *   Used by "Go to definition" so the definition pops into the middle.
  */
 export function scrollCaretIntoView(
   caretRect: DOMRect,

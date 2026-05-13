@@ -18,7 +18,23 @@ export interface RenameWorkflowPlan {
   newDisplayName: string;
 }
 
-export type RenameWorkflowResult = RenameWorkflowPlan | { error: string };
+/**
+ * Discriminated error codes returned by {@link planRenameWorkflow}. The caller
+ * maps each code to a localised, user-facing message so that the planner stays
+ * language-agnostic and unit-tests can assert on stable identifiers.
+ */
+export type RenameWorkflowErrorCode =
+  | 'invalid_filename'
+  | 'empty_name'
+  | 'sanitized_empty'
+  | 'no_change'
+  | 'ambiguous_readme';
+
+export interface RenameWorkflowError {
+  code: RenameWorkflowErrorCode;
+}
+
+export type RenameWorkflowResult = RenameWorkflowPlan | { error: RenameWorkflowError };
 
 export interface PlanRenameWorkflowArgs {
   workflowFilePath: string;
@@ -37,8 +53,8 @@ export interface PlanRenameWorkflowArgs {
  * for sequencing `workspace.fs.rename`, document edits, and saves with proper
  * dirty-document handling.
  *
- * Returns `{ error }` for any validation failure so the caller can surface the
- * message via `showWarningMessage`.
+ * Returns `{ error: { code } }` for any validation failure so the caller can
+ * map each code to a localised message via `vscode.l10n.t`.
  */
 export function planRenameWorkflow(args: PlanRenameWorkflowArgs): RenameWorkflowResult {
   const { workflowFilePath, oldWorkflowContent, readmePath, oldReadmeContent, newName } = args;
@@ -46,15 +62,15 @@ export function planRenameWorkflow(args: PlanRenameWorkflowArgs): RenameWorkflow
   const oldFileName = path.basename(workflowFilePath);
   const parsed = parseWorkflowFileName(oldFileName);
   if (!parsed) {
-    return { error: '워크플로 파일명 형식이 아닙니다' };
+    return { error: { code: 'invalid_filename' } };
   }
 
   const trimmed = newName.trim();
   if (trimmed === '') {
-    return { error: '이름을 입력하세요' };
+    return { error: { code: 'empty_name' } };
   }
   if (sanitizeWorkflowName(trimmed) === '') {
-    return { error: '이름에 영문/숫자/언더스코어가 한 글자 이상 있어야 합니다' };
+    return { error: { code: 'sanitized_empty' } };
   }
 
   const id = parsed.id;
@@ -64,7 +80,7 @@ export function planRenameWorkflow(args: PlanRenameWorkflowArgs): RenameWorkflow
     description: '',
   });
   if (newFileName === oldFileName) {
-    return { error: '변경 사항이 없습니다' };
+    return { error: { code: 'no_change' } };
   }
 
   const newFilePath = path.join(path.dirname(workflowFilePath), newFileName);
@@ -75,7 +91,7 @@ export function planRenameWorkflow(args: PlanRenameWorkflowArgs): RenameWorkflow
     const items = parseWorkflowChecklistFromReadme(oldReadmeContent);
     const matches = items.filter(item => item.fileName === oldFileName);
     if (matches.length > 1) {
-      return { error: '같은 파일을 참조하는 체크리스트 항목이 여러 개입니다' };
+      return { error: { code: 'ambiguous_readme' } };
     }
     if (matches.length === 1) {
       const updated: WorkflowChecklistItem[] = items.map(item => {

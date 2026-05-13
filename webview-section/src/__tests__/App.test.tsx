@@ -84,12 +84,12 @@ describe('App', () => {
       });
     });
 
-    expect(screen.getByText(/Lab Note 또는 Workflow 형식이 아닙니다/)).toBeInTheDocument();
+    expect(screen.getByText(/not in Lab Note or Workflow format/)).toBeInTheDocument();
   });
 
   // Phase C-3 regression: `sampleDefinitionCreated` used to route by the
   // numeric `opIndex` the webview sent when opening the create-sample modal.
-  // If the user reordered unit operations between clicking "샘플 생성" and the
+  // If the user reordered unit operations between clicking "Create Sample" and the
   // extension echoing back the definition, the message landed in the wrong
   // section. Phase C-1 switched the handler to prefer `opId` + `secHeading`
   // when both sides agree on them, so the definition follows the op even

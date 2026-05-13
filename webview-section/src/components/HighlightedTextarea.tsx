@@ -28,7 +28,7 @@ export interface HighlightedTextareaProps {
    *   otherwise land offscreen (e.g. inserting into a long section whose
    *   bottom is below the fold).
    * - `'center'`: scroll the textarea so the caret area sits near the
-   *   middle of the viewport (used by "정의로 이동").
+   *   middle of the viewport (used by "Go to definition").
    */
   requestFocusAt?: { pos: number; tick: number; scroll?: 'none' | 'nearest' | 'center' } | null;
   ariaLabel?: string;

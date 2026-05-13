@@ -47,15 +47,15 @@ export async function createSampleWithPrompt(
   }
   if (alias === null && description === null) {
     const aliasInput = await vscode.window.showInputBox({
-      prompt: `새 ${sampleType} 샘플의 별칭을 입력하세요`,
-      placeHolder: '예: Sample-A',
+      prompt: vscode.l10n.t('Enter an alias for the new {0} sample', sampleType),
+      placeHolder: vscode.l10n.t('e.g. Sample-A'),
     });
     if (aliasInput === undefined) return null;
     alias = aliasInput || null;
 
     const descInput = await vscode.window.showInputBox({
-      prompt: '설명을 입력하세요 (선택 사항)',
-      placeHolder: '예: 실험 1에서 사용된 샘플',
+      prompt: vscode.l10n.t('Enter a description (optional)'),
+      placeHolder: vscode.l10n.t('e.g. Sample used in experiment 1'),
     });
     if (descInput === undefined) return null;
     description = descInput || null;
@@ -99,7 +99,7 @@ export function registerSampleCommands(
             editBuilder.insert(editor.selection.active, insertText);
           });
         } else {
-          vscode.window.showWarningMessage('마크다운 파일을 열어주세요');
+          vscode.window.showWarningMessage(vscode.l10n.t('Please open a Markdown file.'));
         }
       }
     })
@@ -155,7 +155,7 @@ export function registerSampleCommands(
             editBuilder.insert(editor.selection.active, insertText);
           });
         } else {
-          vscode.window.showWarningMessage('마크다운 파일을 열어주세요');
+          vscode.window.showWarningMessage(vscode.l10n.t('Please open a Markdown file.'));
         }
       }
     })
@@ -173,7 +173,7 @@ export function registerSampleCommands(
 
       const result = await createSampleWithPrompt(sampleType, sampleTreeProvider, scope);
       if (result) {
-        vscode.window.showInformationMessage(`샘플이 추가되었습니다: ${result.id}`);
+        vscode.window.showInformationMessage(vscode.l10n.t('Sample added: {0}', result.id));
       }
     })
   );
@@ -185,19 +185,20 @@ export function registerSampleCommands(
         return;
       }
 
+      const deleteLabel = vscode.l10n.t('Delete');
       const confirm = await vscode.window.showWarningMessage(
-        `정말로 ${item.sampleId}을(를) 삭제하시겠습니까?`,
+        vscode.l10n.t('Are you sure you want to delete {0}?', item.sampleId ?? ''),
         { modal: true },
-        '삭제'
+        deleteLabel
       );
 
-      if (confirm === '삭제') {
+      if (confirm === deleteLabel) {
         await sampleTreeProvider.deleteSample(
           item.scope,
           item.sampleType!,
           item.sampleId!
         );
-        vscode.window.showInformationMessage(`샘플이 삭제되었습니다: ${item.sampleId}`);
+        vscode.window.showInformationMessage(vscode.l10n.t('Sample deleted: {0}', item.sampleId ?? ''));
       }
     })
   );
@@ -211,9 +212,9 @@ export function registerSampleCommands(
 
       // Ask for new alias
       const newAlias = await vscode.window.showInputBox({
-        prompt: '새 별칭을 입력하세요',
+        prompt: vscode.l10n.t('Enter a new alias'),
         value: item.alias || '',
-        placeHolder: '예: Sample-A',
+        placeHolder: vscode.l10n.t('e.g. Sample-A'),
       });
 
       if (newAlias === undefined) {
@@ -222,9 +223,9 @@ export function registerSampleCommands(
 
       // Ask for new description
       const newDescription = await vscode.window.showInputBox({
-        prompt: '새 설명을 입력하세요',
+        prompt: vscode.l10n.t('Enter a new description'),
         value: item.sampleDescription || '',
-        placeHolder: '예: 실험 1에서 사용된 샘플',
+        placeHolder: vscode.l10n.t('e.g. Sample used in experiment 1'),
       });
 
       if (newDescription === undefined) {
@@ -287,7 +288,7 @@ export function registerSampleCommands(
         }
       }
 
-      vscode.window.showInformationMessage(`샘플이 수정되었습니다: ${item.sampleId}`);
+      vscode.window.showInformationMessage(vscode.l10n.t('Sample updated: {0}', item.sampleId ?? ''));
     })
   );
 
@@ -296,7 +297,7 @@ export function registerSampleCommands(
     vscode.commands.registerCommand('labnotev.moveSampleToGlobal', async (item: SampleTreeItem) => {
       if (item?.sampleType && item?.sampleId) {
         await sampleTreeProvider.moveSampleToGlobal(item.sampleType, item.sampleId);
-        vscode.window.showInformationMessage(`${item.sampleId}을(를) Global로 이동했습니다`);
+        vscode.window.showInformationMessage(vscode.l10n.t('Moved {0} to Global', item.sampleId));
       }
     })
   );
@@ -306,7 +307,7 @@ export function registerSampleCommands(
     vscode.commands.registerCommand('labnotev.moveSampleToLocal', async (item: SampleTreeItem) => {
       if (item?.sampleType && item?.sampleId) {
         await sampleTreeProvider.moveSampleToLocal(item.sampleType, item.sampleId);
-        vscode.window.showInformationMessage(`${item.sampleId}을(를) Local로 이동했습니다`);
+        vscode.window.showInformationMessage(vscode.l10n.t('Moved {0} to Local', item.sampleId));
       }
     })
   );
@@ -373,7 +374,7 @@ export function registerSampleCommands(
         const record = samples[sampleId];
         const sources = record?.sources;
         if (!sources || sources.length === 0) {
-          vscode.window.showInformationMessage('정의를 찾을 수 없습니다.');
+          vscode.window.showInformationMessage(vscode.l10n.t('Definition not found.'));
           return;
         }
 
@@ -416,7 +417,7 @@ export function registerSampleCommands(
         }
       }
 
-      vscode.window.showInformationMessage('정의를 찾을 수 없습니다.');
+      vscode.window.showInformationMessage(vscode.l10n.t('Definition not found.'));
     })
   );
 
@@ -426,7 +427,7 @@ export function registerSampleCommands(
       const allSamples = sampleTreeProvider.getAllSamplesForSearch();
 
       if (allSamples.length === 0) {
-        vscode.window.showInformationMessage('검색할 샘플이 없습니다');
+        vscode.window.showInformationMessage(vscode.l10n.t('No samples to search.'));
         return;
       }
 
@@ -447,7 +448,7 @@ export function registerSampleCommands(
       }));
 
       const selected = await vscode.window.showQuickPick(quickPickItems, {
-        placeHolder: '샘플 검색... (ID, 별칭, 설명으로 검색)',
+        placeHolder: vscode.l10n.t('Search samples... (by ID, alias, or description)'),
         matchOnDescription: true,
         matchOnDetail: true,
       });
@@ -469,7 +470,7 @@ export function registerSampleCommands(
             editBuilder.insert(editor.selection.active, insertText);
           });
         } else {
-          vscode.window.showWarningMessage('마크다운 파일을 열어주세요');
+          vscode.window.showWarningMessage(vscode.l10n.t('Please open a Markdown file.'));
         }
       }
     })

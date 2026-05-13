@@ -49,6 +49,16 @@ vi.mock('vscode', () => ({
   },
   CompletionItemKind: { Reference: 1, Event: 2, Snippet: 3 },
   MarkdownString: vi.fn().mockImplementation((v) => ({ value: v })),
+  l10n: {
+    t: vi.fn((message: string | { message: string; args?: Array<string | number | boolean> }, ...args: Array<string | number | boolean>) => {
+      const fmt = (s: string, a: Array<string | number | boolean>) =>
+        a.length ? s.replace(/\{(\d+)\}/g, (_m, i) => String(a[Number(i)] ?? '')) : s;
+      if (typeof message === 'string') return fmt(message, args);
+      return fmt(message.message, message.args ?? []);
+    }),
+    bundle: undefined,
+    uri: undefined,
+  },
   Range: class {
     start: { line: number; character: number };
     end: { line: number; character: number };

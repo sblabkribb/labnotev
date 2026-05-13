@@ -1,4 +1,4 @@
-// === README.md (랩노트) 섹션 모델 ===
+// === README.md (lab note) section model ===
 export interface LabNoteFrontMatter {
   title: string;
   author: string;
@@ -27,7 +27,7 @@ export interface LabNoteDocument {
   sections: LabNoteSection[];
 }
 
-// === 워크플로 .md 섹션 모델 ===
+// === workflow .md section model ===
 export interface WorkflowFrontMatter {
   title: string;
   experimenter: string;

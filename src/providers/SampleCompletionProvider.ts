@@ -379,7 +379,7 @@ export class SampleCompletionProvider implements vscode.CompletionItemProvider {
         item.insertText = insertText;
         item.range = replaceRange; // Replace @type:searchTerm with just ID|Alias
         item.detail = `${type} Sample`;
-        item.sortText = `1_${id}`; // After "새 X ID 생성" (0_new)
+        item.sortText = `1_${id}`; // After "Generate new X ID" (0_new)
         // So VS Code filter (typed prefix e.g. "@dna:") matches and sample items are shown
         item.filterText = `${fullPrefix}${label}`;
         
@@ -401,10 +401,10 @@ export class SampleCompletionProvider implements vscode.CompletionItemProvider {
     const EQUIP_TYPE = 'Equip';
     if (specificType && !isSamplePrefix(fullPrefix) && specificType !== EQUIP_TYPE) {
       const newIdItem = new vscode.CompletionItem(
-        `새 ${specificType} ID 생성`,
+        vscode.l10n.t('Generate new {0} ID', specificType),
         vscode.CompletionItemKind.Event
       );
-      newIdItem.detail = '새로운 샘플 ID를 자동 생성합니다';
+      newIdItem.detail = vscode.l10n.t('Automatically generate a new sample ID');
       newIdItem.sortText = '0_new'; // Sort first so Enter triggers new ID immediately
       newIdItem.command = {
         command: 'labnotev.generateSampleId',
@@ -419,12 +419,12 @@ export class SampleCompletionProvider implements vscode.CompletionItemProvider {
     // Add "Manual Input" option (for all types including Equip - so @equip: works when no MongoDB/local IDs)
     if (specificType && !isSamplePrefix(fullPrefix)) {
       const manualItem = new vscode.CompletionItem(
-        '정보 입력',
+        vscode.l10n.t('Enter info'),
         vscode.CompletionItemKind.Snippet
       );
       manualItem.detail = specificType === EQUIP_TYPE
-        ? 'Equip ID, 별칭, 설명을 직접 입력합니다 (DB/JSON ID 참조)'
-        : '샘플 ID, 별칭, 설명을 직접 입력합니다';
+        ? vscode.l10n.t('Manually enter Equip ID, alias, and description (references DB/JSON ID)')
+        : vscode.l10n.t('Manually enter sample ID, alias, and description');
       manualItem.sortText = '2_manual';
       manualItem.command = {
         command: 'labnotev.inputSampleInfo',

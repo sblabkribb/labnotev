@@ -29,31 +29,31 @@ export function TableInsertModal({ opened, onClose, onInsert }: TableInsertModal
     <Modal
       opened={opened}
       onClose={onClose}
-      title="테이블 삽입"
+      title="Insert table"
       size="xs"
       centered
     >
       <Stack gap="sm" onKeyDown={handleKeyDown}>
         <NumberInput
-          label="열 수 (Columns)"
+          label="Columns"
           value={cols}
           onChange={(v) => setCols(typeof v === 'number' ? v : 3)}
           min={1}
           max={20}
         />
         <NumberInput
-          label="데이터 행 수 (Rows)"
+          label="Data rows"
           value={rows}
           onChange={(v) => setRows(typeof v === 'number' ? v : 3)}
           min={1}
           max={50}
         />
         <Text size="xs" c="dimmed">
-          헤더 행과 구분선은 자동 추가됩니다.
+          The header row and separator are added automatically.
         </Text>
         <Group justify="flex-end" mt="xs">
-          <Button variant="default" size="xs" onClick={onClose}>취소</Button>
-          <Button size="xs" onClick={handleInsert}>삽입</Button>
+          <Button variant="default" size="xs" onClick={onClose}>Cancel</Button>
+          <Button size="xs" onClick={handleInsert}>Insert</Button>
         </Group>
       </Stack>
     </Modal>

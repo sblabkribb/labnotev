@@ -14,6 +14,7 @@ import { isPathInsideDir } from './lib/isPathInsideDir';
 import { buildInDocDirAttachmentMarkdownLink } from './lib/attachmentMarkdownLink';
 import { buildSampleDefMap } from './lib/dataLoader';
 import { openFileInOsDefaultApp } from './lib/openInOs';
+import { buildSwUnitOpSections, buildHwUnitOpSections } from './lib/unitOpTemplate';
 
 export type MdFileType = 'labnote' | 'workflow' | 'unknown';
 
@@ -53,7 +54,9 @@ export async function openAttachmentFile(uri: vscode.Uri): Promise<void> {
   };
 
   const showOpenFailed = async () => {
-    await vscode.window.showErrorMessage(`파일을 열 수 없습니다: ${path.basename(uri.fsPath)}`);
+    await vscode.window.showErrorMessage(
+      vscode.l10n.t('Cannot open file: {0}', path.basename(uri.fsPath))
+    );
     await tryRevealInOs();
   };
 
@@ -138,31 +141,9 @@ export function buildUnitOperationBlock(
   const dateTime = getSeoulDateTimeString(new Date());
   const id = `unitop-${Date.now()}`;
 
-  const metaContent = opType === 'sw'
-    ? `- Experimenter: ${experimenter}\n- Start_date: '${dateTime}'\n- End_date: ''\n- Software:`
-    : `- Experimenter: ${experimenter}\n- Start_date: '${dateTime}'\n- End_date: ''`;
-
   const sections = opType === 'sw'
-    ? [
-        { heading: 'Meta', content: metaContent },
-        { heading: 'Input', content: '- (이전 단계 산출물, 데이터, 모델)' },
-        { heading: 'Output', content: '- (다음 단계로 넘어갈 산출물: 파일, 데이터셋, 모델)' },
-        { heading: 'Parameters', content: '- (옵션, 하이퍼파라미터, seed)' },
-        { heading: 'QC Metrics', content: '- (성능 지표, QC 지표)' },
-        { heading: 'Method', content: '- (소프트웨어/모델 + 자연어 설명)' },
-        { heading: 'Environment', content: '- (conda / poetry / container / OS / HW)' },
-        { heading: 'Discussion', content: '- (다음 단계에 대한 코멘트)' },
-      ]
-    : [
-        { heading: 'Meta', content: metaContent },
-        { heading: 'Input', content: '- (samples from the previous step)' },
-        { heading: 'Reagent', content: '- (e.g. enzyme, buffer, etc.)' },
-        { heading: 'Consumables', content: '- (e.g. filter, well-plate, etc.)' },
-        { heading: 'Equipment', content: '- (e.g. centrifuge, spectrophotometer, etc.)' },
-        { heading: 'Method', content: '- (method used in this step)' },
-        { heading: 'Output', content: '- (samples to the next step)' },
-        { heading: 'Results & Discussions', content: '- (Any results and discussions. Link file path if needed)' },
-      ];
+    ? buildSwUnitOpSections({ experimenter, dateTime })
+    : buildHwUnitOpSections({ experimenter, dateTime });
 
   return { id, opId, opName, opDescription, opType, sections };
 }
@@ -415,7 +396,9 @@ export class SectionEditorProvider implements vscode.CustomTextEditorProvider {
           if (fs.existsSync(wfPath)) {
             await vscode.commands.executeCommand('vscode.open', vscode.Uri.file(wfPath));
           } else {
-            vscode.window.showWarningMessage(`워크플로 파일을 찾을 수 없습니다: ${link}`);
+            vscode.window.showWarningMessage(
+              vscode.l10n.t('Workflow file not found: {0}', link)
+            );
           }
           break;
         }
@@ -453,7 +436,7 @@ export class SectionEditorProvider implements vscode.CustomTextEditorProvider {
           if (!area) break;
           const uris = await vscode.window.showOpenDialog({
             canSelectMany: false,
-            openLabel: '첨부',
+            openLabel: vscode.l10n.t('Attach'),
           });
           if (!uris?.[0]) break;
 
@@ -495,17 +478,17 @@ export class SectionEditorProvider implements vscode.CustomTextEditorProvider {
           if (!rel || typeof rel !== 'string') break;
           const normalized = rel.replace(/\\/g, '/');
           if (normalized.includes('..')) {
-            vscode.window.showWarningMessage('잘못된 경로입니다.');
+            vscode.window.showWarningMessage(vscode.l10n.t('Invalid path.'));
             break;
           }
           const docDir = path.dirname(document.uri.fsPath);
           const absPath = path.resolve(docDir, rel);
           if (!isPathInsideDir(docDir, absPath)) {
-            vscode.window.showWarningMessage('문서 밖 파일은 열 수 없습니다.');
+            vscode.window.showWarningMessage(vscode.l10n.t('Cannot open files outside the document folder.'));
             break;
           }
           if (!fs.existsSync(absPath)) {
-            vscode.window.showWarningMessage(`파일을 찾을 수 없습니다: ${rel}`);
+            vscode.window.showWarningMessage(vscode.l10n.t('File not found: {0}', rel));
             break;
           }
           await openAttachmentFile(vscode.Uri.file(absPath));

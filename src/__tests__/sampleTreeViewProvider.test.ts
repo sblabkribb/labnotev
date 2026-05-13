@@ -226,10 +226,10 @@ describe('SampleTreeViewProvider', () => {
 
       expect(children).toHaveLength(1);
       expect(children[0].itemType).toBe(SampleTreeItemType.Detail);
-      // Label must mention "샘플 없음" so users can distinguish from a loading bug.
-      expect(String(children[0].label)).toContain('샘플 없음');
+      // Label must mention "No samples" so users can distinguish from a loading bug.
+      expect(String(children[0].label)).toContain('No samples');
       // Local placeholder hints at the right-click action.
-      expect(String(children[0].label)).toContain('샘플 생성');
+      expect(String(children[0].label)).toContain('Create Sample');
     });
 
     it('returns a global-flavored empty-state Detail row (Phase B-4, global)', async () => {
@@ -249,10 +249,10 @@ describe('SampleTreeViewProvider', () => {
       const children = await provider.getChildren(typeItem);
 
       expect(children).toHaveLength(1);
-      expect(String(children[0].label)).toContain('샘플 없음');
+      expect(String(children[0].label)).toContain('No samples');
       // Global placeholder explains that samples appear automatically when
       // a matching `@type;id` definition is saved anywhere in the workspace.
-      expect(String(children[0].label)).toContain('자동 등록');
+      expect(String(children[0].label)).toContain('automatically');
     });
 
     it('applies a per-type ThemeIcon color to Type rows (Phase B-4)', async () => {

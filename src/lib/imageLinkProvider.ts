@@ -56,7 +56,7 @@ export class ImageLinkProvider implements vscode.DocumentLinkProvider {
           );
           
           const link = new vscode.DocumentLink(range, commandUri);
-          link.tooltip = `클릭하여 이미지 미리보기: ${altText}`;
+          link.tooltip = vscode.l10n.t('Click to preview image: {0}', altText);
           links.push(link);
         }
       }

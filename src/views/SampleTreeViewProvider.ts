@@ -468,12 +468,12 @@ export class SampleTreeViewProvider implements vscode.TreeDataProvider<SampleTre
     const entries = Object.entries(samples);
 
     // Phase B-4: expose an empty-state Detail row so the user sees a clear
-    // "샘플 없음" placeholder and a hint for adding one, rather than a silent
+    // "No samples" placeholder and a hint for adding one, rather than a silent
     // blank section that makes the TreeView look broken.
     if (entries.length === 0) {
       const hint = scope === 'local'
-        ? '샘플 없음 — 마우스 오른쪽 버튼 → "샘플 생성"'
-        : '샘플 없음 — 문서에서 @type;id 정의를 저장하면 자동 등록됩니다';
+        ? vscode.l10n.t('No samples — right-click → "Create Sample"')
+        : vscode.l10n.t('No samples — saving an @type;id definition in a document registers it automatically');
       return [
         new SampleTreeItem(hint, SampleTreeItemType.Detail, {
           scope,
@@ -503,15 +503,16 @@ export class SampleTreeViewProvider implements vscode.TreeDataProvider<SampleTre
    */
   private getDetailItems(sample: SampleTreeItem): SampleTreeItem[] {
     const items: SampleTreeItem[] = [];
+    const noneLabel = vscode.l10n.t('(none)');
 
     items.push(new SampleTreeItem(
-      `alias: ${sample.alias || '(없음)'}`,
+      `alias: ${sample.alias || noneLabel}`,
       SampleTreeItemType.Detail,
       { scope: sample.scope, sampleType: sample.sampleType, sampleId: sample.sampleId }
     ));
 
     items.push(new SampleTreeItem(
-      `description: ${sample.sampleDescription || '(없음)'}`,
+      `description: ${sample.sampleDescription || noneLabel}`,
       SampleTreeItemType.Detail,
       { scope: sample.scope, sampleType: sample.sampleType, sampleId: sample.sampleId }
     ));

@@ -42,6 +42,16 @@ vi.mock('vscode', () => ({
     Snippet: 3,
   },
   MarkdownString: vi.fn().mockImplementation((value) => ({ value })),
+  l10n: {
+    t: vi.fn((message: string | { message: string; args?: Array<string | number | boolean> }, ...args: Array<string | number | boolean>) => {
+      const fmt = (s: string, a: Array<string | number | boolean>) =>
+        a.length ? s.replace(/\{(\d+)\}/g, (_m, i) => String(a[Number(i)] ?? '')) : s;
+      if (typeof message === 'string') return fmt(message, args);
+      return fmt(message.message, message.args ?? []);
+    }),
+    bundle: undefined,
+    uri: undefined,
+  },
   Range: class MockRange {
     start: { line: number; character: number };
     end: { line: number; character: number };
@@ -242,7 +252,7 @@ describe('SampleCompletionProvider', () => {
         {} as any
       ) as any[];
 
-      // Find the sample completion item (not the "새 ID 생성" option which uses 0_new)
+      // Find the sample completion item (not the "Generate new ID" option which uses 0_new)
       const sampleItem = result.find((item: any) => item.sortText?.startsWith('1_'));
       
       expect(sampleItem).toBeDefined();
@@ -303,15 +313,15 @@ describe('SampleCompletionProvider', () => {
         {} as any
       ) as any[];
 
-      // Find the "새 ID 생성" option
-      const newIdOption = result.find((item: any) => 
-        item.label?.includes('새') && item.label?.includes('ID 생성')
+      // Find the "Generate new ID" option
+      const newIdOption = result.find((item: any) =>
+        typeof item.label === 'string' && item.label.startsWith('Generate new')
       );
       
       expect(newIdOption).toBeUndefined();
     });
 
-    it('should include "정보 입력" option for Equip type so @equip: works', () => {
+    it('should include "Enter info" option for Equip type so @equip: works', () => {
       const document = createMockDocument('@equip:');
       const position = createMockPosition(0, 7);
 
@@ -322,7 +332,7 @@ describe('SampleCompletionProvider', () => {
         {} as any
       ) as any[];
 
-      const manualOption = result.find((item: any) => item.label === '정보 입력');
+      const manualOption = result.find((item: any) => item.label === 'Enter info');
       expect(manualOption).toBeDefined();
       expect(manualOption?.command?.command).toBe('labnotev.inputSampleInfo');
     });
@@ -338,8 +348,8 @@ describe('SampleCompletionProvider', () => {
         {} as any
       ) as any[];
 
-      const newIdOption = result.find((item: any) => 
-        item.label?.includes('새') && item.label?.includes('ID 생성')
+      const newIdOption = result.find((item: any) =>
+        typeof item.label === 'string' && item.label.startsWith('Generate new')
       );
       
       expect(newIdOption).toBeDefined();
@@ -356,8 +366,8 @@ describe('SampleCompletionProvider', () => {
         {} as any
       ) as any[];
 
-      const newIdOption = result.find((item: any) => 
-        item.label?.includes('새') && item.label?.includes('ID 생성')
+      const newIdOption = result.find((item: any) =>
+        typeof item.label === 'string' && item.label.startsWith('Generate new')
       );
       
       expect(newIdOption).toBeDefined();
@@ -374,8 +384,8 @@ describe('SampleCompletionProvider', () => {
         {} as any
       ) as any[];
 
-      const newIdOption = result.find((item: any) => 
-        item.label?.includes('새') && item.label?.includes('ID 생성')
+      const newIdOption = result.find((item: any) =>
+        typeof item.label === 'string' && item.label.startsWith('Generate new')
       );
       
       expect(newIdOption).toBeUndefined();

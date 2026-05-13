@@ -182,12 +182,12 @@ export function registerUtilityCommands(
       if (alias === undefined && description === undefined) {
         // Not Reagent/Labware, or user cancelled picker: use manual input
         alias = await vscode.window.showInputBox({
-          prompt: `새 ${sampleType} 샘플의 별칭을 입력하세요`,
-          placeHolder: '예: Sample-A',
+          prompt: vscode.l10n.t('Enter an alias for the new {0} sample', sampleType),
+          placeHolder: vscode.l10n.t('e.g. Sample-A'),
         });
         description = await vscode.window.showInputBox({
-          prompt: '설명을 입력하세요 (선택 사항)',
-          placeHolder: '예: 실험 1에서 사용된 샘플',
+          prompt: vscode.l10n.t('Enter a description (optional)'),
+          placeHolder: vscode.l10n.t('e.g. Sample used in experiment 1'),
         });
       }
 
@@ -248,7 +248,7 @@ export function registerUtilityCommands(
         }
       });
 
-      vscode.window.showInformationMessage(`새 샘플이 생성되었습니다: ${newId}`);
+      vscode.window.showInformationMessage(vscode.l10n.t('New sample created: {0}', newId));
     })
   );
 
@@ -262,8 +262,8 @@ export function registerUtilityCommands(
 
       // Ask for sample ID
       const sampleId = await vscode.window.showInputBox({
-        prompt: `${sampleType} 샘플 ID를 입력하세요`,
-        placeHolder: `예: ${sampleType}-12345`,
+        prompt: vscode.l10n.t('Enter the {0} sample ID', sampleType),
+        placeHolder: vscode.l10n.t('e.g. {0}-12345', sampleType),
       });
 
       if (!sampleId) {
@@ -272,14 +272,14 @@ export function registerUtilityCommands(
 
       // Ask for alias
       const alias = await vscode.window.showInputBox({
-        prompt: '별칭을 입력하세요 (선택 사항)',
-        placeHolder: '예: Sample-A',
+        prompt: vscode.l10n.t('Enter an alias (optional)'),
+        placeHolder: vscode.l10n.t('e.g. Sample-A'),
       });
 
       // Ask for description
       const description = await vscode.window.showInputBox({
-        prompt: '설명을 입력하세요 (선택 사항)',
-        placeHolder: '예: 실험 1에서 사용된 샘플',
+        prompt: vscode.l10n.t('Enter a description (optional)'),
+        placeHolder: vscode.l10n.t('e.g. Sample used in experiment 1'),
       });
 
       // Save to resources
@@ -338,7 +338,7 @@ export function registerUtilityCommands(
         }
       });
 
-      vscode.window.showInformationMessage(`샘플 정보가 저장되었습니다: ${sampleId}`);
+      vscode.window.showInformationMessage(vscode.l10n.t('Sample info saved: {0}', sampleId));
     })
   );
 

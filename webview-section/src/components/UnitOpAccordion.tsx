@@ -115,7 +115,7 @@ function UnitOpSectionTextarea({
         <Title order={5}>{heading}</Title>
         <Group gap={4}>
           {showSampleButton && onCreateSample && (
-            <Tooltip label="샘플 추가" position="bottom" withArrow>
+            <Tooltip label="Add sample" position="bottom" withArrow>
               <ActionIcon
                 variant="subtle"
                 size="xs"
@@ -133,26 +133,26 @@ function UnitOpSectionTextarea({
                   }
                   setSampleModalOpen(true);
                 }}
-                aria-label="샘플 추가"
+                aria-label="Add sample"
               >
                 <SampleIcon />
               </ActionIcon>
             </Tooltip>
           )}
           {onAttachFile && (
-            <Tooltip label="파일 첨부" position="bottom" withArrow>
-              <ActionIcon variant="subtle" size="xs" onClick={onAttachFile} aria-label="파일 첨부">
+            <Tooltip label="Attach file" position="bottom" withArrow>
+              <ActionIcon variant="subtle" size="xs" onClick={onAttachFile} aria-label="Attach file">
                 <AttachIcon />
               </ActionIcon>
             </Tooltip>
           )}
-          <Tooltip label="테이블 삽입" position="bottom" withArrow>
-            <ActionIcon variant="subtle" size="xs" onClick={() => setTableModalOpen(true)} aria-label="테이블 삽입">
+          <Tooltip label="Insert table" position="bottom" withArrow>
+            <ActionIcon variant="subtle" size="xs" onClick={() => setTableModalOpen(true)} aria-label="Insert table">
               <TableIcon />
             </ActionIcon>
           </Tooltip>
-          <Tooltip label="테이블 정렬" position="bottom" withArrow>
-            <ActionIcon variant="subtle" size="xs" onClick={handleAlignTable} disabled={!cursorInTable} aria-label="테이블 정렬">
+          <Tooltip label="Align table" position="bottom" withArrow>
+            <ActionIcon variant="subtle" size="xs" onClick={handleAlignTable} disabled={!cursorInTable} aria-label="Align table">
               <AlignIcon />
             </ActionIcon>
           </Tooltip>
@@ -416,7 +416,7 @@ export function UnitOpAccordion({ unitOperations, onChange, onSectionFocus, onCu
     return (
       <Paper p="sm" withBorder>
         <Text c="dimmed" size="sm">
-          유닛 오퍼레이션이 없습니다. TreeView에서 추가하세요.
+          No unit operations yet. Add one from the TreeView.
         </Text>
       </Paper>
     );
@@ -425,7 +425,7 @@ export function UnitOpAccordion({ unitOperations, onChange, onSectionFocus, onCu
   // Fall back to uncontrolled behaviour when the caller doesn't provide
   // `openedOpIds` / `onOpenedChange`. This keeps older call sites working
   // while giving the Section Editor a way to programmatically expand the
-  // target UnitOp from "정의로 이동".
+  // target UnitOp from "Go to definition".
   const controlled = openedOpIds !== undefined;
 
   return (

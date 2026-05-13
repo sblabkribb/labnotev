@@ -2,7 +2,6 @@ import * as vscode from 'vscode';
 import { SAMPLE_TYPES, SampleType, sampleTypeColors, buildSampleIdPattern } from '../lib/sampleUtils';
 import { extractSampleInfoFromText as extractFromStorage, SampleInfo, parseSampleTracking } from '../lib/sampleStorage';
 import { escapeRegExp } from '../lib/regexUtils';
-import { josa, withJosa } from '../lib/josa';
 
 /**
  * Sample display information with all metadata
@@ -65,7 +64,7 @@ export function generateSampleListHtml(sampleIds: string[]): string {
   if (sampleIds.length === 0) {
     return `
       <div class="no-samples">
-        <p>현재 문서에서 샘플 ID를 찾을 수 없습니다.</p>
+        <p>${vscode.l10n.t('No sample IDs found in the current document.')}</p>
       </div>
     `;
   }
@@ -85,7 +84,7 @@ export function generateSampleListHtml(sampleIds: string[]): string {
 
   return `
     <div class="sample-list">
-      <h3>샘플 ID (${sampleIds.length})</h3>
+      <h3>${vscode.l10n.t('Sample IDs')} (${sampleIds.length})</h3>
       <ul>
         ${sampleListItems}
       </ul>
@@ -100,17 +99,22 @@ export function generateSampleInfoHtml(samples: SampleDisplayInfo[]): string {
   if (samples.length === 0) {
     return `
       <div class="no-samples">
-        <p>현재 문서에서 샘플 ID를 찾을 수 없습니다.</p>
+        <p>${vscode.l10n.t('No sample IDs found in the current document.')}</p>
       </div>
     `;
   }
+
+  const gotoLabel = vscode.l10n.t('Go to location');
+  const renameLabel = vscode.l10n.t('Rename');
+  const replaceLabel = vscode.l10n.t('Replace with another ID');
+  const sourcesLabel = vscode.l10n.t('Sources');
 
   const sampleListItems = samples.map(sample => {
     const color = sampleTypeColors[sample.type as SampleType] || '#888888';
     const aliasHtml = sample.alias ? `<span class="sample-alias">(${escapeHtml(sample.alias)})</span>` : '';
     const descHtml = sample.description ? `<p class="sample-description">${escapeHtml(sample.description)}</p>` : '';
     const sourcesHtml = sample.sources.length > 0
-      ? `<p class="sample-sources">출처: ${sample.sources.map(s => escapeHtml(s)).join(', ')}</p>`
+      ? `<p class="sample-sources">${sourcesLabel}: ${sample.sources.map(s => escapeHtml(s)).join(', ')}</p>`
       : '';
 
     return `
@@ -125,9 +129,9 @@ export function generateSampleInfoHtml(samples: SampleDisplayInfo[]): string {
         ${descHtml}
         ${sourcesHtml}
         <div class="sample-actions">
-          <button class="action-btn goto-btn" data-action="goto" data-id="${escapeHtml(sample.id)}">위치로 이동</button>
-          <button class="action-btn rename-btn" data-action="rename" data-id="${escapeHtml(sample.id)}">이름 변경</button>
-          <button class="action-btn replace-btn" data-action="replace" data-id="${escapeHtml(sample.id)}" data-type="${escapeHtml(sample.type)}">다른 ID로 교체</button>
+          <button class="action-btn goto-btn" data-action="goto" data-id="${escapeHtml(sample.id)}">${gotoLabel}</button>
+          <button class="action-btn rename-btn" data-action="rename" data-id="${escapeHtml(sample.id)}">${renameLabel}</button>
+          <button class="action-btn replace-btn" data-action="replace" data-id="${escapeHtml(sample.id)}" data-type="${escapeHtml(sample.type)}">${replaceLabel}</button>
         </div>
       </li>
     `;
@@ -135,7 +139,7 @@ export function generateSampleInfoHtml(samples: SampleDisplayInfo[]): string {
 
   return `
     <div class="sample-list">
-      <h3>샘플 ID (${samples.length})</h3>
+      <h3>${vscode.l10n.t('Sample IDs')} (${samples.length})</h3>
       <ul>
         ${sampleListItems}
       </ul>
@@ -246,11 +250,11 @@ export class SampleInfoPanel {
     if (!this._currentDocUri) return;
 
     const newId = await vscode.window.showInputBox({
-      prompt: `${withJosa(oldId, '을/를')} 새로운 ID로 변경`,
+      prompt: vscode.l10n.t('Rename {0} to a new ID', oldId),
       value: oldId,
       validateInput: (value) => {
-        if (!value || value.trim() === '') return 'ID를 입력하세요';
-        if (value === oldId) return '다른 ID를 입력하세요';
+        if (!value || value.trim() === '') return vscode.l10n.t('Please enter an ID.');
+        if (value === oldId) return vscode.l10n.t('Please enter a different ID.');
         return null;
       }
     });
@@ -270,7 +274,7 @@ export class SampleInfoPanel {
     await vscode.workspace.applyEdit(edit);
     await doc.save();
 
-    vscode.window.showInformationMessage(`${oldId} → ${newId}${josa(newId, '으로/로')} 변경되었습니다.`);
+    vscode.window.showInformationMessage(vscode.l10n.t('Renamed {0} to {1}.', oldId, newId));
     this._updateFromActiveEditor();
   }
 
@@ -289,12 +293,12 @@ export class SampleInfoPanel {
     const existingIds = [...new Set(text.match(pattern) || [])].filter(id => id !== oldId);
 
     if (existingIds.length === 0) {
-      vscode.window.showWarningMessage(`교체할 다른 ${type} ID가 없습니다.`);
+      vscode.window.showWarningMessage(vscode.l10n.t('No other {0} IDs to replace with.', type));
       return;
     }
 
     const selectedId = await vscode.window.showQuickPick(existingIds, {
-      placeHolder: `${withJosa(oldId, '을/를')} 대체할 ID 선택`
+      placeHolder: vscode.l10n.t('Choose an ID to replace {0}', oldId)
     });
 
     if (!selectedId) return;
@@ -310,7 +314,7 @@ export class SampleInfoPanel {
     await vscode.workspace.applyEdit(edit);
     await doc.save();
 
-    vscode.window.showInformationMessage(`${oldId} → ${selectedId}${josa(selectedId, '으로/로')} 교체되었습니다.`);
+    vscode.window.showInformationMessage(vscode.l10n.t('Replaced {0} with {1}.', oldId, selectedId));
     this._updateFromActiveEditor();
   }
 
@@ -332,7 +336,7 @@ export class SampleInfoPanel {
     // Otherwise, create a new panel
     const panel = vscode.window.createWebviewPanel(
       SampleInfoPanel.viewType,
-      '샘플 정보',
+      vscode.l10n.t('Sample Info'),
       column,
       {
         enableScripts: true,
@@ -368,9 +372,9 @@ export class SampleInfoPanel {
       if (!parseSampleTracking(text)) {
         this._panel.webview.html = this._wrapHtml(`
           <div class="no-samples">
-            <p>Sample Tracking이 비활성화되어 있습니다.</p>
+            <p>${vscode.l10n.t('Sample Tracking is disabled.')}</p>
             <p style="font-size: 0.9em; margin-top: 16px;">
-              YAML front matter에 다음을 추가하세요:<br>
+              ${vscode.l10n.t('Add the following to the YAML front matter:')}<br>
               <code style="background: var(--vscode-textCodeBlock-background); padding: 2px 6px; border-radius: 4px;">Sample Tracking: Yes</code>
             </p>
           </div>
@@ -405,11 +409,11 @@ export class SampleInfoPanel {
 
   private _wrapHtml(content: string): string {
     return `<!DOCTYPE html>
-<html lang="ko">
+<html lang="en">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>샘플 정보</title>
+  <title>Sample Info</title>
   <style>
     body {
       font-family: var(--vscode-font-family);

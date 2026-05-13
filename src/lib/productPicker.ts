@@ -102,7 +102,7 @@ export async function showProductPicker(
     })
   );
   const selected = await vscode.window.showQuickPick(items, {
-    placeHolder: `${type} 제품을 검색하여 선택하세요`,
+    placeHolder: vscode.l10n.t('Search and pick a {0} product', type),
     matchOnDescription: true,
     matchOnDetail: true,
   });

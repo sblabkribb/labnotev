@@ -37,7 +37,8 @@ import {
   sanitizeWorkflowName,
   WorkflowChecklistItem,
 } from '../lib/workflowStructure';
-import { planRenameWorkflow } from '../lib/workflowRename';
+import { planRenameWorkflow, type RenameWorkflowErrorCode } from '../lib/workflowRename';
+import { buildSwUnitOpMarkdown, buildHwUnitOpMarkdown } from '../lib/unitOpTemplate';
 import { getSeoulDateTimeString as getDateTime } from '../lib/dateUtils';
 import {
   getActiveLabnoteEditTarget,
@@ -103,7 +104,7 @@ export function registerWorkflowCommands(
       ];
 
       const selected = await vscode.window.showQuickPick(allItems, {
-        placeHolder: '워크플로/유닛 오퍼레이션 검색...',
+        placeHolder: vscode.l10n.t('Search workflows / unit operations...'),
         matchOnDescription: true,
         matchOnDetail: true,
       });
@@ -137,7 +138,7 @@ export function registerWorkflowCommands(
     vscode.commands.registerCommand('labnotev.createWorkflowFromTree', async (item: WorkflowTreeItem | { workflowId: string; workflowName: string; workflowDescription: string; category: string }) => {
       const target = getActiveLabnoteEditTarget(sectionEditorProvider);
       if (!target) {
-        vscode.window.showWarningMessage('README.labnote.md를 열어주세요');
+        vscode.window.showWarningMessage(vscode.l10n.t('Please open README.labnote.md.'));
         return;
       }
 
@@ -147,7 +148,7 @@ export function registerWorkflowCommands(
       const workflowDescription = item.workflowDescription || (item as any).workflowDescription;
 
       if (!workflowId || !workflowName) {
-        vscode.window.showErrorMessage('워크플로 정보가 없습니다');
+        vscode.window.showErrorMessage(vscode.l10n.t('Missing workflow info.'));
         return;
       }
 
@@ -204,9 +205,9 @@ export function registerWorkflowCommands(
           });
         }
 
-        vscode.window.showInformationMessage(`워크플로가 생성되었습니다: ${workflowFileName}`);
+        vscode.window.showInformationMessage(vscode.l10n.t('Workflow created: {0}', workflowFileName));
       } catch (error) {
-        vscode.window.showErrorMessage(`워크플로 생성 실패: ${error}`);
+        vscode.window.showErrorMessage(vscode.l10n.t('Failed to create workflow: {0}', String(error)));
       }
     })
   );
@@ -219,14 +220,14 @@ export function registerWorkflowCommands(
       }
 
       const newName = await vscode.window.showInputBox({
-        prompt: '새 이름을 입력하세요',
+        prompt: vscode.l10n.t('Enter a new name'),
         value: item.workflowName,
       });
 
       if (newName === undefined) return;
 
       const newDescription = await vscode.window.showInputBox({
-        prompt: '새 설명을 입력하세요',
+        prompt: vscode.l10n.t('Enter a new description'),
         value: item.workflowDescription,
       });
 
@@ -240,7 +241,7 @@ export function registerWorkflowCommands(
       saveWorkflows(workflowTreeProvider.getWorkspaceRoot(), updated);
       workflowTreeProvider.refresh();
 
-      vscode.window.showInformationMessage(`워크플로가 수정되었습니다: ${item.workflowId}`);
+      vscode.window.showInformationMessage(vscode.l10n.t('Workflow updated: {0}', item.workflowId ?? ''));
     })
   );
 
@@ -251,19 +252,20 @@ export function registerWorkflowCommands(
         return;
       }
 
+      const deleteLabel = vscode.l10n.t('Delete');
       const confirm = await vscode.window.showWarningMessage(
-        `정말로 ${item.workflowId}을(를) 삭제하시겠습니까?`,
+        vscode.l10n.t('Are you sure you want to delete {0}?', item.workflowId ?? ''),
         { modal: true },
-        '삭제'
+        deleteLabel
       );
 
-      if (confirm === '삭제') {
+      if (confirm === deleteLabel) {
         const data = loadWorkflowsFromJson(workflowTreeProvider.getWorkspaceRoot());
         const updated = deleteWorkflow(data, item.workflowId!);
         saveWorkflows(workflowTreeProvider.getWorkspaceRoot(), updated);
         workflowTreeProvider.refresh();
 
-        vscode.window.showInformationMessage(`워크플로가 삭제되었습니다: ${item.workflowId}`);
+        vscode.window.showInformationMessage(vscode.l10n.t('Workflow deleted: {0}', item.workflowId ?? ''));
       }
     })
   );
@@ -279,14 +281,14 @@ export function registerWorkflowCommands(
       if (!category) return;
 
       const name = await vscode.window.showInputBox({
-        prompt: '새 워크플로 이름을 입력하세요',
+        prompt: vscode.l10n.t('Enter a new workflow name'),
         placeHolder: 'e.g., New Workflow Design',
       });
 
       if (!name) return;
 
       const description = await vscode.window.showInputBox({
-        prompt: '워크플로 설명을 입력하세요',
+        prompt: vscode.l10n.t('Enter the workflow description'),
         placeHolder: 'e.g., A workflow for...',
       });
 
@@ -305,7 +307,7 @@ export function registerWorkflowCommands(
       saveWorkflows(workflowTreeProvider.getWorkspaceRoot(), updated);
       workflowTreeProvider.refresh();
 
-      vscode.window.showInformationMessage(`새 워크플로가 추가되었습니다: ${newId}`);
+      vscode.window.showInformationMessage(vscode.l10n.t('New workflow added: {0}', newId));
     })
   );
 
@@ -322,7 +324,7 @@ export function registerWorkflowCommands(
           const software = item.software || (item as any).software;
           const opType = (item as { opType?: 'hw' | 'sw' }).opType ?? (software ? 'sw' : 'hw');
           if (!opId || !opName) {
-            vscode.window.showErrorMessage('유닛 오퍼레이션 정보가 없습니다');
+            vscode.window.showErrorMessage(vscode.l10n.t('Missing unit operation info.'));
             return;
           }
           const dir = path.dirname(secDoc.uri.fsPath);
@@ -334,21 +336,25 @@ export function registerWorkflowCommands(
           const { buildUnitOperationBlock } = await import('../sectionEditorProvider');
           const block = buildUnitOperationBlock(opId, opName, opDescription || '', opType, experimenter);
           await sectionEditorProvider.appendUnitOpToDocument(secDoc, block);
-          vscode.window.showInformationMessage(`유닛 오퍼레이션이 삽입되었습니다: ${opId} ${opName}`);
+          vscode.window.showInformationMessage(
+            vscode.l10n.t('Unit operation inserted: {0} {1}', opId, opName)
+          );
           return;
         }
       }
 
       const editor = vscode.window.activeTextEditor;
       if (!editor) {
-        vscode.window.showWarningMessage('워크플로 파일을 열어주세요');
+        vscode.window.showWarningMessage(vscode.l10n.t('Please open a workflow file.'));
         return;
       }
 
       const workflowPath = editor.document.uri.fsPath;
 
       if (!isValidWorkflowPath(workflowPath)) {
-        vscode.window.showWarningMessage('labnote 폴더 내의 워크플로 파일에서 실행해주세요');
+        vscode.window.showWarningMessage(
+          vscode.l10n.t('Please run this command on a workflow file inside the labnote folder.')
+        );
         return;
       }
 
@@ -361,7 +367,7 @@ export function registerWorkflowCommands(
       const opType = (item as { opType?: 'hw' | 'sw' }).opType ?? (software ? 'sw' : 'hw');
 
       if (!opId || !opName) {
-        vscode.window.showErrorMessage('유닛 오퍼레이션 정보가 없습니다');
+        vscode.window.showErrorMessage(vscode.l10n.t('Missing unit operation info.'));
         return;
       }
 
@@ -374,88 +380,20 @@ export function registerWorkflowCommands(
         experimenter = parseExperimenterFromReadme(readmeContent);
       }
 
-      // Generate template (HW: lab-style sections; SW: Input/Output/Parameters/QC Metrics/Method/Environment/Discussion)
       const dateTime = getDateTime(new Date());
+      const info = { opId, opName, opDescription };
       const template = opType === 'sw'
-        ? `
-
----
-
-### [${opId} ${opName}]
-
-> ${opDescription}
-
-#### Meta
-- Experimenter: ${experimenter}
-- Start_date: '${dateTime}'
-- End_date: ''
-${software ? `- Software: ${software}` : ''}
-
-#### Input
-- (이전 단계 산출물, 데이터, 모델)
-
-#### Output
-- (다음 단계로 넘어갈 산출물: 파일, 데이터셋, 모델)
-
-#### Parameters
-- (옵션, 하이퍼파라미터, seed)
-
-#### QC Metrics
-- (성능 지표, QC 지표)
-
-#### Method
-- (소프트웨어/모델 + 자연어 설명)
-
-#### Environment
-- (conda / poetry / container / OS / HW)
-
-#### Discussion
-- (다음 단계에 대한 코멘트)
-
-`
-        : `
-
----
-
-### [${opId} ${opName}]
-
-> ${opDescription}
-
-#### Meta
-- Experimenter: ${experimenter}
-- Start_date: '${dateTime}'
-- End_date: ''
-${equipment ? `- Equipment: ${equipment}` : ''}
-
-#### Input
-- (samples from the previous step)
-
-#### Reagent
-- (e.g. enzyme, buffer, etc.)
-
-#### Consumables
-- (e.g. filter, well-plate, etc.)
-
-#### Equipment
-- (e.g. centrifuge, spectrophotometer, etc.)
-
-#### Method
-- (method used in this step)
-
-#### Output
-- (samples to the next step)
-
-#### Results & Discussions
-- (Any results and discussions. Link file path if needed)
-
-`;
+        ? buildSwUnitOpMarkdown(info, { experimenter, dateTime, software })
+        : buildHwUnitOpMarkdown(info, { experimenter, dateTime, equipment });
 
       await editor.edit(editBuilder => {
         editBuilder.insert(editor.selection.active, template);
       });
       await editor.document.save();
 
-      vscode.window.showInformationMessage(`유닛 오퍼레이션이 삽입되었습니다: ${opId} ${opName}`);
+      vscode.window.showInformationMessage(
+        vscode.l10n.t('Unit operation inserted: {0} {1}', opId, opName)
+      );
     })
   );
 
@@ -467,14 +405,14 @@ ${equipment ? `- Equipment: ${equipment}` : ''}
       }
 
       const newName = await vscode.window.showInputBox({
-        prompt: '새 이름을 입력하세요',
+        prompt: vscode.l10n.t('Enter a new name'),
         value: item.opName,
       });
 
       if (newName === undefined) return;
 
       const newDescription = await vscode.window.showInputBox({
-        prompt: '새 설명을 입력하세요',
+        prompt: vscode.l10n.t('Enter a new description'),
         value: item.opDescription,
       });
 
@@ -489,7 +427,7 @@ ${equipment ? `- Equipment: ${equipment}` : ''}
       saveUnitOperations(workflowTreeProvider.getWorkspaceRoot(), opType, updated);
       workflowTreeProvider.refresh();
 
-      vscode.window.showInformationMessage(`유닛 오퍼레이션이 수정되었습니다: ${item.opId}`);
+      vscode.window.showInformationMessage(vscode.l10n.t('Unit operation updated: {0}', item.opId ?? ''));
     })
   );
 
@@ -500,20 +438,21 @@ ${equipment ? `- Equipment: ${equipment}` : ''}
         return;
       }
 
+      const deleteLabel = vscode.l10n.t('Delete');
       const confirm = await vscode.window.showWarningMessage(
-        `정말로 ${item.opId}을(를) 삭제하시겠습니까?`,
+        vscode.l10n.t('Are you sure you want to delete {0}?', item.opId ?? ''),
         { modal: true },
-        '삭제'
+        deleteLabel
       );
 
-      if (confirm === '삭제') {
+      if (confirm === deleteLabel) {
         const opType = item.opType!;
         const data = loadUnitOpsFromJson(workflowTreeProvider.getWorkspaceRoot(), opType);
         const updated = deleteUnitOperation(data, item.opId!);
         saveUnitOperations(workflowTreeProvider.getWorkspaceRoot(), opType, updated);
         workflowTreeProvider.refresh();
 
-        vscode.window.showInformationMessage(`유닛 오퍼레이션이 삭제되었습니다: ${item.opId}`);
+        vscode.window.showInformationMessage(vscode.l10n.t('Unit operation deleted: {0}', item.opId ?? ''));
       }
     })
   );
@@ -529,21 +468,21 @@ ${equipment ? `- Equipment: ${equipment}` : ''}
       if (!opType) return;
 
       const name = await vscode.window.showInputBox({
-        prompt: '새 유닛 오퍼레이션 이름을 입력하세요',
+        prompt: vscode.l10n.t('Enter a new unit operation name'),
         placeHolder: 'e.g., New Unit Operation',
       });
 
       if (!name) return;
 
       const description = await vscode.window.showInputBox({
-        prompt: '설명을 입력하세요',
+        prompt: vscode.l10n.t('Enter a description'),
         placeHolder: 'e.g., A unit operation for...',
       });
 
       if (description === undefined) return;
 
       const equipOrSoft = await vscode.window.showInputBox({
-        prompt: opType === 'hw' ? '장비를 입력하세요' : '소프트웨어를 입력하세요',
+        prompt: opType === 'hw' ? vscode.l10n.t('Enter the equipment') : vscode.l10n.t('Enter the software'),
         placeHolder: opType === 'hw' ? 'e.g., Centrifuge' : 'e.g., Python, R',
       });
 
@@ -561,7 +500,7 @@ ${equipment ? `- Equipment: ${equipment}` : ''}
       saveUnitOperations(workflowTreeProvider.getWorkspaceRoot(), opType, updated);
       workflowTreeProvider.refresh();
 
-      vscode.window.showInformationMessage(`새 유닛 오퍼레이션이 추가되었습니다: ${newId}`);
+      vscode.window.showInformationMessage(vscode.l10n.t('New unit operation added: {0}', newId));
     })
   );
 
@@ -575,18 +514,20 @@ ${equipment ? `- Equipment: ${equipment}` : ''}
     vscode.commands.registerCommand('labnotev.renameWorkflow', async (uri?: vscode.Uri) => {
       const targetUri = uri ?? resolveActiveWorkflowUri(sectionEditorProvider);
       if (!targetUri) {
-        vscode.window.showWarningMessage('이름을 변경할 워크플로 파일을 찾을 수 없습니다. 워크플로 파일을 활성화한 뒤 다시 시도하세요.');
+        vscode.window.showWarningMessage(
+          vscode.l10n.t('Cannot find a workflow file to rename. Open one and try again.')
+        );
         return;
       }
       if (!isValidWorkflowPath(targetUri.fsPath)) {
-        vscode.window.showWarningMessage('이 파일은 워크플로 파일이 아닙니다.');
+        vscode.window.showWarningMessage(vscode.l10n.t('This file is not a workflow file.'));
         return;
       }
 
       const oldFileName = path.basename(targetUri.fsPath);
       const parsed = parseWorkflowFileName(oldFileName);
       if (!parsed) {
-        vscode.window.showWarningMessage('워크플로 파일명 형식이 아닙니다.');
+        vscode.window.showWarningMessage(vscode.l10n.t('Not a workflow file name.'));
         return;
       }
 
@@ -605,14 +546,14 @@ ${equipment ? `- Equipment: ${equipment}` : ''}
       const oldDisplayName = extractWorkflowName(oldContent, parsed.id) ?? parsed.safeName;
 
       const newName = await vscode.window.showInputBox({
-        prompt: `워크플로 이름 변경 (${parsed.id})`,
+        prompt: vscode.l10n.t('Rename workflow ({0})', parsed.id),
         value: oldDisplayName,
         validateInput: (value) => {
-          if (!value || value.trim() === '') return '이름을 입력하세요';
+          if (!value || value.trim() === '') return vscode.l10n.t('Please enter a name.');
           if (sanitizeWorkflowName(value) === '') {
-            return '이름에 영문/숫자/언더스코어가 한 글자 이상 있어야 합니다';
+            return vscode.l10n.t('Name must contain at least one letter, digit, or underscore.');
           }
-          if (value === oldDisplayName) return '다른 이름을 입력하세요';
+          if (value === oldDisplayName) return vscode.l10n.t('Please enter a different name.');
           const wouldBeFile = createWorkflowFileName(parsed.sequence, {
             id: parsed.id,
             name: value,
@@ -620,7 +561,7 @@ ${equipment ? `- Equipment: ${equipment}` : ''}
           });
           if (wouldBeFile === oldFileName) return null;
           if (fs.existsSync(path.join(dirPath, wouldBeFile))) {
-            return `같은 이름의 워크플로가 이미 존재합니다: ${wouldBeFile}`;
+            return vscode.l10n.t('A workflow with this name already exists: {0}', wouldBeFile);
           }
           return null;
         },
@@ -638,7 +579,7 @@ ${equipment ? `- Equipment: ${equipment}` : ''}
       });
 
       if ('error' in planResult) {
-        vscode.window.showWarningMessage(planResult.error);
+        vscode.window.showWarningMessage(renameWorkflowErrorMessage(planResult.error.code));
         return;
       }
 
@@ -679,10 +620,10 @@ ${equipment ? `- Equipment: ${equipment}` : ''}
         }
 
         vscode.window.showInformationMessage(
-          `워크플로 이름을 변경했습니다: ${planResult.newDisplayName}`
+          vscode.l10n.t('Workflow renamed: {0}', planResult.newDisplayName)
         );
       } catch (error) {
-        vscode.window.showErrorMessage(`워크플로 이름 변경 실패: ${error}`);
+        vscode.window.showErrorMessage(vscode.l10n.t('Failed to rename workflow: {0}', String(error)));
       }
     })
   );
@@ -701,4 +642,23 @@ function resolveActiveWorkflowUri(
   const fromSection = sectionEditorProvider?.getActiveDocument()?.uri;
   if (fromSection && isValidWorkflowPath(fromSection.fsPath)) return fromSection;
   return undefined;
+}
+
+/**
+ * Map a {@link RenameWorkflowErrorCode} to a localised, user-facing message.
+ * The English source strings double as keys for the VS Code l10n bundle.
+ */
+function renameWorkflowErrorMessage(code: RenameWorkflowErrorCode): string {
+  switch (code) {
+    case 'invalid_filename':
+      return vscode.l10n.t('Not a workflow file name.');
+    case 'empty_name':
+      return vscode.l10n.t('Please enter a name.');
+    case 'sanitized_empty':
+      return vscode.l10n.t('Name must contain at least one letter, digit, or underscore.');
+    case 'no_change':
+      return vscode.l10n.t('No changes detected.');
+    case 'ambiguous_readme':
+      return vscode.l10n.t('Multiple checklist items reference this file.');
+  }
 }

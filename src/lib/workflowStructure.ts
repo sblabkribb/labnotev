@@ -141,8 +141,8 @@ end_date: ''
 
 ## Related Unit Operations
 
-> 유닛 오퍼레이션 목록이 자동으로 추가됩니다.
-> F1 → "Lab Note: Add Unit Operation" 명령으로 유닛 오퍼레이션을 추가하세요.
+> Unit operations are appended here automatically.
+> Use F1 → "Labnote: Add Unit Operation" to add one.
 
 ## Conclusions and Discussion
 

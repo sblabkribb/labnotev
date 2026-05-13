@@ -87,6 +87,28 @@ export const mockVscode = {
   env: {
     openExternal: vi.fn(),
   },
+  // `vscode.l10n` shim — at runtime VS Code reads `l10n/bundle.l10n.<locale>.json`
+  // and rewrites the source string. Tests only need the English-source identity
+  // behaviour, but must also support the variadic (`{0}`, `{1}`) and the object
+  // (`{ message, args }`) overloads so callers that pass either shape do not
+  // crash. The format string is interpreted with indexed placeholders so tests
+  // can assert on the same rendered text users see when the locale is the
+  // English source.
+  l10n: {
+    t: vi.fn(
+      (
+        message: string | { message: string; args?: Array<string | number | boolean> },
+        ...args: Array<string | number | boolean>
+      ) => {
+        const fmt = (s: string, a: Array<string | number | boolean>) =>
+          a.length ? s.replace(/\{(\d+)\}/g, (_m, i) => String(a[Number(i)] ?? '')) : s;
+        if (typeof message === 'string') return fmt(message, args);
+        return fmt(message.message, message.args ?? []);
+      }
+    ),
+    bundle: undefined,
+    uri: undefined,
+  },
   languages: {
     registerDocumentLinkProvider: vi.fn(
       (_selector: unknown, _provider: unknown): Disposable => makeDisposable()

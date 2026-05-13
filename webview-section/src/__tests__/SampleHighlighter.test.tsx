@@ -118,14 +118,14 @@ describe('SampleHighlighter', () => {
       expect(screen.getByText('GeneA')).toBeInTheDocument();
     });
     expect(screen.getByText('Plasmid prep')).toBeInTheDocument();
-    fireEvent.click(screen.getByRole('button', { name: /정의로 이동/, hidden: true }));
+    fireEvent.click(screen.getByRole('button', { name: /Go to definition/, hidden: true }));
     expect(vscodeApi.postMessage).toHaveBeenCalledWith({
       type: 'navigateToSample',
       data: { sampleId: 'DNA-001', sampleType: 'DNA' },
     });
   });
 
-  it('shows 정의 정보 없음 when sample id is missing from sampleDefs', async () => {
+  it('shows "No definition info" when sample id is missing from sampleDefs', async () => {
     renderWithMantine(
       <SampleHighlighter
         text="DNA-001"
@@ -137,11 +137,11 @@ describe('SampleHighlighter', () => {
     );
     fireEvent.mouseEnter(screen.getByText('DNA-001'));
     await waitFor(() => {
-      expect(screen.getByText('정의 정보 없음')).toBeInTheDocument();
+      expect(screen.getByText('No definition info')).toBeInTheDocument();
     });
   });
 
-  it('shows 등록된 별칭·설명 없음 when record exists but empty', async () => {
+  it('shows "No alias or description registered" when record exists but empty', async () => {
     renderWithMantine(
       <SampleHighlighter
         text="DNA-001"
@@ -153,7 +153,7 @@ describe('SampleHighlighter', () => {
     );
     fireEvent.mouseEnter(screen.getByText('DNA-001'));
     await waitFor(() => {
-      expect(screen.getByText('등록된 별칭·설명 없음')).toBeInTheDocument();
+      expect(screen.getByText('No alias or description registered')).toBeInTheDocument();
     });
   });
 });

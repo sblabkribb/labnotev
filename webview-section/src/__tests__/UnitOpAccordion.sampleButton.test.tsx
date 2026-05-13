@@ -19,7 +19,7 @@ const sampleOp: UnitOperationBlock = {
   ],
 };
 
-describe('UnitOpAccordion + Sample 버튼', () => {
+describe('UnitOpAccordion + Sample button', () => {
   it('reports focus + cursor activity (with opId/secHeading) before opening modal', () => {
     const onSectionFocus = vi.fn();
     const onCursorActivity = vi.fn();
@@ -41,7 +41,7 @@ describe('UnitOpAccordion + Sample 버튼', () => {
     expect(control).toBeTruthy();
     act(() => { fireEvent.click(control); });
 
-    const sampleButton = container.querySelector('button[aria-label="샘플 추가"]') as HTMLButtonElement | null;
+    const sampleButton = container.querySelector('button[aria-label="Add sample"]') as HTMLButtonElement | null;
     expect(sampleButton).toBeTruthy();
 
     act(() => { fireEvent.click(sampleButton!); });

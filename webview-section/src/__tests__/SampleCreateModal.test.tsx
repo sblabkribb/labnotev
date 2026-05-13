@@ -27,22 +27,22 @@ describe('SampleCreateModal', () => {
       />
     );
 
-    const alias = getByPlaceholderText('예: Sample-A') as HTMLInputElement;
+    const alias = getByPlaceholderText('e.g. Sample-A') as HTMLInputElement;
     fireEvent.change(alias, { target: { value: 'Sample-A' } });
     fireEvent.keyDown(alias, { key: 'Enter' });
 
     // TextInput doesn't submit the form directly from keyDown — the onSubmit
     // only fires when a <form> naturally submits. So we test the submit flow
-    // via the 생성 button instead, which is what users click.
+    // via the Create button instead, which is what users click.
     const { getByRole } = within(document.body);
-    fireEvent.click(getByRole('button', { name: '생성' }));
+    fireEvent.click(getByRole('button', { name: 'Create' }));
 
     await waitFor(() => {
       expect(onSubmit).toHaveBeenCalledWith('DNA', 'Sample-A', '');
     });
   });
 
-  it('disables 생성 button until a type is selected', () => {
+  it('disables Create button until a type is selected', () => {
     const { getByRole } = renderWithMantine(
       <SampleCreateModal
         opened
@@ -51,7 +51,7 @@ describe('SampleCreateModal', () => {
         availableTypes={DEFAULT_AVAILABLE}
       />
     );
-    const submit = getByRole('button', { name: '생성' }) as HTMLButtonElement;
+    const submit = getByRole('button', { name: 'Create' }) as HTMLButtonElement;
     expect(submit.disabled).toBe(true);
   });
 
@@ -67,10 +67,10 @@ describe('SampleCreateModal', () => {
         submitting
       />
     );
-    const submit = getByRole('button', { name: '생성' }) as HTMLButtonElement;
+    const submit = getByRole('button', { name: 'Create' }) as HTMLButtonElement;
     expect(submit.disabled).toBe(true);
-    // 취소 is also disabled while submitting
-    const cancel = getByRole('button', { name: '취소' }) as HTMLButtonElement;
+    // Cancel is also disabled while submitting
+    const cancel = getByRole('button', { name: 'Cancel' }) as HTMLButtonElement;
     expect(cancel.disabled).toBe(true);
   });
 
@@ -86,7 +86,7 @@ describe('SampleCreateModal', () => {
         defaultType="DNA"
       />
     );
-    fireEvent.click(getByRole('button', { name: '생성' }));
+    fireEvent.click(getByRole('button', { name: 'Create' }));
     expect(onSubmit).toHaveBeenCalled();
     expect(onClose).toHaveBeenCalled();
   });
@@ -104,7 +104,7 @@ describe('SampleCreateModal', () => {
         submitting={false}
       />
     );
-    fireEvent.click(getByRole('button', { name: '생성' }));
+    fireEvent.click(getByRole('button', { name: 'Create' }));
     expect(onSubmit).toHaveBeenCalled();
     expect(onClose).not.toHaveBeenCalled();
 
@@ -121,7 +121,7 @@ describe('SampleCreateModal', () => {
         />
       </MantineProvider>
     );
-    const submit = getByRole('button', { name: '생성' }) as HTMLButtonElement;
+    const submit = getByRole('button', { name: 'Create' }) as HTMLButtonElement;
     expect(submit.disabled).toBe(true);
   });
 });

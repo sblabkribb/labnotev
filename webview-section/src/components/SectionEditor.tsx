@@ -63,29 +63,29 @@ export function SectionEditor({
           <Title order={order}>{heading}</Title>
           <Group gap={4}>
             {onAttachFile && (
-              <Tooltip label="파일 첨부" position="bottom" withArrow>
-                <ActionIcon variant="subtle" size="sm" onClick={onAttachFile} aria-label="파일 첨부">
+              <Tooltip label="Attach file" position="bottom" withArrow>
+                <ActionIcon variant="subtle" size="sm" onClick={onAttachFile} aria-label="Attach file">
                   <AttachIcon />
                 </ActionIcon>
               </Tooltip>
             )}
-            <Tooltip label="테이블 삽입" position="bottom" withArrow>
+            <Tooltip label="Insert table" position="bottom" withArrow>
               <ActionIcon
                 variant="subtle"
                 size="sm"
                 onClick={() => setTableModalOpen(true)}
-                aria-label="테이블 삽입"
+                aria-label="Insert table"
               >
                 <TableIcon />
               </ActionIcon>
             </Tooltip>
-            <Tooltip label="테이블 정렬" position="bottom" withArrow>
+            <Tooltip label="Align table" position="bottom" withArrow>
               <ActionIcon
                 variant="subtle"
                 size="sm"
                 onClick={handleAlignTable}
                 disabled={!cursorInTable}
-                aria-label="테이블 정렬"
+                aria-label="Align table"
               >
                 <AlignIcon />
               </ActionIcon>

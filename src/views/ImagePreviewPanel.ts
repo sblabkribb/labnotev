@@ -64,7 +64,7 @@ export function generateImagePreviewHtml(imageUri: string, altText: string): str
   const escapedAlt = escapeHtml(altText || 'Image');
   
   return `<!DOCTYPE html>
-<html lang="ko">
+<html lang="en">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -233,7 +233,7 @@ export function generateImagePreviewHtml(imageUri: string, altText: string): str
     
     function handleImageError() {
       document.getElementById('imageContainer').innerHTML = 
-        '<div class="error-message"><p>이미지를 로드할 수 없습니다.</p></div>';
+        '<div class="error-message"><p>Failed to load the image.</p></div>';
     }
     
     // Keyboard shortcuts

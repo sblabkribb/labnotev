@@ -87,7 +87,7 @@ describe('Sample Info Panel', () => {
 
       const html = generateSampleListHtml([]);
 
-      expect(html).toContain('샘플 ID를 찾을 수 없습니다');
+      expect(html).toContain('No sample IDs found');
     });
   });
 
@@ -139,9 +139,9 @@ describe('Sample Info Panel', () => {
       ];
       const html = generateSampleInfoHtml(samples);
 
-      expect(html).toContain('이름 변경');
-      expect(html).toContain('다른 ID로 교체');
-      expect(html).toContain('위치로 이동');
+      expect(html).toContain('Rename');
+      expect(html).toContain('Replace with another ID');
+      expect(html).toContain('Go to location');
     });
 
     it('should escape HTML in sample id, type, alias and description', async () => {
