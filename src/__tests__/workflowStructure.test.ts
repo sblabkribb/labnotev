@@ -270,6 +270,89 @@ Content here
     });
   });
 
+  describe('parseWorkflowFileName', () => {
+    it('parses a standard workflow filename into sequence/id/safeName', async () => {
+      const { parseWorkflowFileName } = await import('../lib/workflowStructure');
+
+      expect(parseWorkflowFileName('001_WD010_Design.labnote.md')).toEqual({
+        sequence: '001',
+        id: 'WD010',
+        safeName: 'Design',
+      });
+    });
+
+    it('returns null for a filename without the workflow prefix pattern', async () => {
+      const { parseWorkflowFileName } = await import('../lib/workflowStructure');
+
+      expect(parseWorkflowFileName('001_design.labnote.md')).toBeNull();
+      expect(parseWorkflowFileName('README.labnote.md')).toBeNull();
+      expect(parseWorkflowFileName('001_WD010_Design.md')).toBeNull();
+    });
+
+    it('preserves multi-underscore safeName segments', async () => {
+      const { parseWorkflowFileName } = await import('../lib/workflowStructure');
+
+      expect(parseWorkflowFileName('012_WS180_A_B_C.labnote.md')).toEqual({
+        sequence: '012',
+        id: 'WS180',
+        safeName: 'A_B_C',
+      });
+    });
+
+    it('accepts the uncategorised WX prefix', async () => {
+      const { parseWorkflowFileName } = await import('../lib/workflowStructure');
+
+      expect(parseWorkflowFileName('003_WX030_Foo.labnote.md')).toEqual({
+        sequence: '003',
+        id: 'WX030',
+        safeName: 'Foo',
+      });
+    });
+  });
+
+  describe('extractWorkflowName', () => {
+    it('returns the display name from the front matter title', async () => {
+      const { extractWorkflowName } = await import('../lib/workflowStructure');
+
+      const content = `---
+title: WD010 General Design of Experiment
+experimenter: alice
+---
+
+## [WD010 General Design of Experiment]
+`;
+      expect(extractWorkflowName(content, 'WD010')).toBe('General Design of Experiment');
+    });
+
+    it('falls back to the H2 heading when front matter title is missing', async () => {
+      const { extractWorkflowName } = await import('../lib/workflowStructure');
+
+      const content = `---
+experimenter: bob
+---
+
+## [WD010 Heading Only Name]
+`;
+      expect(extractWorkflowName(content, 'WD010')).toBe('Heading Only Name');
+    });
+
+    it('returns null when neither front matter title nor H2 heading is present', async () => {
+      const { extractWorkflowName } = await import('../lib/workflowStructure');
+
+      expect(extractWorkflowName('# Just a body\n\nNo metadata.', 'WD010')).toBeNull();
+    });
+
+    it("returns null when the front matter title's id does not match the requested id", async () => {
+      const { extractWorkflowName } = await import('../lib/workflowStructure');
+
+      const content = `---
+title: WS180 Some Other Name
+---
+`;
+      expect(extractWorkflowName(content, 'WD010')).toBeNull();
+    });
+  });
+
   describe('Workflow interface', () => {
     it('should export WorkflowInfo interface', async () => {
       type WorkflowInfo = import('../lib/workflowStructure').WorkflowInfo;

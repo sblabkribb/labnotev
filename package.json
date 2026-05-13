@@ -2,7 +2,7 @@
   "name": "LabnoteV",
   "displayName": "Labnote Assistant for VSCode",
   "description": "Markdown-based labnote assistant with sample tracking and workflow management",
-  "version": "0.51.0",
+  "version": "0.52.0",
   "license": "MIT",
   "publisher": "korea-biofoundry",
   "repository": {
@@ -170,6 +170,10 @@
         "command": "labnotev.deleteWorkflowItem",
         "title": "Labnote: Delete Workflow",
         "icon": "$(trash)"
+      },
+      {
+        "command": "labnotev.renameWorkflow",
+        "title": "Labnote: Rename Workflow"
       },
       {
         "command": "labnotev.addWorkflowItem",
@@ -349,6 +353,13 @@
           "command": "labnotev.addUnitOperationItem",
           "when": "view == labnotev.workflowTreeView && viewItem == unitOpRoot",
           "group": "1_modify"
+        }
+      ],
+      "explorer/context": [
+        {
+          "command": "labnotev.renameWorkflow",
+          "when": "resourceFilename =~ /^\\d{3}_.+\\.labnote\\.md$/",
+          "group": "7_modification"
         }
       ]
     },

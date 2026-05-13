@@ -32,8 +32,12 @@ import {
   generateWorkflowChecklist,
   updateReadmeWorkflowSection,
   parseExperimenterFromReadme,
+  parseWorkflowFileName,
+  extractWorkflowName,
+  sanitizeWorkflowName,
   WorkflowChecklistItem,
 } from '../lib/workflowStructure';
+import { planRenameWorkflow } from '../lib/workflowRename';
 import { getSeoulDateTimeString as getDateTime } from '../lib/dateUtils';
 import {
   getActiveLabnoteEditTarget,
@@ -560,4 +564,141 @@ ${equipment ? `- Equipment: ${equipment}` : ''}
       vscode.window.showInformationMessage(`새 유닛 오퍼레이션이 추가되었습니다: ${newId}`);
     })
   );
+
+  // Issue #19: rename a workflow file in one command. Keeps id/sequence
+  // immutable, rewrites the workflow body (front matter title + matching H2
+  // heading), renames the file on disk, and updates the sibling README's
+  // checklist entry if one exists. Available from the Explorer right-click
+  // menu on `{seq}_{id}_{name}.labnote.md` and from the Command Palette while
+  // such a file is the active editor.
+  context.subscriptions.push(
+    vscode.commands.registerCommand('labnotev.renameWorkflow', async (uri?: vscode.Uri) => {
+      const targetUri = uri ?? resolveActiveWorkflowUri(sectionEditorProvider);
+      if (!targetUri) {
+        vscode.window.showWarningMessage('이름을 변경할 워크플로 파일을 찾을 수 없습니다. 워크플로 파일을 활성화한 뒤 다시 시도하세요.');
+        return;
+      }
+      if (!isValidWorkflowPath(targetUri.fsPath)) {
+        vscode.window.showWarningMessage('이 파일은 워크플로 파일이 아닙니다.');
+        return;
+      }
+
+      const oldFileName = path.basename(targetUri.fsPath);
+      const parsed = parseWorkflowFileName(oldFileName);
+      if (!parsed) {
+        vscode.window.showWarningMessage('워크플로 파일명 형식이 아닙니다.');
+        return;
+      }
+
+      const dirPath = path.dirname(targetUri.fsPath);
+      const readmePath = path.join(dirPath, 'README.labnote.md');
+      const hasReadme = fs.existsSync(readmePath);
+
+      // Load the workflow document. If it is open and dirty save first so the
+      // rename does not collide with in-memory user edits.
+      const doc = await vscode.workspace.openTextDocument(targetUri);
+      if (doc.isDirty) {
+        await doc.save();
+      }
+
+      const oldContent = doc.getText();
+      const oldDisplayName = extractWorkflowName(oldContent, parsed.id) ?? parsed.safeName;
+
+      const newName = await vscode.window.showInputBox({
+        prompt: `워크플로 이름 변경 (${parsed.id})`,
+        value: oldDisplayName,
+        validateInput: (value) => {
+          if (!value || value.trim() === '') return '이름을 입력하세요';
+          if (sanitizeWorkflowName(value) === '') {
+            return '이름에 영문/숫자/언더스코어가 한 글자 이상 있어야 합니다';
+          }
+          if (value === oldDisplayName) return '다른 이름을 입력하세요';
+          const wouldBeFile = createWorkflowFileName(parsed.sequence, {
+            id: parsed.id,
+            name: value,
+            description: '',
+          });
+          if (wouldBeFile === oldFileName) return null;
+          if (fs.existsSync(path.join(dirPath, wouldBeFile))) {
+            return `같은 이름의 워크플로가 이미 존재합니다: ${wouldBeFile}`;
+          }
+          return null;
+        },
+      });
+
+      if (!newName) return;
+
+      const oldReadmeContent = hasReadme ? fs.readFileSync(readmePath, 'utf8') : null;
+      const planResult = planRenameWorkflow({
+        workflowFilePath: targetUri.fsPath,
+        oldWorkflowContent: oldContent,
+        readmePath: hasReadme ? readmePath : null,
+        oldReadmeContent,
+        newName,
+      });
+
+      if ('error' in planResult) {
+        vscode.window.showWarningMessage(planResult.error);
+        return;
+      }
+
+      try {
+        // 1) Update the workflow body first so the rename only carries valid
+        //    content over to the new path.
+        const bodyEdit = new vscode.WorkspaceEdit();
+        const fullRange = new vscode.Range(
+          doc.positionAt(0),
+          doc.positionAt(oldContent.length)
+        );
+        bodyEdit.replace(targetUri, fullRange, planResult.newFileContent);
+        await vscode.workspace.applyEdit(bodyEdit);
+        await doc.save();
+
+        // 2) Rename the file. VS Code keeps the open document's URI in sync
+        //    so the Section Editor / text editor follow automatically.
+        const newUri = vscode.Uri.file(planResult.newFilePath);
+        await vscode.workspace.fs.rename(targetUri, newUri, { overwrite: false });
+
+        // 3) Update the sibling README checklist last so a mid-flight failure
+        //    here leaves only the README link stale (recoverable manually).
+        if (planResult.readmePath && planResult.newReadmeContent !== null) {
+          const readmeUri = vscode.Uri.file(planResult.readmePath);
+          const readmeDoc = await vscode.workspace.openTextDocument(readmeUri);
+          const readmeOldText = readmeDoc.getText();
+          const readmeEdit = new vscode.WorkspaceEdit();
+          readmeEdit.replace(
+            readmeUri,
+            new vscode.Range(
+              readmeDoc.positionAt(0),
+              readmeDoc.positionAt(readmeOldText.length)
+            ),
+            planResult.newReadmeContent
+          );
+          await vscode.workspace.applyEdit(readmeEdit);
+          await readmeDoc.save();
+        }
+
+        vscode.window.showInformationMessage(
+          `워크플로 이름을 변경했습니다: ${planResult.newDisplayName}`
+        );
+      } catch (error) {
+        vscode.window.showErrorMessage(`워크플로 이름 변경 실패: ${error}`);
+      }
+    })
+  );
+}
+
+/**
+ * Resolves the active workflow URI when the user invokes the rename command
+ * without an Explorer-context argument. Falls back through the standard text
+ * editor and the Section Editor's last active document.
+ */
+function resolveActiveWorkflowUri(
+  sectionEditorProvider: SectionEditorProvider | undefined
+): vscode.Uri | undefined {
+  const active = vscode.window.activeTextEditor?.document.uri;
+  if (active && isValidWorkflowPath(active.fsPath)) return active;
+  const fromSection = sectionEditorProvider?.getActiveDocument()?.uri;
+  if (fromSection && isValidWorkflowPath(fromSection.fsPath)) return fromSection;
+  return undefined;
 }

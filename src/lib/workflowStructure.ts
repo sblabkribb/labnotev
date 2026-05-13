@@ -277,6 +277,51 @@ export function updateReadmeWorkflowSection(
 }
 
 /**
+ * Parsed components of a workflow filename `{sequence}_{id}_{safeName}.labnote.md`.
+ * Used by the rename-workflow command (issue #19) to decompose a file before
+ * computing the new on-disk path while keeping `sequence` and `id` immutable.
+ */
+export interface ParsedWorkflowFileName {
+  sequence: string;
+  id: string;
+  safeName: string;
+}
+
+/**
+ * Parse a workflow filename into its components, or return `null` when the
+ * filename does not match the standard pattern enforced by
+ * `createWorkflowFileName`. Accepts any `[A-Z]{2}\d{3}` id (including `WX` for
+ * uncategorised entries).
+ */
+export function parseWorkflowFileName(fileName: string): ParsedWorkflowFileName | null {
+  const match = fileName.match(/^(\d{3})_([A-Z]{2}\d{3})_(.+)\.labnote\.md$/);
+  if (!match) return null;
+  return { sequence: match[1], id: match[2], safeName: match[3] };
+}
+
+/**
+ * Extract the human-readable workflow name from a workflow document body.
+ *
+ * Primary source: the front matter `title:` line in the form `<id> <name>`.
+ * Fallback: the first `## [<id> <name>]` H2 heading in the body.
+ *
+ * Returns `null` when neither source carries the requested `id`. This guards
+ * the rename command against matching a stale title that belongs to a
+ * different workflow (e.g. when the user manually edited the file).
+ */
+export function extractWorkflowName(content: string, id: string): string | null {
+  const idEsc = id.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  const fmMatch = content.match(/^---\s*\n([\s\S]*?)\n---/);
+  if (fmMatch) {
+    const titleMatch = fmMatch[1].match(new RegExp(`^title:\\s*${idEsc}\\s+(.+?)\\s*$`, 'm'));
+    if (titleMatch) return titleMatch[1];
+  }
+  const h2Match = content.match(new RegExp(`^## \\[${idEsc}\\s+([^\\]]+)\\]\\s*$`, 'm'));
+  if (h2Match) return h2Match[1].trim();
+  return null;
+}
+
+/**
  * Parse experimenter name from README YAML front matter
  */
 export function parseExperimenterFromReadme(readmeContent: string): string {

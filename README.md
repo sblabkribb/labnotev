@@ -267,6 +267,7 @@ mongodb://username:password@host:port/?authMechanism=SCRAM-SHA-256&authSource=SB
 |--------|------|
 | `Labnote: Create New Labnote Folder` | 새 실험 노트 폴더 구조 생성 |
 | `Labnote: Create Workflow` | README에서 워크플로 파일 생성 |
+| `Labnote: Rename Workflow` | 워크플로 이름을 한 번에 5곳(파일명, front matter, 본문 헤더, README 체크리스트 표시명/링크) 일괄 변경 |
 | `Labnote: Insert Unit Operation` | 워크플로에 유닛 오퍼레이션 템플릿 삽입 |
 | `Labnote: Search Sample` | 샘플 검색 및 삽입 |
 | `Labnote: Search Workflow` | 워크플로/유닛 오퍼레이션 검색 |

@@ -5,6 +5,11 @@
 형식은 [Keep a Changelog](https://keepachangelog.com/ko/1.1.0/)를 기반으로 하며,
 이 프로젝트는 [유의적 버전 관리](https://semver.org/lang/ko/)를 따릅니다.
 
+## [0.52.0] - 2026-05-14
+
+### Added
+- **이슈 #19 워크플로 이름 변경 명령 (`Labnote: Rename Workflow`)**: 워크플로 이름을 한 번에 5곳(파일명, front matter `title`, 본문 `## [...]` 헤더, 같은 폴더 `README.labnote.md`의 체크리스트 표시명/링크) 일괄 갱신하는 명령을 추가. 파일 탐색기에서 `{seq}_{id}_{name}.labnote.md` 파일을 우클릭하거나, 해당 파일이 활성 에디터인 상태에서 Command Palette로 실행 가능. `id`와 `sequence`는 보존되며 name만 변경됨. 빈 이름, sanitize 후 빈 이름, 동일 파일명 충돌은 입력 다이얼로그가 차단. 본문에 우연히 들어간 `title:` 문자열이나 다른 워크플로의 `## [...]` 헤더는 영향을 받지 않도록 front matter 영역과 id 매칭을 엄격히 적용. README 체크리스트에 같은 파일이 여러 번 등록된 ambiguous한 상태에서는 자동 갱신을 거부하고 사용자에게 안내
+
 ## [0.51.0] - 2026-05-14
 
 ### Changed
