@@ -1,6 +1,4 @@
 import * as vscode from 'vscode';
-import * as fs from 'fs';
-import * as path from 'path';
 import { SampleType, findSamplePrefixRange } from '../lib/sampleUtils';
 import { generateSampleId } from '../lib/sampleUtils';
 import {
@@ -10,7 +8,7 @@ import {
   getInsertText,
   getDefinitionText,
 } from '../views/SampleTreeViewProvider';
-import { findSampleDefinitionMatch, loadSamplesByType } from '../lib/sampleStorage';
+import { findSampleDefinitionMatch } from '../lib/sampleStorage';
 import { showProductPicker } from '../lib/productPicker';
 import type { SectionEditorProvider } from '../sectionEditorProvider';
 
@@ -79,29 +77,35 @@ export function registerSampleCommands(
     })
   );
 
-  // Register insert sample to editor command (reference - ID|Alias only)
+  // Register insert sample to editor command (reference - ID|Alias only).
+  // Only inserts into the Section Editor webview. If the user is actively
+  // editing the markdown file in a plain text editor, the command is a no-op
+  // with a helpful nudge — inserting into the text editor would bypass the
+  // Section Editor's structured editing model.
   context.subscriptions.push(
     vscode.commands.registerCommand('labnotev.insertSampleToEditor', async (item: SampleTreeItem) => {
-      if (item && item.itemType === SampleTreeItemType.Sample) {
-        const insertText = getInsertText(item);
-
-        const secDoc = sectionEditorProvider?.getActiveDocument();
-        if (secDoc) {
-          await sectionEditorProvider!.insertSampleIntoDocument(secDoc, insertText);
-          return;
-        }
-
-        const editor = vscode.window.activeTextEditor;
-        if (editor && editor.document.languageId === 'markdown') {
-          // Phase C-2: the reference form ("ID" or "ID;alias") doesn't carry a
-          // `@type;` prefix, so there's nothing to dedupe here — insert as is.
-          await editor.edit(editBuilder => {
-            editBuilder.insert(editor.selection.active, insertText);
-          });
-        } else {
-          vscode.window.showWarningMessage(vscode.l10n.t('Please open a Markdown file.'));
-        }
+      if (!item || item.itemType !== SampleTreeItemType.Sample) {
+        return;
       }
+      const insertText = getInsertText(item);
+
+      const activeEditor = vscode.window.activeTextEditor;
+      if (activeEditor && activeEditor.document.languageId === 'markdown') {
+        vscode.window.showInformationMessage(
+          vscode.l10n.t('Open the file with the Section Editor to insert samples.')
+        );
+        return;
+      }
+
+      const secDoc = sectionEditorProvider?.getActiveDocument();
+      if (secDoc) {
+        await sectionEditorProvider!.insertSampleIntoDocument(secDoc, insertText);
+        return;
+      }
+
+      vscode.window.showInformationMessage(
+        vscode.l10n.t('Open a .labnote.md file with the Section Editor first.')
+      );
     })
   );
 
@@ -312,13 +316,23 @@ export function registerSampleCommands(
     })
   );
 
-  // Register move to definition command
+  // Register move to definition command.
+  //
+  // Simplified to keep the user inside the Section Editor: never opens a plain
+  // text editor and never searches other files. Two entry points share this
+  // command:
+  //   1. TreeView right-click — passes a SampleTreeItem
+  //   2. Webview `navigateToSample` fallback (legacy) — passes (type, id)
+  //
+  // Both flows ask the SectionEditorProvider to scroll the active webview to
+  // the `@type;ID...` definition. If the user is editing the markdown as plain
+  // text (no Section Editor active), we surface a nudge instead of opening a
+  // second editor.
   context.subscriptions.push(
     vscode.commands.registerCommand('labnotev.moveToDefinition', async (itemOrType: SampleTreeItem | string, maybeId?: string) => {
       let sampleType: string;
       let sampleId: string;
       let alias: string | null = null;
-      let scope: 'local' | 'global' | undefined;
 
       if (typeof itemOrType === 'string') {
         sampleType = itemOrType;
@@ -332,92 +346,26 @@ export function registerSampleCommands(
         sampleType = item.sampleType;
         sampleId = item.sampleId;
         alias = item.alias ?? null;
-        scope = item.scope;
       }
 
-      const revealAndSelect = (editor: vscode.TextEditor, match: { start: number; length: number }) => {
-        const range = new vscode.Range(
-          editor.document.positionAt(match.start),
-          editor.document.positionAt(match.start + match.length)
-        );
-        editor.revealRange(range, vscode.TextEditorRevealType.InCenter);
-        editor.selection = new vscode.Selection(range.start, range.end);
-      };
-
-      // (1a) Check section editor
-      const secDoc = sectionEditorProvider?.getActiveDocument();
-      if (secDoc) {
-        const docText = secDoc.getText();
-        const match = findSampleDefinitionMatch(docText, sampleType, sampleId, alias);
-        if (match) {
-          const editor = await vscode.window.showTextDocument(secDoc, { preview: false });
-          revealAndSelect(editor, match);
-          return;
-        }
-      }
-
-      // (1b) Check active text editor (markdown)
       const activeEditor = vscode.window.activeTextEditor;
       if (activeEditor && activeEditor.document.languageId === 'markdown') {
-        const docText = activeEditor.document.getText();
-        const match = findSampleDefinitionMatch(docText, sampleType, sampleId, alias);
-        if (match) {
-          revealAndSelect(activeEditor, match);
-          return;
-        }
+        vscode.window.showInformationMessage(
+          vscode.l10n.t('Open the file with the Section Editor to navigate to definitions.')
+        );
+        return;
       }
 
-      // (2) Search in source files (only when scope is available from TreeView)
-      if (scope) {
-        const folder = scope === 'local' ? sampleTreeProvider.getLocalFolder() : sampleTreeProvider.getGlobalFolder();
-        const samples = loadSamplesByType(folder, sampleType);
-        const record = samples[sampleId];
-        const sources = record?.sources;
-        if (!sources || sources.length === 0) {
-          vscode.window.showInformationMessage(vscode.l10n.t('Definition not found.'));
-          return;
-        }
-
-        if (scope === 'local') {
-          const documentFolder = sampleTreeProvider.getDocumentFolder();
-          for (const source of sources) {
-            const fullPath = path.join(documentFolder, source);
-            if (!fs.existsSync(fullPath)) continue;
-            try {
-              const doc = await vscode.workspace.openTextDocument(fullPath);
-              const text = doc.getText();
-              const match = findSampleDefinitionMatch(text, sampleType, sampleId, alias);
-              if (match) {
-                const editor = await vscode.window.showTextDocument(doc, { preview: false });
-                revealAndSelect(editor, match);
-                return;
-              }
-            } catch {
-              // skip
-            }
-          }
-        } else {
-          for (const source of sources) {
-            const uris = await vscode.workspace.findFiles(`**/${source}`);
-            for (const uri of uris) {
-              try {
-                const doc = await vscode.workspace.openTextDocument(uri);
-                const text = doc.getText();
-                const match = findSampleDefinitionMatch(text, sampleType, sampleId, alias);
-                if (match) {
-                  const editor = await vscode.window.showTextDocument(doc, { preview: false });
-                  revealAndSelect(editor, match);
-                  return;
-                }
-              } catch {
-                // skip
-              }
-            }
-          }
-        }
+      const ok = sectionEditorProvider?.tryScrollActiveWebviewToDefinition(
+        sampleType,
+        sampleId,
+        alias
+      ) ?? false;
+      if (!ok) {
+        vscode.window.showInformationMessage(
+          vscode.l10n.t('Definition not found in current document.')
+        );
       }
-
-      vscode.window.showInformationMessage(vscode.l10n.t('Definition not found.'));
     })
   );
 

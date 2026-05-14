@@ -5,6 +5,17 @@
 형식은 [Keep a Changelog](https://keepachangelog.com/ko/1.1.0/)를 기반으로 하며,
 이 프로젝트는 [유의적 버전 관리](https://semver.org/lang/ko/)를 따릅니다.
 
+## [0.54.1] - 2026-05-15
+
+### Changed
+- **샘플 트리뷰 컨텍스트 메뉴 정리**: 우클릭 메뉴에서 "Insert Definition"과 "Delete Sample" 항목 제거. 명령 자체는 보존되어 명령 팔레트에서 여전히 호출 가능(트리뷰 컨텍스트 없이는 NoOp)
+- **"Insert to Editor"가 Section Editor 전용으로 동작**: 활성 텍스트 에디터가 markdown인 경우 작동하지 않고 "Section Editor로 열어주세요" 안내를 표시. 마크다운 텍스트 에디터에 직접 삽입하던 fallback 제거
+- **"Move to Definition"이 Section Editor 웹뷰 내부에서 스크롤**: 일반 텍스트 에디터를 새로 열지 않고 활성 Section Editor의 웹뷰에 `scrollToSample` 메시지를 보내 정의 위치(`@type;ID...`)로 이동. 다른 파일을 자동으로 열어주던 cross-file 검색 fallback 제거
+
+### Fixed
+- **"Move to Definition"이 본문 단순 참조로 잘못 점프하던 문제**: 단순 ID 참조(예: `DNA-123`)도 매칭하던 기존 정규식 대신 `@type;ID...` 정의 형식만 매칭하는 `findSampleDefinitionOnlyMatch`를 도입해 진짜 정의 위치로만 이동하도록 수정
+- **웹뷰에서 샘플 클릭 시 마크다운 에디터가 새로 열리던 문제**: `navigateToSample` 처리에서 현재 문서에 정의가 없을 때 외부 파일 검색으로 fallback하던 코드를 제거하고 "Definition not found in current document." 안내로 대체
+
 ## [0.54.0] - 2026-05-15
 
 > **설치 ID 변경 안내**: 이번 버전부터 `package.json`의 `name`이 `LabnoteV` → `labnotev`로 정규화되었습니다. **Marketplace 신규 설치자에게는 영향 없습니다**. 다만 v0.53.0 이하 VSIX로 수동 설치한 사용자가 VS Code의 publisher.name 변경 감지를 놓치면 구버전(`korea-biofoundry.LabnoteV`)과 신버전(`korea-biofoundry.labnotev`)이 동시에 표시될 수 있으므로 구버전 확장을 수동으로 제거한 뒤 새 버전을 설치하시기를 권장합니다.

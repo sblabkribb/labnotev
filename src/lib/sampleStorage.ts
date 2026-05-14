@@ -175,6 +175,51 @@ export function mergeSampleDatabases(
 }
 
 /**
+ * Strict variant of {@link findSampleDefinitionMatch} that only matches an
+ * `@type;ID...` / `@type:ID...` definition (or, for Equip, an `@equip;;Alias`
+ * alias-only definition). Bare ID references like `DNA-123` are NOT matched.
+ *
+ * Used by Move to Definition flows where landing on the first body reference
+ * instead of the actual definition would be incorrect.
+ */
+export function findSampleDefinitionOnlyMatch(
+  text: string,
+  type: string,
+  id: string,
+  currentAlias?: string | null
+): { start: number; length: number } | null {
+  const typeEsc = escapeRegExp(type);
+
+  if (id && id.trim()) {
+    const defPattern = new RegExp(
+      `@${typeEsc}[;:](${typeEsc}-\\d+(?:-\\d+)*)(?:[;|]([^;:\\n|]+)(?:[;:]([^\\n;|]+))?|:\\s*([^\\n;|]+))?`,
+      'gi'
+    );
+    let match = defPattern.exec(text);
+    while (match) {
+      if (match[1] === id) {
+        return { start: match.index, length: match[0].length };
+      }
+      match = defPattern.exec(text);
+    }
+  }
+
+  if (type.toLowerCase() === 'equip' && currentAlias && currentAlias.trim()) {
+    const aliasEsc = escapeRegExp(currentAlias);
+    const equipAliasPattern = new RegExp(
+      `@equip[;:][;|]${aliasEsc}(?:[;:]([^\\n;|]*))?`,
+      'gi'
+    );
+    const equipMatch = equipAliasPattern.exec(text);
+    if (equipMatch) {
+      return { start: equipMatch.index, length: equipMatch[0].length };
+    }
+  }
+
+  return null;
+}
+
+/**
  * Find the range of a sample definition in document text for replacement.
  * Returns { start, length } of the first matching definition, or null.
  * - General types: matches @type:ID with optional |alias:description (same pattern as extractSampleInfoFromText).

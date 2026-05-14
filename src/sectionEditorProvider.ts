@@ -6,7 +6,7 @@ import { parseWorkflowMd, serializeWorkflowMd } from './lib/workflowSectionParse
 import type { UnitOperationBlock, WorkflowReference } from './lib/sectionTypes';
 import { getSeoulDateTimeString } from './lib/dateUtils';
 import { generateSampleId, getSampleDisplayMeta, type SampleDisplayMeta } from './lib/sampleUtils';
-import { findSampleDefinitionMatch } from './lib/sampleStorage';
+import { findSampleDefinitionOnlyMatch } from './lib/sampleStorage';
 import { showProductPicker } from './lib/productPicker';
 import { parseWorkflowChecklistFromReadme, generateWorkflowChecklist, updateReadmeWorkflowSection } from './lib/workflowStructure';
 import type { SampleTreeViewProvider } from './views/SampleTreeViewProvider';
@@ -308,7 +308,10 @@ export class SectionEditorProvider implements vscode.CustomTextEditorProvider {
           if (!sampleId || !sampleType) break;
 
           const docText = document.getText();
-          const defMatch = findSampleDefinitionMatch(docText, sampleType, sampleId);
+          // Use the strict definition matcher so we don't jump to the first
+          // body reference (e.g. plain `DNA-123`) when the actual `@type;ID...`
+          // definition lives elsewhere in the document.
+          const defMatch = findSampleDefinitionOnlyMatch(docText, sampleType, sampleId);
           if (defMatch) {
             const loc = this.findSectionForOffset(docText, defMatch.start, mode);
             if (loc) {
@@ -319,10 +322,8 @@ export class SectionEditorProvider implements vscode.CustomTextEditorProvider {
               break;
             }
           }
-          await vscode.commands.executeCommand(
-            'labnotev.moveToDefinition',
-            sampleType,
-            sampleId
+          vscode.window.showInformationMessage(
+            vscode.l10n.t('Definition not found in current document.')
           );
           break;
         }
@@ -684,7 +685,33 @@ export class SectionEditorProvider implements vscode.CustomTextEditorProvider {
     }
   }
 
-  private findSectionForOffset(
+  /**
+   * Try to scroll the active (or last-active) Section Editor webview to the
+   * `@type;ID...` definition of the given sample. Returns true if a definition
+   * was located AND a `scrollToSample` message was posted to the webview.
+   *
+   * Intentionally does NOT open a text editor — this is meant for the
+   * "stay inside the Section Editor" navigation flow used by both the
+   * TreeView's Move to Definition command and the webview's sample-click
+   * fallback in `navigateToSample`.
+   */
+  public tryScrollActiveWebviewToDefinition(
+    sampleType: string,
+    sampleId: string,
+    alias?: string | null
+  ): boolean {
+    const editor = this.activeEditor ?? this._lastActiveEditor;
+    if (!editor) return false;
+    const docText = editor.document.getText();
+    const defMatch = findSampleDefinitionOnlyMatch(docText, sampleType, sampleId, alias);
+    if (!defMatch) return false;
+    const loc = this.findSectionForOffset(docText, defMatch.start, editor.mode);
+    if (!loc) return false;
+    editor.webviewPanel.webview.postMessage({ type: 'scrollToSample', data: loc });
+    return true;
+  }
+
+  public findSectionForOffset(
     docText: string,
     offset: number,
     mode: MdFileType

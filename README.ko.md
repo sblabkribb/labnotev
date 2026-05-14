@@ -1,6 +1,6 @@
 # Labnote Assistant (LabnoteV)
 
-**v0.53.0** · [English → README.md](README.md)
+**v0.54.1** · [English → README.md](README.md)
 
 VS Code에서 실험 노트를 마크다운으로 작성할 수 있도록 돕는 확장입니다. `.labnote.md` 파일을 Section Editor(웹뷰 기반 구조화 편집기)로 열어 Front Matter 폼, 워크플로 체크리스트, 유닛 오퍼레이션 아코디언, 샘플 정의 버튼, 이미지 붙여넣기/썸네일 등 실험 기록에 최적화된 UI를 제공합니다.
 
@@ -35,7 +35,7 @@ VS Code에서 실험 노트를 마크다운으로 작성할 수 있도록 돕는
 9. 샘플 정의
    - 각 유닛오퍼레이션의 섹션 제목 옆 `+Sample` 버튼 클릭 → 모달에서 타입/별칭/설명 입력 → 해당 textarea에 `- @type;ID;별칭;설명` 형식으로 자동 삽입
    - 커스텀 타입도 모달에서 직접 정의하여 사용 가능
-   - 또는 Activity Bar의 Sample TreeView에서 타입 우클릭 → Add Sample로 생성 후 Insert Definition으로 삽입
+   - 또는 Activity Bar의 Sample TreeView에서 타입 우클릭 → Add Sample로 새 샘플 생성. 트리뷰의 `[Insert to Editor]` 버튼으로 Section Editor의 textarea에 참조 형태로 삽입
 10. 샘플 참조
     - 샘플 삽입할 유닛오퍼레이션의 임의의 섹션에 커서를 위치
     - 왼쪽 Activity Bar의 Sample TreeView에서 `[Insert to Editor]` 버튼 클릭
@@ -143,8 +143,7 @@ VS Code에서 실험 노트를 마크다운으로 작성할 수 있도록 돕는
 |------|------|------|
 | **기존 샘플 참조** | `@dna:` → 기존 샘플 선택 | `DNA-123\|SampleA` |
 | **새 샘플 정의** | `@dna:` → 새 ID 생성 | `@dna:DNA-xxx\|별칭:설명` |
-| **TreeView 참조** | 샘플 더블클릭 | `DNA-123\|SampleA` |
-| **TreeView 정의** | 우클릭 → Insert Definition | `@dna:DNA-123\|SampleA:설명` |
+| **TreeView 참조** | 샘플 더블클릭 (또는 `[Insert to Editor]`) | `DNA-123\|SampleA` |
 
 #### 샘플 저장
 
@@ -167,11 +166,10 @@ VS Code에서 실험 노트를 마크다운으로 작성할 수 있도록 돕는
   - `DNA [3]`, `RNA [1]` 등: 타입별 노드 (빌트인 + 커스텀 타입)
   - `DNA-123 | 샘플A`: 개별 샘플
 - **컨텍스트 메뉴**:
-  - 샘플 더블클릭: 에디터에 `ID;별칭` 삽입 (참조)
-  - 우클릭 → Insert Definition: `@{type};ID;별칭;설명` 삽입 (정의). 커서 앞에 `@type;`/`@type:` 프리픽스가 이미 있으면 중복되지 않도록 교체
-  - 우클릭 → Move to Definition: 샘플 정의 위치로 이동
+  - 샘플 더블클릭 (또는 인라인 `[Insert to Editor]` 아이콘 클릭): Section Editor의 textarea에 `ID;별칭` 삽입 (참조). 파일을 일반 마크다운 텍스트 에디터로 열고 있는 경우에는 "Section Editor로 열어주세요" 안내가 표시되고 삽입은 수행되지 않음
+  - 우클릭 → Move to Definition: 활성 Section Editor 웹뷰에서 현재 문서의 `@type;ID...` 정의 위치로 스크롤. Section Editor 내부에서만 동작하며 마크다운 텍스트 에디터를 새로 열지 않음
   - 타입 우클릭 → Add Sample: 새 샘플 추가
-  - 샘플 우클릭 → Edit / Delete: 별칭/설명 수정 또는 삭제
+  - 샘플 우클릭 → Edit Sample: 별칭/설명 수정
   - Move to Global / Move to Local: 샘플 범위 이동
 - **드래그 앤 드롭**: 샘플 노드를 임의의 에디터로 드래그하면 `@type;ID;별칭;설명` 정의가 삽입됨. 다중 선택 시 여러 줄로 삽입
 - **샘플 순서 변경**: 같은 타입(예: DNA) 안에서 샘플을 다른 샘플 위로 끌어다 놓으면 순서가 바뀌고 JSON 파일에 저장됨. 타입 노드 위에 놓으면 맨 끝으로 이동. 다중 선택 시 상대 순서 보존. 다른 타입/scope로 끌어다 놓는 D&D는 무시되며 이동은 기존 "Move to Global/Local" 명령으로 수행

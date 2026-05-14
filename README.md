@@ -1,6 +1,6 @@
 # Labnote Assistant (LabnoteV)
 
-**v0.53.0** · [한국어 → README.ko.md](README.ko.md)
+**v0.54.1** · [한국어 → README.ko.md](README.ko.md)
 
 A VS Code extension that helps you write experiment notes in Markdown. It opens `.labnote.md` files in a webview-based Section Editor, providing a UI optimized for lab note keeping — Front Matter forms, workflow checklists, unit operation accordions, sample definition buttons, clipboard image paste/thumbnails, and more.
 
@@ -35,7 +35,7 @@ If you are new to LabnoteV, follow these steps:
 9. Define samples:
    - Click `+Sample` next to a section heading → enter type/alias/description in the modal → a line in the form `- @type;ID;alias;description` is inserted in that textarea.
    - Custom types can also be defined directly in the modal.
-   - Or right-click a type in the Sample TreeView (Activity Bar) → Add Sample → then use Insert Definition.
+   - Or right-click a type in the Sample TreeView (Activity Bar) → Add Sample. The newly created sample appears under the type; use `[Insert to Editor]` to reference it from any Section Editor textarea.
 10. Reference samples:
     - Place the cursor in any textarea inside a unit operation.
     - Click the `[Insert to Editor]` button in the Sample TreeView (Activity Bar).
@@ -142,8 +142,7 @@ When a regular `.md` file is opened in the text editor:
 |----------|-------|--------|
 | **Reference an existing sample** | `@dna:` → pick existing | `DNA-123\|SampleA` |
 | **Define a new sample** | `@dna:` → Generate new ID | `@dna:DNA-xxx\|alias:description` |
-| **TreeView reference** | double-click a sample | `DNA-123\|SampleA` |
-| **TreeView definition** | right-click → Insert Definition | `@dna:DNA-123\|SampleA:description` |
+| **TreeView reference** | double-click a sample (or use `[Insert to Editor]`) | `DNA-123\|SampleA` |
 
 #### Sample storage
 
@@ -166,11 +165,10 @@ When a regular `.md` file is opened in the text editor:
   - `DNA [3]`, `RNA [1]`, etc.: per-type nodes (built-in + custom).
   - `DNA-123 | SampleA`: individual sample.
 - **Context menu**:
-  - Double-click a sample: insert `ID;alias` into the editor (reference).
-  - Right-click → Insert Definition: insert `@{type};ID;alias;description` (definition). If `@type;` / `@type:` already precedes the cursor, it is replaced rather than duplicated.
-  - Right-click → Move to Definition: navigate to the sample's definition.
+  - Double-click a sample (or click the inline `[Insert to Editor]` icon): insert `ID;alias` into the active Section Editor textarea (reference). If the file is open as a plain markdown text editor instead, a nudge prompts you to open it with the Section Editor first.
+  - Right-click → Move to Definition: scroll the active Section Editor webview to the sample's `@type;ID...` definition inside the current document. The command stays inside the Section Editor and does not open the markdown text editor.
   - Right-click a type → Add Sample: add a new sample.
-  - Right-click a sample → Edit / Delete: rename/redescribe or remove the sample.
+  - Right-click a sample → Edit Sample: rename/redescribe.
   - Move to Global / Move to Local: move the sample's scope.
 - **Drag-and-drop**: dragging a sample node into any editor inserts `@type;ID;alias;description`. Multi-select inserts multiple lines.
 - **Reordering**: dropping a sample on another sample within the same type (e.g. DNA) reorders them and persists to the JSON file. Dropping on the type node moves to the end. Multi-select preserves relative order. Drops across types or scopes are ignored — use the "Move to Global/Local" commands instead.
