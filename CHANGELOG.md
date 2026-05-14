@@ -5,6 +5,27 @@
 형식은 [Keep a Changelog](https://keepachangelog.com/ko/1.1.0/)를 기반으로 하며,
 이 프로젝트는 [유의적 버전 관리](https://semver.org/lang/ko/)를 따릅니다.
 
+## [0.54.0] - 2026-05-15
+
+> **설치 ID 변경 안내**: 이번 버전부터 `package.json`의 `name`이 `LabnoteV` → `labnotev`로 정규화되었습니다. **Marketplace 신규 설치자에게는 영향 없습니다**. 다만 v0.53.0 이하 VSIX로 수동 설치한 사용자가 VS Code의 publisher.name 변경 감지를 놓치면 구버전(`korea-biofoundry.LabnoteV`)과 신버전(`korea-biofoundry.labnotev`)이 동시에 표시될 수 있으므로 구버전 확장을 수동으로 제거한 뒤 새 버전을 설치하시기를 권장합니다.
+
+### Added
+- **VS Code Marketplace 공개 게시**: `Labnote: Open with Section Editor` 명령으로 시작하는 모든 기능을 VS Code Marketplace(`korea-biofoundry.labnotev`)에서 직접 설치 가능. VS Code 확장 검색에서 "Labnote Assistant"로 노출됨
+- **GitHub Actions Marketplace 자동 게시 step**: 태그 푸시 시 `vsce publish --packagePath` 사용으로 GitHub Release와 Marketplace에 완전히 동일한 VSIX 바이트가 게시됨. `VSCE_PAT` GitHub Secret 등록 필요
+- **Marketplace 검색용 메타데이터 보강**: `keywords`(labnote/lab notebook/experiment/biology/bioinformatics/markdown/sample tracking/workflow/kribb), `categories`(Notebooks, Education, Other), `galleryBanner`(dark theme), 128×128 PNG 아이콘(`resources/icons/labnotev-128.png`) 추가
+
+### Changed
+- **`name` 필드 정규화**: `LabnoteV` → `labnotev`(소문자). Marketplace 설치 ID는 `korea-biofoundry.labnotev`이며 VSIX 파일명은 `labnotev-X.Y.Z.vsix`로 표준화됨
+- **`displayName` 단순화**: `"Labnote Assistant for VSCode"` → `"Labnote Assistant"`(VS Code 가이드라인 권장 표기)
+- **`description` 확장**: 검색 노출용으로 도메인 키워드(sample tracking, workflow checklists, Section Editor, biology, bioinformatics) 추가
+
+### Fixed
+- **GitHub Release 안내문 파일명 불일치 해결**: 기존 `release.yml`의 `code --install-extension labnotev-X.Y.Z.vsix` 안내문이 실제 산출물 파일명(`LabnoteV-X.Y.Z.vsix`)과 불일치하던 pre-existing 문제가 `name` 소문자화로 자연 해결됨
+
+### Removed
+- **`.vscodeignore`의 dead `TEST_GUIDE.md` 항목**: v0.53.0에서 파일이 삭제되었음에도 ignore 규칙이 남아있던 잔재 정리
+- **VSIX 패키지에서 `bash.exe.stackdump` 및 Marketplace 아이콘 소스(SVG) 제외**: `.vscodeignore`에 `**/*.stackdump`와 `resources/icons/labnotev-marketplace.svg` 패턴 추가로 패키지 크기/품질 개선
+
 ## [0.53.0] - 2026-05-14
 
 ### Added

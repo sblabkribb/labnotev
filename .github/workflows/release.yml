@@ -35,6 +35,11 @@ jobs:
         id: get_version
         run: echo "VERSION=${GITHUB_REF#refs/tags/v}" >> $GITHUB_OUTPUT
       
+      - name: Publish to VS Code Marketplace
+        run: npx @vscode/vsce publish --no-dependencies --packagePath labnotev-${{ steps.get_version.outputs.VERSION }}.vsix -p ${{ secrets.VSCE_PAT }}
+        env:
+          VSCE_PAT: ${{ secrets.VSCE_PAT }}
+      
       - name: Create Release
         uses: softprops/action-gh-release@v2
         with:
@@ -43,12 +48,18 @@ jobs:
           body: |
             ## 설치 방법
             
-            ### 방법 1: 명령줄
+            ### 방법 1: VS Code Marketplace (권장)
+            VS Code 확장 탭에서 "Labnote Assistant" 검색 후 설치, 또는:
+            ```bash
+            code --install-extension korea-biofoundry.labnotev
+            ```
+            
+            ### 방법 2: 명령줄로 VSIX 직접 설치
             ```bash
             code --install-extension labnotev-${{ steps.get_version.outputs.VERSION }}.vsix
             ```
             
-            ### 방법 2: VS Code에서 직접 설치
+            ### 방법 3: VS Code에서 VSIX 수동 설치
             1. `.vsix` 파일 다운로드
             2. VS Code 열기
             3. `Ctrl+Shift+P` → "Extensions: Install from VSIX..." 선택

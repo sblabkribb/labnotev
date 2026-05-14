@@ -1,10 +1,11 @@
 {
-  "name": "LabnoteV",
-  "displayName": "Labnote Assistant for VSCode",
-  "description": "Markdown-based labnote assistant with sample tracking and workflow management",
-  "version": "0.53.0",
+  "name": "labnotev",
+  "displayName": "Labnote Assistant",
+  "description": "Markdown-based lab notebook with sample tracking, workflow checklists, and a structured Section Editor for biology and bioinformatics experiments.",
+  "version": "0.54.0",
   "license": "MIT",
   "publisher": "korea-biofoundry",
+  "icon": "resources/icons/labnotev-128.png",
   "repository": {
     "type": "git",
     "url": "https://github.com/sblabkribb/labnotev.git"
@@ -18,8 +19,25 @@
   },
   "l10n": "./l10n",
   "categories": [
+    "Notebooks",
+    "Education",
     "Other"
   ],
+  "keywords": [
+    "labnote",
+    "lab notebook",
+    "experiment",
+    "biology",
+    "bioinformatics",
+    "markdown",
+    "sample tracking",
+    "workflow",
+    "kribb"
+  ],
+  "galleryBanner": {
+    "color": "#1e1e1e",
+    "theme": "dark"
+  },
   "activationEvents": [
     "workspaceContains:**/*.labnote.md",
     "onCustomEditor:labnotev.sectionEditor"

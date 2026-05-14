@@ -31,7 +31,8 @@ coverage/**
 esbuild.js
 tsconfig.json
 vitest.config.ts
-TEST_GUIDE.md
 **/*.ts
 **/*.map
 **/*.vsix
+**/*.stackdump
+resources/icons/labnotev-marketplace.svg

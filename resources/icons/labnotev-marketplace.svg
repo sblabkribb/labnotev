@@ -1,0 +1,12 @@
+<svg width="128" height="128" viewBox="0 0 128 128" xmlns="http://www.w3.org/2000/svg">
+  <rect width="128" height="128" rx="16" fill="#1e1e1e"/>
+  <g transform="translate(22, 18)" stroke="#4ec9b0" stroke-width="3.5" stroke-linejoin="round" stroke-linecap="round" fill="none">
+    <path d="M28 4 H56 V12 H50 V36 L78 90 V100 H6 V90 L34 36 V12 H28 V4 Z"/>
+    <line x1="14" y1="76" x2="70" y2="76"/>
+    <circle cx="22" cy="86" r="3" fill="#4ec9b0"/>
+    <circle cx="42" cy="82" r="3" fill="#4ec9b0"/>
+    <circle cx="56" cy="90" r="3" fill="#4ec9b0"/>
+    <circle cx="34" cy="92" r="2.5" fill="#4ec9b0"/>
+  </g>
+  <text x="64" y="118" font-family="Segoe UI, Arial, sans-serif" font-size="13" font-weight="600" fill="#4ec9b0" text-anchor="middle" letter-spacing="0.5">labnote</text>
+</svg>
