@@ -1,4 +1,4 @@
-import { render, screen, act } from '@testing-library/react';
+import { render, screen, act, fireEvent } from '@testing-library/react';
 import App from '../App';
 import type { LabNoteDocument, WorkflowDocument } from '../types';
 
@@ -147,5 +147,56 @@ describe('App', () => {
     ) as HTMLTextAreaElement[];
     const withDefinition = textareas.filter(t => t.value.includes('@dna;DNA-1;alias'));
     expect(withDefinition.length).toBe(1);
+  });
+
+  // v0.54.4: Title -> Workflow Header sync. Previously updateWorkflowFm only
+  // mutated frontMatter[key] which meant editing Title left workflowHeader stale.
+  // The new branch rebuilds [idName] desc from `${idName} - ${desc}` so both
+  // representations stay in sync, mirroring the existing Header -> Title path.
+  it('syncs workflowHeader when title with " - " separator is edited', async () => {
+    render(<App />);
+
+    await act(async () => {
+      simulateMessage({ type: 'init', data: { mode: 'workflow', workflow: mockWorkflow } });
+    });
+
+    const titleInput = screen.getByLabelText('Title') as HTMLInputElement;
+    expect(titleInput.value).toBe('WD010 Test');
+
+    await act(async () => {
+      fireEvent.change(titleInput, { target: { value: 'WB150 PCR - 진행' } });
+    });
+
+    // Bracket part rendered by `## [...]` Text node should follow the new idName
+    expect(screen.getByText('[WB150 PCR]')).toBeTruthy();
+
+    // The Workflow Header description input (the one that edits the suffix) should
+    // now display the new description portion.
+    const descInput = screen.getByDisplayValue('진행') as HTMLInputElement;
+    expect(descInput).toBeTruthy();
+  });
+
+  it('syncs workflowHeader to bracket-only form when title has no " - " separator', async () => {
+    render(<App />);
+
+    await act(async () => {
+      simulateMessage({ type: 'init', data: { mode: 'workflow', workflow: mockWorkflow } });
+    });
+
+    const titleInput = screen.getByLabelText('Title') as HTMLInputElement;
+
+    await act(async () => {
+      fireEvent.change(titleInput, { target: { value: 'WD010 NewName' } });
+    });
+
+    expect(screen.getByText('[WD010 NewName]')).toBeTruthy();
+
+    // No " - " separator => description part is empty. The Header description
+    // <TextInput> should now hold ''.
+    const headerDescInputs = Array.from(
+      document.querySelectorAll('input[placeholder="Add description"]')
+    ) as HTMLInputElement[];
+    expect(headerDescInputs.length).toBeGreaterThan(0);
+    expect(headerDescInputs[0].value).toBe('');
   });
 });

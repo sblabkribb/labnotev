@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
-import { MantineProvider, Stack, Button, Group, Title, Loader, Center, Text, Paper, Alert, Badge, Anchor, ActionIcon, Tooltip, TextInput } from '@mantine/core';
+import { MantineProvider, Stack, Button, Group, Title, Loader, Center, Text, Paper, Alert, Badge, Anchor, ActionIcon, Tooltip, TextInput, Textarea } from '@mantine/core';
 import { useDebouncedCallback } from '@mantine/hooks';
 import '@mantine/core/styles.css';
 
@@ -670,6 +670,19 @@ export default function App() {
 
   const updateWorkflowFm = (key: string, value: unknown) => {
     if (!workflow) return;
+    if (key === 'title' && typeof value === 'string') {
+      const idx = value.indexOf(' - ');
+      const idName = (idx >= 0 ? value.slice(0, idx) : value).trim();
+      const desc = idx >= 0 ? value.slice(idx + 3).trim() : '';
+      const newHeader = desc ? `[${idName}] ${desc}` : `[${idName}]`;
+      setWorkflow({
+        ...workflow,
+        frontMatter: { ...workflow.frontMatter, title: value },
+        workflowHeader: newHeader,
+      });
+      markDirty();
+      return;
+    }
     setWorkflow({ ...workflow, frontMatter: { ...workflow.frontMatter, [key]: value } });
     markDirty();
   };
@@ -838,7 +851,7 @@ export default function App() {
                   style={{ flex: 1 }}
                 />
               </Group>
-              <TextInput
+              <Textarea
                 size="sm"
                 variant="unstyled"
                 placeholder="Add workflow description"
@@ -847,6 +860,9 @@ export default function App() {
                   setWorkflow({ ...workflow, workflowDescription: e.currentTarget.value });
                   markDirty();
                 }}
+                onKeyDown={(e) => { if (e.key === 'Enter' && !e.nativeEvent.isComposing) e.preventDefault(); }}
+                autosize
+                minRows={1}
                 styles={{ input: { fontStyle: 'italic', color: 'var(--mantine-color-dimmed)' } }}
               />
             </Paper>

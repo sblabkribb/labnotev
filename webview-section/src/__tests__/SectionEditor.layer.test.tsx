@@ -23,13 +23,18 @@ function getOverlayAndTextarea(container: HTMLElement): {
   overlay: HTMLDivElement;
   textarea: HTMLTextAreaElement;
 } {
-  const textarea = container.querySelector('textarea') as HTMLTextAreaElement | null;
-  if (!textarea) throw new Error('textarea not found');
-  const parent = textarea.parentElement as HTMLElement | null;
-  if (!parent) throw new Error('textarea parent not found');
-  const overlay = parent.querySelector('div') as HTMLDivElement | null;
-  if (!overlay) throw new Error('overlay div not found');
-  return { overlay, textarea };
+  // Find the HighlightedTextarea (section content) specifically. The new
+  // opDescription `<Textarea>` (added in v0.54.4 for visual wrap) is also a
+  // textarea but has no SampleHighlighter overlay sibling, so we look for the
+  // textarea whose parent contains a sibling div overlay.
+  const textareas = Array.from(container.querySelectorAll('textarea')) as HTMLTextAreaElement[];
+  for (const ta of textareas) {
+    const parent = ta.parentElement;
+    if (!parent) continue;
+    const overlay = parent.querySelector('div') as HTMLDivElement | null;
+    if (overlay) return { overlay, textarea: ta };
+  }
+  throw new Error('HighlightedTextarea (textarea + overlay sibling) not found');
 }
 
 describe('Layer z-index regression (SectionEditor overlay must sit above textarea)', () => {

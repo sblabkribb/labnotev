@@ -1,5 +1,5 @@
 import { useRef, useState } from 'react';
-import { Accordion, Badge, Group, Text, Stack, TextInput, Title, Paper, ActionIcon, Tooltip } from '@mantine/core';
+import { Accordion, Badge, Group, Text, Stack, TextInput, Textarea, Title, Paper, ActionIcon, Tooltip } from '@mantine/core';
 import { DndContext, closestCenter, KeyboardSensor, PointerSensor, useSensor, useSensors, type DragEndEvent } from '@dnd-kit/core';
 import { SortableContext, verticalListSortingStrategy, useSortable, arrayMove } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
@@ -301,12 +301,15 @@ function SortableUnitOp({ op, opIndex, onUpdateSection, onUpdateAlias, onUpdateD
         </Accordion.Control>
         <Accordion.Panel>
           <Stack gap="xs">
-            <TextInput
+            <Textarea
               size="xs"
               variant="unstyled"
               placeholder="Add description"
               value={op.opDescription ?? ''}
               onChange={(e) => onUpdateDescription?.(opIndex, e.currentTarget.value)}
+              onKeyDown={(e) => { if (e.key === 'Enter' && !e.nativeEvent.isComposing) e.preventDefault(); }}
+              autosize
+              minRows={1}
               styles={{ input: { fontSize: '13px', fontStyle: 'italic', color: 'var(--mantine-color-dimmed)' } }}
             />
             {op.sections.map((section, secIndex) => {

@@ -5,6 +5,14 @@
 형식은 [Keep a Changelog](https://keepachangelog.com/ko/1.1.0/)를 기반으로 하며,
 이 프로젝트는 [유의적 버전 관리](https://semver.org/lang/ko/)를 따릅니다.
 
+## [0.54.4] - 2026-05-15
+
+### Fixed
+- **Workflow Title↔Header 양방향 동기화 결손**: Front Matter의 Title을 수정해도 Workflow Header(`## [idName] desc`)가 따라가지 않던 회귀 수정. `updateWorkflowFm`에 `key === 'title'` 분기를 추가하여 Title을 첫 번째 ` - ` 기준으로 분리 → `[idName] desc` 형식으로 `workflowHeader`를 함께 재구성. 기존 Header→Title 방향의 정확한 역연산이라 양방향 일관성 확보. `WD010 Sample Preparation`처럼 ` - ` 구분자가 없는 단순 형식도 정상 처리
+
+### Changed
+- **Workflow 설명 및 Unit Operation 설명 인풋 시각적 줄바꿈 지원**: v0.54.3에서 추가한 두 description 인풋이 단일 라인 `<TextInput>`이라 긴 내용이 가로로 잘리던 문제를 Mantine `<Textarea autosize minRows={1}>`로 교체하여 내용 길이에 따라 위/아래로 늘어나도록 개선. Enter 키는 `onKeyDown` + `preventDefault`로 차단(한국어 IME 조합 중 Enter는 `e.nativeEvent.isComposing`으로 가드)하여 마크다운 단일 라인 blockquote(`> ...`) 출력 포맷은 무변경 유지
+
 ## [0.54.3] - 2026-05-15
 
 ### Fixed

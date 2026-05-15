@@ -26,8 +26,8 @@ function expandAccordion(container: HTMLElement) {
   act(() => { fireEvent.click(control); });
 }
 
-function getDescriptionInput(container: HTMLElement): HTMLInputElement {
-  const input = container.querySelector('input[placeholder="Add description"]') as HTMLInputElement | null;
+function getDescriptionInput(container: HTMLElement): HTMLTextAreaElement {
+  const input = container.querySelector('textarea[placeholder="Add description"]') as HTMLTextAreaElement | null;
   expect(input).toBeTruthy();
   return input!;
 }
