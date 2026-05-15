@@ -90,6 +90,20 @@ export async function showProductPicker(
 ): Promise<{ alias: string | null; description: string | null } | null> {
   const candidates = getProductCandidates(type, documentUri);
   if (candidates.length === 0) {
+    // Issue #22 Q2: surface the empty-catalog state so the Search product
+    // button never looks like a silent no-op. Reagent has no MongoDB source,
+    // so the hint mentions MongoDB only for the type that actually consults it.
+    const message =
+      type === 'Labware'
+        ? vscode.l10n.t(
+            'No {0} products found. Add a catalog at resources/labsamples/{0}_*.json, or enable MongoDB in settings (labnotev.enableMongo).',
+            type
+          )
+        : vscode.l10n.t(
+            'No {0} products found. Add a catalog at resources/labsamples/{0}_*.json.',
+            type
+          );
+    void vscode.window.showInformationMessage(message);
     return null;
   }
   const items: (vscode.QuickPickItem & { alias: string | null; sampleDescription: string | null })[] = candidates.map(

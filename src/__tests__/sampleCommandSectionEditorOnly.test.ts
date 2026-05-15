@@ -56,6 +56,12 @@ describe('Sample TreeView commands — Section Editor-only contract', () => {
       expect(mockVscode.window.showInformationMessage).toHaveBeenCalledWith(
         expect.stringMatching(/Section Editor/)
       );
+      // Issue #22 Q3: the nudge must point users to the search-icon alternative
+      // (Labnote: Search Sample) so they discover the text-mode insertion path
+      // instead of thinking the feature is missing.
+      expect(mockVscode.window.showInformationMessage).toHaveBeenCalledWith(
+        expect.stringMatching(/Labnote: Search Sample/)
+      );
       expect(mockEditor.edit).not.toHaveBeenCalled();
     });
 

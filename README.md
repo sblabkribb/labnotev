@@ -1,6 +1,6 @@
 # Labnote Assistant (LabnoteV)
 
-**v0.54.1** · [한국어 → README.ko.md](README.ko.md)
+**v0.54.2** · [한국어 → README.ko.md](README.ko.md)
 
 A VS Code extension that helps you write experiment notes in Markdown. It opens `.labnote.md` files in a webview-based Section Editor, providing a UI optimized for lab note keeping — Front Matter forms, workflow checklists, unit operation accordions, sample definition buttons, clipboard image paste/thumbnails, and more.
 
@@ -85,7 +85,7 @@ When you open a `.labnote.md` file, the Section Editor is shown automatically. I
   - Other sections (Input, Output, Method, etc.) are free-form textareas.
   - Unit operation IDs inserted from the catalog follow the **`UHW…` (hardware) / `USW…` (software)** prefix scheme. The Section Editor's HW/SW indicator and Meta `Equipment` / `Software` fields are aligned to that prefix (the recognition is stable even after editing the body via a text editor).
   - The `+Sample` button opens the sample creation modal: choose a type (8 built-ins + custom), enter an alias, enter a description, all in one place.
-  - For Reagent/Labware, a "Search product" button lets you pick a product from the reference DB.
+  - For Reagent/Labware, the "Search product" button opens a QuickPick over the local reference catalog at `resources/labsamples/{Reagent|Labware}_*.json` (plus the workspace-level catalog and, for Labware only, the SBLIMS MongoDB `Item_Catalog` when `labnotev.enableMongo` is on). If no candidates are found, an information toast explains what to add or which setting to enable.
   - "Add new type" lets you define a custom sample type (stored in workspace settings).
 - **Conclusions and Discussion**: textarea for the overall workflow summary and discussion. When saving, the Markdown always includes a `## Conclusions and Discussion` section, kept in sync between the Section Editor UI and the body so they don't duplicate.
 
@@ -123,7 +123,7 @@ Sample IDs are **defined** in the form `@type;ID;alias;description` and **refere
 #### Sample management in the Section Editor
 
 - **Sample creation modal**: click the `+Sample` button next to any section heading inside a unit operation. The modal lets you pick a type (8 built-ins + custom), enter an alias, and enter a multi-line description, then inserts `- @type;ID;alias;description`.
-  - For Reagent/Labware, the "Search product" button picks an entry from the reference DB.
+  - For Reagent/Labware, the "Search product" button searches the local + workspace `resources/labsamples/{type}_*.json` catalogs, plus the SBLIMS MongoDB `Item_Catalog` for Labware when `labnotev.enableMongo` is enabled. If the catalog is empty, a toast points you to the file path or the MongoDB setting so the button is never a silent no-op.
   - "Add new type" defines a custom type usable for highlighting and extraction/storage.
 - **Highlighting**: sample IDs in textareas are color-coded by type.
 - **Navigation**: clicking a highlighted sample ID jumps to its definition.
@@ -165,7 +165,7 @@ When a regular `.md` file is opened in the text editor:
   - `DNA [3]`, `RNA [1]`, etc.: per-type nodes (built-in + custom).
   - `DNA-123 | SampleA`: individual sample.
 - **Context menu**:
-  - Double-click a sample (or click the inline `[Insert to Editor]` icon): insert `ID;alias` into the active Section Editor textarea (reference). If the file is open as a plain markdown text editor instead, a nudge prompts you to open it with the Section Editor first.
+  - Double-click a sample (or click the inline `[Insert to Editor]` icon): insert `ID;alias` into the active Section Editor textarea (reference). If the file is open as a plain markdown text editor instead, a nudge points you to `Labnote: Search Sample` — use that command (or the search icon in the tree view title bar) to insert at the cursor in text mode.
   - Right-click → Move to Definition: scroll the active Section Editor webview to the sample's `@type;ID...` definition inside the current document. The command stays inside the Section Editor and does not open the markdown text editor.
   - Right-click a type → Add Sample: add a new sample.
   - Right-click a sample → Edit Sample: rename/redescribe.
@@ -174,7 +174,8 @@ When a regular `.md` file is opened in the text editor:
 - **Reordering**: dropping a sample on another sample within the same type (e.g. DNA) reorders them and persists to the JSON file. Dropping on the type node moves to the end. Multi-select preserves relative order. Drops across types or scopes are ignored — use the "Move to Global/Local" commands instead.
 - **Per-type icon color**: the type node icon uses the same palette as body highlighting, making types easy to distinguish at a glance.
 - **Empty state**: when a type has no samples, a "No samples" row is shown (Local hints at the right-click "Create Sample" action; Global explains that saving an `@type;id` definition anywhere registers the sample automatically).
-- **Sample search**: the search icon in the tree view title bar, or `Labnote: Search Sample`.
+- **Sample search**: the search icon in the tree view title bar, or run `Labnote: Search Sample` from the Command Palette. The QuickPick searches every Local + Global sample by ID, alias, and description.
+  - The selected sample is inserted at the cursor in **both the Section Editor and the plain markdown text editor**, so this is the recommended path for inserting samples while editing the raw `.labnote.md` as text. (The tree view inline `Insert to Editor` action stays Section Editor-only by design.)
 
 ### Workflow TreeView (Activity Bar)
 

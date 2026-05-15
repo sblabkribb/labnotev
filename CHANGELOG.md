@@ -5,6 +5,15 @@
 형식은 [Keep a Changelog](https://keepachangelog.com/ko/1.1.0/)를 기반으로 하며,
 이 프로젝트는 [유의적 버전 관리](https://semver.org/lang/ko/)를 따릅니다.
 
+## [0.54.2] - 2026-05-15
+
+### Changed
+- **샘플 트리뷰 "Insert to Editor" 차단 안내 문구 보강** (이슈 #22 Q3): 텍스트 마크다운 에디터에서 이 액션을 눌렀을 때 표시되는 안내가 단순 차단 메시지에서 "Section Editor에서만 동작하며, 텍스트 모드에서는 Lab Samples 뷰의 돋보기 아이콘(`Labnote: Search Sample`)을 사용하라"는 대안 안내로 교체됨. 사용자가 텍스트 모드 삽입 경로를 발견하지 못해 "기능이 사라졌다"고 오해하던 문제 해소
+- **README/README.ko 보강**: 샘플 트리뷰 절에 `Labnote: Search Sample`이 텍스트 모드와 Section Editor 모두에서 커서 위치 삽입을 지원한다는 점과, "Search product" 버튼의 후보 출처(`resources/labsamples/{type}_*.json` + Labware의 경우 MongoDB) 및 `labnotev.enableMongo` 설정 안내 추가
+
+### Fixed
+- **"Search product" 버튼이 후보 0개일 때 무반응처럼 보이던 문제** (이슈 #22 Q2): `productPicker.ts`가 후보 0개에서 `null`을 silent 반환하면서 SampleCreateModal 사용자가 버튼 동작 여부를 알 수 없던 문제를 수정. 이제 타입별로 "검색할 {타입} 제품이 없습니다 — `resources/labsamples/{타입}_*.json`을 추가하세요(Labware는 추가로 `labnotev.enableMongo`를 켜세요)" 안내 토스트가 표시됨
+
 ## [0.54.1] - 2026-05-15
 
 ### Changed

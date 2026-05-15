@@ -112,5 +112,10 @@
   "Manually enter sample ID, alias, and description": "샘플 ID, 별칭, 설명을 직접 입력합니다",
 
   "Click to preview image: {0}": "클릭하여 이미지 미리보기: {0}",
-  "Search and pick a {0} product": "{0} 제품을 검색하여 선택하세요"
+  "Search and pick a {0} product": "{0} 제품을 검색하여 선택하세요",
+
+  "Insert to Editor only works in the Section Editor. In text mode, use the search icon in the Lab Samples view (Labnote: Search Sample) to insert at the cursor.": "Insert to Editor는 Section Editor에서만 동작합니다. 텍스트 모드에서는 Lab Samples 뷰의 돋보기 아이콘(Labnote: Search Sample 명령)을 사용해 커서 위치에 삽입하세요.",
+  "Open a .labnote.md file with the Section Editor, then click Insert to Editor on a sample.": ".labnote.md 파일을 Section Editor로 연 뒤, 샘플의 Insert to Editor를 클릭하세요.",
+  "No {0} products found. Add a catalog at resources/labsamples/{0}_*.json.": "검색할 {0} 제품이 없습니다. resources/labsamples/{0}_*.json 카탈로그 파일을 추가하세요.",
+  "No {0} products found. Add a catalog at resources/labsamples/{0}_*.json, or enable MongoDB in settings (labnotev.enableMongo).": "검색할 {0} 제품이 없습니다. resources/labsamples/{0}_*.json 카탈로그 파일을 추가하거나, 설정의 labnotev.enableMongo를 활성화하세요."
 }

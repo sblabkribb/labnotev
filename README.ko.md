@@ -1,6 +1,6 @@
 # Labnote Assistant (LabnoteV)
 
-**v0.54.1** · [English → README.md](README.md)
+**v0.54.2** · [English → README.md](README.md)
 
 VS Code에서 실험 노트를 마크다운으로 작성할 수 있도록 돕는 확장입니다. `.labnote.md` 파일을 Section Editor(웹뷰 기반 구조화 편집기)로 열어 Front Matter 폼, 워크플로 체크리스트, 유닛 오퍼레이션 아코디언, 샘플 정의 버튼, 이미지 붙여넣기/썸네일 등 실험 기록에 최적화된 UI를 제공합니다.
 
@@ -85,7 +85,7 @@ VS Code에서 실험 노트를 마크다운으로 작성할 수 있도록 돕는
   - 일반 섹션(Input, Output, Method 등): textarea로 자유롭게 편집
   - 카탈로그에서 삽입한 유닛 오퍼레이션 ID는 **`UHW…`(하드웨어)·`USW…`(소프트웨어)** 형식이며, Section Editor의 HW/SW 표시와 Meta의 Equipment/Software 필드가 이 접두어를 기준으로 맞춰짐(텍스트 에디터로 본문을 고친 뒤 다시 열어도 동일하게 인식)
   - `+Sample` 버튼으로 샘플 생성 모달 열기: 타입 선택(기본 8종 + 커스텀), 별칭, 설명을 한 번에 입력
-  - Reagent/Labware 선택 시 제품 검색 버튼으로 참조 DB에서 제품 선택 가능
+  - Reagent/Labware 선택 시 "제품 검색(Search product)" 버튼으로 QuickPick 표시. 후보 출처는 로컬 + 워크스페이스의 `resources/labsamples/{Reagent|Labware}_*.json` 카탈로그이며, Labware의 경우 `labnotev.enableMongo`가 켜져 있을 때만 SBLIMS MongoDB `Item_Catalog`도 함께 검색됨. 후보가 없으면 어떤 파일을 추가하거나 어떤 설정을 켜야 하는지 안내 토스트가 표시됨.
   - "새 타입 추가"로 커스텀 샘플 타입 정의 가능 (워크스페이스 설정에 저장)
 - **Conclusions and Discussion**: 워크플로 전체 요약 및 논의 작성 영역(저장 시 마크다운에 `## Conclusions and Discussion`이 항상 포함되며, Section Editor UI와 본문이 중복되지 않도록 동기화)
 
@@ -124,7 +124,7 @@ VS Code에서 실험 노트를 마크다운으로 작성할 수 있도록 돕는
 
 - **샘플 생성 모달**: 유닛 오퍼레이션의 각 섹션 제목 옆 `+Sample` 버튼 클릭 시 모달 표시
   - 타입 드롭다운(기본 8종 + 커스텀), 별칭, 설명(여러 줄 입력 가능)을 한 번에 입력하여 `- @type;ID;별칭;설명` 형식으로 삽입
-  - Reagent/Labware는 "제품 검색" 버튼으로 참조 DB에서 제품을 검색하여 선택 가능
+  - Reagent/Labware는 "제품 검색" 버튼이 로컬 + 워크스페이스의 `resources/labsamples/{type}_*.json` 카탈로그를 검색하며, Labware는 `labnotev.enableMongo`가 켜진 경우 SBLIMS MongoDB `Item_Catalog`도 함께 검색합니다. 카탈로그가 비어 있으면 어떤 파일을 추가하거나 어떤 설정을 켜야 하는지 토스트로 안내하여 버튼이 무반응처럼 보이지 않도록 했습니다.
   - "새 타입 추가"로 커스텀 샘플 타입을 정의하면 본문에서 하이라이팅 및 추출/저장 가능
 - **하이라이팅**: textarea 내 샘플 ID가 타입별 색상으로 강조
 - **네비게이션**: 하이라이팅된 샘플 ID 클릭 시 정의 위치로 이동
@@ -166,7 +166,7 @@ VS Code에서 실험 노트를 마크다운으로 작성할 수 있도록 돕는
   - `DNA [3]`, `RNA [1]` 등: 타입별 노드 (빌트인 + 커스텀 타입)
   - `DNA-123 | 샘플A`: 개별 샘플
 - **컨텍스트 메뉴**:
-  - 샘플 더블클릭 (또는 인라인 `[Insert to Editor]` 아이콘 클릭): Section Editor의 textarea에 `ID;별칭` 삽입 (참조). 파일을 일반 마크다운 텍스트 에디터로 열고 있는 경우에는 "Section Editor로 열어주세요" 안내가 표시되고 삽입은 수행되지 않음
+  - 샘플 더블클릭 (또는 인라인 `[Insert to Editor]` 아이콘 클릭): Section Editor의 textarea에 `ID;별칭` 삽입 (참조). 파일을 일반 마크다운 텍스트 에디터로 열고 있는 경우에는 `Labnote: Search Sample` 명령(또는 트리뷰 헤더의 돋보기 아이콘)을 사용해 커서 위치에 삽입하라는 안내가 표시됨
   - 우클릭 → Move to Definition: 활성 Section Editor 웹뷰에서 현재 문서의 `@type;ID...` 정의 위치로 스크롤. Section Editor 내부에서만 동작하며 마크다운 텍스트 에디터를 새로 열지 않음
   - 타입 우클릭 → Add Sample: 새 샘플 추가
   - 샘플 우클릭 → Edit Sample: 별칭/설명 수정
@@ -175,7 +175,8 @@ VS Code에서 실험 노트를 마크다운으로 작성할 수 있도록 돕는
 - **샘플 순서 변경**: 같은 타입(예: DNA) 안에서 샘플을 다른 샘플 위로 끌어다 놓으면 순서가 바뀌고 JSON 파일에 저장됨. 타입 노드 위에 놓으면 맨 끝으로 이동. 다중 선택 시 상대 순서 보존. 다른 타입/scope로 끌어다 놓는 D&D는 무시되며 이동은 기존 "Move to Global/Local" 명령으로 수행
 - **타입별 아이콘 색상**: 타입 노드 아이콘이 본문 하이라이트와 동일한 팔레트로 표시되어 한눈에 구분 가능
 - **빈 상태 안내**: 타입에 등록된 샘플이 없을 때 "No samples" 안내 행을 표시 (Local은 우클릭으로 생성, Global은 본문 저장 시 자동 등록됨을 안내)
-- **샘플 검색**: 트리뷰 제목 바의 검색 아이콘 또는 `Labnote: Search Sample` 명령어
+- **샘플 검색**: 트리뷰 제목 바의 검색 아이콘 또는 명령 팔레트에서 `Labnote: Search Sample` 실행. Local + Global 전체 샘플을 ID·별칭·설명으로 검색하는 QuickPick이 표시됨
+  - 선택한 샘플은 **Section Editor와 일반 마크다운 텍스트 에디터 모두에서** 현재 커서 위치에 삽입됨. 따라서 `.labnote.md`를 텍스트 모드로 편집 중일 때 샘플을 삽입하려면 이 방법을 사용. (트리뷰 인라인 `Insert to Editor`는 의도적으로 Section Editor 전용으로 유지됨)
 
 ### Workflow TreeView (Activity Bar)
 

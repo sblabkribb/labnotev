@@ -91,8 +91,13 @@ export function registerSampleCommands(
 
       const activeEditor = vscode.window.activeTextEditor;
       if (activeEditor && activeEditor.document.languageId === 'markdown') {
+        // Issue #22 Q3: keep the Section Editor-only contract, but point users
+        // to the search-icon alternative so the text-mode insertion path is
+        // discoverable instead of looking like a missing feature.
         vscode.window.showInformationMessage(
-          vscode.l10n.t('Open the file with the Section Editor to insert samples.')
+          vscode.l10n.t(
+            'Insert to Editor only works in the Section Editor. In text mode, use the search icon in the Lab Samples view (Labnote: Search Sample) to insert at the cursor.'
+          )
         );
         return;
       }
@@ -104,7 +109,9 @@ export function registerSampleCommands(
       }
 
       vscode.window.showInformationMessage(
-        vscode.l10n.t('Open a .labnote.md file with the Section Editor first.')
+        vscode.l10n.t(
+          'Open a .labnote.md file with the Section Editor, then click Insert to Editor on a sample.'
+        )
       );
     })
   );
