@@ -5,6 +5,15 @@
 형식은 [Keep a Changelog](https://keepachangelog.com/ko/1.1.0/)를 기반으로 하며,
 이 프로젝트는 [유의적 버전 관리](https://semver.org/lang/ko/)를 따릅니다.
 
+## [0.54.3] - 2026-05-15
+
+### Fixed
+- **이슈 #24 — Editor 모드에서 Unit Operation 설명(`> blockquote`) 직접 편집 불가**: `UnitOpAccordion`에서 `opDescription`이 읽기 전용 `<Text>`로만 렌더링되어 Editor 모드 사용자가 Text 모드로 전환해야만 설명을 수정할 수 있던 문제 수정. 인라인 편집 가능한 `<TextInput variant="unstyled">`로 교체하여 Editor 모드에서도 클릭 후 바로 편집 가능하도록 개선
+- **Workflow 헤더 설명(`> blockquote`)도 Editor 모드 편집 불가**: 동일 패턴으로 `App.tsx`의 `workflow.workflowDescription` 표시가 읽기 전용 `<Text>`였던 문제를 함께 수정하여 Editor 모드 편집 패리티 회복
+
+### Changed
+- **Unit Operation alias 인풋 placeholder 문구 명확화**: 신규 description 인풋과의 의미 충돌을 피하기 위해 alias 인풋의 placeholder를 `"Add a short description here"` → `"Add a short alias"`로 변경. alias는 헤딩 라인(`### [HW001 Name] alias-text`), description은 다음 줄 blockquote(`> ...`)로 직렬화되는 별도 필드라는 점이 시각적으로도 구분됨
+
 ## [0.54.2] - 2026-05-15
 
 ### Changed

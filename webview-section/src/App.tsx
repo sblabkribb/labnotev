@@ -838,9 +838,17 @@ export default function App() {
                   style={{ flex: 1 }}
                 />
               </Group>
-              {workflow.workflowDescription && (
-                <Text c="dimmed" fs="italic" size="sm">{workflow.workflowDescription}</Text>
-              )}
+              <TextInput
+                size="sm"
+                variant="unstyled"
+                placeholder="Add workflow description"
+                value={workflow.workflowDescription ?? ''}
+                onChange={(e) => {
+                  setWorkflow({ ...workflow, workflowDescription: e.currentTarget.value });
+                  markDirty();
+                }}
+                styles={{ input: { fontStyle: 'italic', color: 'var(--mantine-color-dimmed)' } }}
+              />
             </Paper>
 
             <Paper p="sm" withBorder>

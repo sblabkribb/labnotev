@@ -239,6 +239,7 @@ interface SortableUnitOpProps {
   opIndex: number;
   onUpdateSection: (opIndex: number, secIndex: number, content: string) => void;
   onUpdateAlias: (opIndex: number, alias: string) => void;
+  onUpdateDescription?: (opIndex: number, opDescription: string) => void;
   onSectionFocus?: (opIndex: number, secIndex: number, opId: string, secHeading: string) => void;
   onCursorActivity?: (pos: number) => void;
   onCreateSample?: (opIndex: number, secIndex: number, sampleType: string, alias: string, description: string) => void;
@@ -253,7 +254,7 @@ interface SortableUnitOpProps {
   onAttachFile?: (opIndex: number, secIndex: number) => void;
 }
 
-function SortableUnitOp({ op, opIndex, onUpdateSection, onUpdateAlias, onSectionFocus, onCursorActivity, onCreateSample, onSearchProducts, productSearchResult, availableTypes, sampleTypeColors, sampleDefs, onAddCustomType, docBaseUri, getCursorForSection, onAttachFile }: SortableUnitOpProps) {
+function SortableUnitOp({ op, opIndex, onUpdateSection, onUpdateAlias, onUpdateDescription, onSectionFocus, onCursorActivity, onCreateSample, onSearchProducts, productSearchResult, availableTypes, sampleTypeColors, sampleDefs, onAddCustomType, docBaseUri, getCursorForSection, onAttachFile }: SortableUnitOpProps) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: op.id });
 
   const style = {
@@ -289,7 +290,7 @@ function SortableUnitOp({ op, opIndex, onUpdateSection, onUpdateAlias, onSection
             <TextInput
               size="xs"
               variant="unstyled"
-              placeholder="Add a short description here"
+              placeholder="Add a short alias"
               value={op.alias ?? ''}
               onChange={(e) => onUpdateAlias(opIndex, e.currentTarget.value)}
               onClick={(e) => e.stopPropagation()}
@@ -300,9 +301,14 @@ function SortableUnitOp({ op, opIndex, onUpdateSection, onUpdateAlias, onSection
         </Accordion.Control>
         <Accordion.Panel>
           <Stack gap="xs">
-            {op.opDescription && (
-              <Text size="sm" c="dimmed" fs="italic">{op.opDescription}</Text>
-            )}
+            <TextInput
+              size="xs"
+              variant="unstyled"
+              placeholder="Add description"
+              value={op.opDescription ?? ''}
+              onChange={(e) => onUpdateDescription?.(opIndex, e.currentTarget.value)}
+              styles={{ input: { fontSize: '13px', fontStyle: 'italic', color: 'var(--mantine-color-dimmed)' } }}
+            />
             {op.sections.map((section, secIndex) => {
               if (section.heading === 'Meta') {
                 const metaFields = parseMetaContent(section.content);
@@ -403,6 +409,13 @@ export function UnitOpAccordion({ unitOperations, onChange, onSectionFocus, onCu
     onChange(updated);
   };
 
+  const updateDescription = (opIndex: number, opDescription: string) => {
+    const updated = unitOperations.map((op, oi) =>
+      oi === opIndex ? { ...op, opDescription } : op
+    );
+    onChange(updated);
+  };
+
   const handleDragEnd = (event: DragEndEvent) => {
     const { active, over } = event;
     if (!over || active.id === over.id) return;
@@ -445,6 +458,7 @@ export function UnitOpAccordion({ unitOperations, onChange, onSectionFocus, onCu
               opIndex={opIndex}
               onUpdateSection={updateSection}
               onUpdateAlias={updateAlias}
+              onUpdateDescription={updateDescription}
               onSectionFocus={onSectionFocus}
               onCursorActivity={onCursorActivity}
               onCreateSample={onCreateSample}
