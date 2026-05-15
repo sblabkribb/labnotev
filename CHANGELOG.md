@@ -5,6 +5,11 @@
 형식은 [Keep a Changelog](https://keepachangelog.com/ko/1.1.0/)를 기반으로 하며,
 이 프로젝트는 [유의적 버전 관리](https://semver.org/lang/ko/)를 따릅니다.
 
+## [0.54.5] - 2026-05-16
+
+### Fixed
+- **이슈 #21 — Section Editor 텍스트에리어에서 내용이 길어진 뒤 키 입력마다 화면이 위로 점프**: `HighlightedTextarea`의 autosize 로직이 매 키 입력마다 `style.height = 'auto'`로 textarea를 일시적으로 `min-height`까지 축소시키면서, 큰 폭(예: 50줄 ≈ 800px → 97px)의 레이아웃 변화가 outer 스크롤러를 위로 끌어올리는 부수효과를 발생시키던 문제 수정. 새 `resizeToContent(ta)` 헬퍼가 `style.height` 변경 직전 `document.scrollingElement`(또는 `documentElement`)의 `scrollTop`을 저장하고, 변경 직후 동기적으로 복원하여 페이지 스크롤 점프를 차단. `value` 변경 useEffect와 `ResizeObserver` 콜백 모두 동일 헬퍼로 일원화
+
 ## [0.54.4] - 2026-05-15
 
 ### Fixed

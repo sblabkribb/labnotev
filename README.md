@@ -1,6 +1,6 @@
 # Labnote Assistant (LabnoteV)
 
-**v0.54.4** · [한국어 → README.ko.md](README.ko.md)
+**v0.54.5** · [한국어 → README.ko.md](README.ko.md)
 
 A VS Code extension that helps you write experiment notes in Markdown. It opens `.labnote.md` files in a webview-based Section Editor, providing a UI optimized for lab note keeping — Front Matter forms, workflow checklists, unit operation accordions, sample definition buttons, clipboard image paste/thumbnails, and more.
 

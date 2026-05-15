@@ -3,6 +3,36 @@ import { SampleHighlighter, highlightSampleIds } from './SampleHighlighter';
 import type { SampleDefMap } from '../types';
 import { getTextareaCaretRect, scrollCaretIntoView } from '../utils/caretPosition';
 
+/**
+ * Auto-resize the textarea to fit its content while preserving the outer
+ * page scroll position.
+ *
+ * Without the anchor, setting `style.height = 'auto'` briefly collapses the
+ * textarea to its `min-height`. When that gap is large (e.g. a 50-line
+ * section shrinks from ~800px back to ~97px), the browser pulls the outer
+ * scroller upward to keep the focused textarea in view. By the time the
+ * second assignment restores `scrollHeight + 'px'`, the page scroll has
+ * already shifted — appearing to the user as "the screen jumps up every
+ * keystroke" (Issue #21).
+ *
+ * Exported for unit testing; not part of the public component API.
+ */
+export function resizeToContent(ta: HTMLTextAreaElement): void {
+  // Per spec `document.scrollingElement` is the documentElement in
+  // standards-compliant pages, but some host environments (and jsdom)
+  // leave it null. Fall back so the anchor still applies.
+  const scroller = (document.scrollingElement
+    || document.documentElement) as HTMLElement | null;
+  const prevTop = scroller?.scrollTop ?? 0;
+
+  ta.style.height = 'auto';
+  ta.style.height = ta.scrollHeight + 'px';
+
+  if (scroller && scroller.scrollTop !== prevTop) {
+    scroller.scrollTop = prevTop;
+  }
+}
+
 export interface HighlightedTextareaProps {
   value: string;
   onChange: (value: string) => void;
@@ -85,18 +115,13 @@ export const HighlightedTextarea = forwardRef<HTMLTextAreaElement, HighlightedTe
     useEffect(() => {
       const ta = textareaRef.current;
       if (!ta) return;
-      ta.style.height = 'auto';
-      ta.style.height = ta.scrollHeight + 'px';
+      resizeToContent(ta);
     }, [value]);
 
     useEffect(() => {
       const ta = textareaRef.current;
       if (!ta) return;
-      const resize = () => {
-        ta.style.height = 'auto';
-        ta.style.height = ta.scrollHeight + 'px';
-      };
-      const observer = new ResizeObserver(resize);
+      const observer = new ResizeObserver(() => resizeToContent(ta));
       observer.observe(ta);
       return () => observer.disconnect();
     }, []);
