@@ -467,15 +467,13 @@ export class SampleTreeViewProvider implements vscode.TreeDataProvider<SampleTre
     const samples = this.loadSamples(folder, sampleType);
     const entries = Object.entries(samples);
 
-    // Phase B-4: expose an empty-state Detail row so the user sees a clear
-    // "No samples" placeholder and a hint for adding one, rather than a silent
-    // blank section that makes the TreeView look broken.
+    // Phase B-4: keep a single neutral placeholder so an empty type node
+    // doesn't look broken when expanded. The earlier scope-specific hints
+    // (e.g. "right-click → Create Sample") implied actions that are not
+    // discoverable from the empty-state row itself, so we use a plain label.
     if (entries.length === 0) {
-      const hint = scope === 'local'
-        ? vscode.l10n.t('No samples — right-click → "Create Sample"')
-        : vscode.l10n.t('No samples — saving an @type;id definition in a document registers it automatically');
       return [
-        new SampleTreeItem(hint, SampleTreeItemType.Detail, {
+        new SampleTreeItem(vscode.l10n.t('No samples'), SampleTreeItemType.Detail, {
           scope,
           sampleType,
         }),

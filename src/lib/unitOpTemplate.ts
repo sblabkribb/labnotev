@@ -44,7 +44,7 @@ const SW_PLACEHOLDERS = {
 const HW_PLACEHOLDERS = {
   Input: '- (samples from the previous step)',
   Reagent: '- (e.g. enzyme, buffer, etc.)',
-  Consumables: '- (e.g. filter, well-plate, etc.)',
+  'Labware and Consumables': '- (e.g. plate, filter, tip, tube, etc.)',
   Equipment: '- (e.g. centrifuge, spectrophotometer, etc.)',
   Method: '- (method used in this step)',
   Output: '- (samples to the next step)',
@@ -86,7 +86,7 @@ export function buildHwUnitOpSections(meta: UnitOpMeta): UnitOpSection[] {
     { heading: 'Meta', content: buildHwMetaContent(meta) },
     { heading: 'Input', content: HW_PLACEHOLDERS.Input },
     { heading: 'Reagent', content: HW_PLACEHOLDERS.Reagent },
-    { heading: 'Consumables', content: HW_PLACEHOLDERS.Consumables },
+    { heading: 'Labware and Consumables', content: HW_PLACEHOLDERS['Labware and Consumables'] },
     { heading: 'Equipment', content: HW_PLACEHOLDERS.Equipment },
     { heading: 'Method', content: HW_PLACEHOLDERS.Method },
     { heading: 'Output', content: HW_PLACEHOLDERS.Output },
@@ -174,8 +174,8 @@ ${HW_PLACEHOLDERS.Input}
 #### Reagent
 ${HW_PLACEHOLDERS.Reagent}
 
-#### Consumables
-${HW_PLACEHOLDERS.Consumables}
+#### Labware and Consumables
+${HW_PLACEHOLDERS['Labware and Consumables']}
 
 #### Equipment
 ${HW_PLACEHOLDERS.Equipment}

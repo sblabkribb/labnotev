@@ -208,7 +208,7 @@ describe('SampleTreeViewProvider', () => {
       expect(children[1].label).toBe('DNA-456');
     });
 
-    it('returns an empty-state Detail row when a Type has no samples (Phase B-4, local)', async () => {
+    it('returns a neutral empty-state Detail row when a local Type has no samples (Phase B-4)', async () => {
       const { SampleTreeViewProvider, SampleTreeItem, SampleTreeItemType } = await import('../views/SampleTreeViewProvider');
       const fs = await import('fs');
 
@@ -226,13 +226,12 @@ describe('SampleTreeViewProvider', () => {
 
       expect(children).toHaveLength(1);
       expect(children[0].itemType).toBe(SampleTreeItemType.Detail);
-      // Label must mention "No samples" so users can distinguish from a loading bug.
-      expect(String(children[0].label)).toContain('No samples');
-      // Local placeholder hints at the right-click action.
-      expect(String(children[0].label)).toContain('Create Sample');
+      // Single neutral placeholder for both scopes — the previous scope-specific
+      // hints implied actions that were not discoverable from the row itself.
+      expect(String(children[0].label)).toBe('No samples');
     });
 
-    it('returns a global-flavored empty-state Detail row (Phase B-4, global)', async () => {
+    it('returns the same neutral empty-state Detail row for a global Type (Phase B-4)', async () => {
       const { SampleTreeViewProvider, SampleTreeItem, SampleTreeItemType } = await import('../views/SampleTreeViewProvider');
       const fs = await import('fs');
 
@@ -249,10 +248,7 @@ describe('SampleTreeViewProvider', () => {
       const children = await provider.getChildren(typeItem);
 
       expect(children).toHaveLength(1);
-      expect(String(children[0].label)).toContain('No samples');
-      // Global placeholder explains that samples appear automatically when
-      // a matching `@type;id` definition is saved anywhere in the workspace.
-      expect(String(children[0].label)).toContain('automatically');
+      expect(String(children[0].label)).toBe('No samples');
     });
 
     it('applies a per-type ThemeIcon color to Type rows (Phase B-4)', async () => {

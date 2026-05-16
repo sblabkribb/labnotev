@@ -5,6 +5,12 @@
 형식은 [Keep a Changelog](https://keepachangelog.com/ko/1.1.0/)를 기반으로 하며,
 이 프로젝트는 [유의적 버전 관리](https://semver.org/lang/ko/)를 따릅니다.
 
+## [0.54.8] - 2026-05-16
+
+### Changed
+- **Sample TreeView 빈 상태 안내 단순화**: 빈 Type 노드를 펼쳤을 때 표시되던 두 안내 ("No samples — right-click → \"Create Sample\"" / "No samples — saving an @type;id definition in a document registers it automatically")를 단일 중립 라벨 `"No samples"`로 통일. 안내 행 자체에서는 그 동작이 발견 불가능했기 때문에 거짓 안내 인상을 주던 문제 제거 ([src/views/SampleTreeViewProvider.ts](src/views/SampleTreeViewProvider.ts))
+- **Unit Operation HW 섹션 이름 변경: `Consumables` → `Labware and Consumables`**: 새로 생성되는 HW UnitOp의 4번째 섹션 헤딩이 `#### Labware and Consumables`로 출력되며, placeholder도 plate/filter/tip/tube를 포함하도록 갱신. 기존 `.labnote.md`/`.workflow.md`의 `#### Consumables` 헤딩은 두 정규화 함수(`normalizeUnitOpSectionHeading`/`normalizeWorkflowUnitSectionHeading`)에서 새 이름으로 매핑되어 그대로 두어도 동일 섹션으로 인식 — `+Sample` 버튼 규칙(`SECTIONS_WITH_SAMPLE_BUTTON`)도 두 헤딩 모두에서 동작 ([src/lib/unitOpTemplate.ts](src/lib/unitOpTemplate.ts), [webview-section/src/utils/unitOpSectionHeading.ts](webview-section/src/utils/unitOpSectionHeading.ts), [src/lib/workflowSectionParser.ts](src/lib/workflowSectionParser.ts))
+
 ## [0.54.7] - 2026-05-16
 
 ### Fixed

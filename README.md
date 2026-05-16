@@ -1,6 +1,6 @@
 # Labnote Assistant (LabnoteV)
 
-**v0.54.7** · [한국어 → README.ko.md](README.ko.md)
+**v0.54.8** · [한국어 → README.ko.md](README.ko.md)
 
 A VS Code extension that helps you write experiment notes in Markdown. It opens `.labnote.md` files in a webview-based Section Editor, providing a UI optimized for lab note keeping — Front Matter forms, workflow checklists, unit operation accordions, sample definition buttons, clipboard image paste/thumbnails, and more.
 
@@ -28,7 +28,7 @@ If you are new to LabnoteV, follow these steps:
 8. Add unit operations to the workflow:
    - Click `[Insert]` next to the desired unit operation in the Activity Bar.
    - Unit operations are displayed as accordions; reorder them by drag-and-drop.
-   - HW (hardware): Input, Reagent, Consumables, Equipment, Method, Output, Results & Discussions.
+   - HW (hardware): Input, Reagent, Labware and Consumables, Equipment, Method, Output, Results & Discussions.
    - SW (software): Input, Output, Parameters, QC Metrics, Method, Environment, Discussion.
    - Each section heading (including **Output**) has a **flask (+Sample)** button to insert a sample definition.
    - When new workflows/unit operations are created, the body content (section placeholders, the "Unit operations are appended here automatically" hint, etc.) is **always stored in English** regardless of the active VS Code locale, ensuring file compatibility across users. Existing Korean content from older notes is treated as user data and never rewritten.

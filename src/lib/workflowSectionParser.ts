@@ -63,9 +63,12 @@ function detectOpType(opId: string): 'hw' | 'sw' {
   return 'hw';
 }
 
-/** Normalizes known H4 heading typos in unit operation sections (keep in sync with webview `normalizeUnitOpSectionHeading`). */
+/** Normalizes known H4 heading aliases in unit operation sections (keep in sync with webview `normalizeUnitOpSectionHeading`). */
 export function normalizeWorkflowUnitSectionHeading(heading: string): string {
   if (heading === 'Reagen') return 'Reagent';
+  // Pre-v0.54.8 templates emitted "Consumables"; we treat it as the new
+  // "Labware and Consumables" so legacy notebooks parse to the same section.
+  if (heading === 'Consumables') return 'Labware and Consumables';
   return heading;
 }
 
