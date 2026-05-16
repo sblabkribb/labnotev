@@ -38,6 +38,42 @@ export function shouldOpenAttachmentWithExternalApp(filePath: string): boolean {
 }
 
 /**
+ * Validate a clipboard text payload against our labnotev unit-operation
+ * envelope. Returns the inner `UnitOperationBlock` on success, or `null` if
+ * the text isn't valid JSON or doesn't match the expected shape.
+ *
+ * Shared by `requestPasteUnitOp` (insert path) and `queryClipboardState`
+ * (UI enablement) so both code paths use the same source of truth.
+ */
+function parseClipboardUnitOp(text: string): UnitOperationBlock | null {
+  let parsed: unknown;
+  try {
+    parsed = JSON.parse(text);
+  } catch {
+    return null;
+  }
+  const env = parsed as { kind?: unknown; version?: unknown; data?: unknown } | null;
+  if (
+    !env || typeof env !== 'object'
+    || env.kind !== 'labnotev/unit-operation'
+    || env.version !== 1
+    || !env.data || typeof env.data !== 'object'
+  ) {
+    return null;
+  }
+  const d = env.data as Partial<UnitOperationBlock> & { sections?: unknown };
+  if (
+    typeof d.opId !== 'string'
+    || typeof d.opName !== 'string'
+    || (d.opType !== 'hw' && d.opType !== 'sw')
+    || !Array.isArray(d.sections)
+  ) {
+    return null;
+  }
+  return d as UnitOperationBlock;
+}
+
+/**
  * Open a linked attachment: Office files use OS default app via shell (cmd/start, open, xdg-open);
  * others prefer VS Code default editor. Falls back through openWith → OS shell → vscode.open → error + reveal in OS explorer.
  */
@@ -512,46 +548,14 @@ export class SectionEditorProvider implements vscode.CustomTextEditorProvider {
           const afterOpIndex = typeof rawAfterIndex === 'number' && Number.isFinite(rawAfterIndex)
             ? rawAfterIndex
             : -1;
-          let text: string;
+          let text = '';
           try {
             text = await vscode.env.clipboard.readText();
           } catch {
-            vscode.window.showInformationMessage(
-              vscode.l10n.t('Clipboard does not contain a Unit Operation.'),
-            );
-            break;
+            // fall through to validation, which will fail on empty string.
           }
-          // Validate the JSON envelope. Reject anything that isn't a labnotev
-          // unit-operation payload so plain text on the clipboard doesn't
-          // accidentally splice malformed data into the workflow.
-          let parsed: unknown;
-          try {
-            parsed = JSON.parse(text);
-          } catch {
-            vscode.window.showInformationMessage(
-              vscode.l10n.t('Clipboard does not contain a Unit Operation.'),
-            );
-            break;
-          }
-          const envelope = parsed as { kind?: unknown; version?: unknown; data?: unknown } | null;
-          if (
-            !envelope || typeof envelope !== 'object'
-            || envelope.kind !== 'labnotev/unit-operation'
-            || envelope.version !== 1
-            || !envelope.data || typeof envelope.data !== 'object'
-          ) {
-            vscode.window.showInformationMessage(
-              vscode.l10n.t('Clipboard does not contain a Unit Operation.'),
-            );
-            break;
-          }
-          const data = envelope.data as Partial<UnitOperationBlock> & { sections?: unknown };
-          if (
-            typeof data.opId !== 'string'
-            || typeof data.opName !== 'string'
-            || (data.opType !== 'hw' && data.opType !== 'sw')
-            || !Array.isArray(data.sections)
-          ) {
+          const unitOp = parseClipboardUnitOp(text);
+          if (!unitOp) {
             vscode.window.showInformationMessage(
               vscode.l10n.t('Clipboard does not contain a Unit Operation.'),
             );
@@ -559,7 +563,21 @@ export class SectionEditorProvider implements vscode.CustomTextEditorProvider {
           }
           webviewPanel.webview.postMessage({
             type: 'unitOpPasted',
-            data: { afterOpIndex, unitOp: data as UnitOperationBlock },
+            data: { afterOpIndex, unitOp },
+          });
+          break;
+        }
+
+        case 'queryClipboardState': {
+          let text = '';
+          try {
+            text = await vscode.env.clipboard.readText();
+          } catch {
+            // treat read failures as "no unit op on clipboard".
+          }
+          webviewPanel.webview.postMessage({
+            type: 'clipboardStateUpdated',
+            data: { hasUnitOp: parseClipboardUnitOp(text) !== null },
           });
           break;
         }
@@ -574,6 +592,18 @@ export class SectionEditorProvider implements vscode.CustomTextEditorProvider {
           const experimentFolder = path.dirname(document.uri.fsPath);
           this._sampleTreeProvider.updateDocumentFolder(experimentFolder);
         }
+        // Re-sync the Paste below enablement whenever the user returns to
+        // this webview (e.g. after copying a UnitOp in another app or
+        // workflow). vscode.env.clipboard has no change event, so this is
+        // the most natural moment to refresh without polling.
+        void (async () => {
+          let text = '';
+          try { text = await vscode.env.clipboard.readText(); } catch {}
+          webviewPanel.webview.postMessage({
+            type: 'clipboardStateUpdated',
+            data: { hasUnitOp: parseClipboardUnitOp(text) !== null },
+          });
+        })();
       } else if (this.activeEditor?.document === document) {
         // Only clear `activeEditor`; keep `_lastActiveEditor` so TreeView
         // inserts still target the last webview the user was editing.

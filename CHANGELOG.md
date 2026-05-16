@@ -5,6 +5,14 @@
 형식은 [Keep a Changelog](https://keepachangelog.com/ko/1.1.0/)를 기반으로 하며,
 이 프로젝트는 [유의적 버전 관리](https://semver.org/lang/ko/)를 따릅니다.
 
+## [0.54.7] - 2026-05-16
+
+### Fixed
+- **이슈 #23 후속 — Section Editor 액션 메뉴 클릭 시 UnitOp Accordion 폴더가 접히던 문제**: Copy / Paste below / Delete... `Menu.Item`의 `onClick`이 동기 콜백만 호출하고 React synthetic event를 부모 `Accordion.Control` 버튼까지 전파시키던 회귀 수정. 세 `Menu.Item` 모두 첫 줄에서 `e.stopPropagation()`을 호출하여 Mantine의 `closeOnItemClick`(메뉴 닫힘)은 그대로 두면서 Accordion 토글만 차단
+
+### Added
+- **이슈 #23 후속 — 클립보드 상태에 따른 Paste below 동적 비활성화**: `vscode.env.clipboard`에 유효한 `labnotev/unit-operation` envelope가 없을 때는 사용자가 누르기 전부터 비활성으로 표시되도록 웹뷰↔익스텐션 양방향 메시지(`queryClipboardState` / `clipboardStateUpdated`) 도입. 익스텐션이 기존 인라인 검증 로직을 `parseClipboardUnitOp` 헬퍼로 추출하여 `requestPasteUnitOp` 삽입 경로와 새 `queryClipboardState` 검사 경로가 동일한 진실 공급원을 사용. 갱신 트리거는 (1) 웹뷰 `ready` 직후 1회, (2) Mantine `<Menu>` `onChange(opened=true)` 시점, (3) `webviewPanel.onDidChangeViewState`로 패널이 다시 active가 되는 시점 — 폴링 없이 자연 이벤트만 사용. Paste below `Menu.Item`과 빈 워크플로우의 "Paste Unit Operation" 버튼 모두 `clipboardHasUnitOp` 상태에 따라 `disabled` 적용
+
 ## [0.54.6] - 2026-05-16
 
 ### Added

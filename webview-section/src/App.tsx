@@ -63,6 +63,11 @@ export default function App() {
   const [sampleTypeColors, setSampleTypeColors] = useState<Record<string, string>>({});
   const [sampleDefs, setSampleDefs] = useState<SampleDefMap>({});
   const [productSearchResult, setProductSearchResult] = useState<{ alias: string; description: string } | null>(null);
+  // Reflects whether the system clipboard currently holds a valid
+  // `labnotev/unit-operation` envelope (resolved by the extension on
+  // `queryClipboardState`). Drives Paste below / empty-state button
+  // enablement so users see ahead of time whether a paste will work.
+  const [clipboardHasUnitOp, setClipboardHasUnitOp] = useState(false);
   const [colorScheme, setColorScheme] = useState<ColorScheme>(loadColorScheme);
   const [insertWarning, setInsertWarning] = useState<string | null>(null);
   const insertWarningTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -192,6 +197,10 @@ export default function App() {
           markDirty();
           break;
         }
+
+        case 'clipboardStateUpdated':
+          setClipboardHasUnitOp(!!message.data?.hasUnitOp);
+          break;
 
         case 'workflowAdded':
           setLabNote(prev => {
@@ -630,6 +639,10 @@ export default function App() {
     window.addEventListener('message', handler);
     window.addEventListener('paste', handlePaste);
     postMessage({ type: 'ready' });
+    // Initial Paste-below enablement: ask the extension whether the system
+    // clipboard already holds a labnotev unit-op envelope. Subsequent
+    // refreshes happen on Menu open and on webview activation.
+    postMessage({ type: 'queryClipboardState' });
     return () => {
       window.removeEventListener('message', handler);
       window.removeEventListener('paste', handlePaste);
@@ -970,6 +983,8 @@ export default function App() {
                 onOpenedChange={setOpenedOpIds}
                 onCopy={handleCopyUnitOp}
                 onPasteBelow={handleRequestPaste}
+                clipboardHasUnitOp={clipboardHasUnitOp}
+                onMenuOpen={() => postMessage({ type: 'queryClipboardState' })}
               />
             </Paper>
 

@@ -82,6 +82,7 @@ export type ExtensionToWebviewMessage =
   | { type: 'sampleDefsUpdated'; data: { sampleDefs: SampleDefMap } }
   | { type: 'unitOpAdded'; data: UnitOperationBlock }
   | { type: 'unitOpPasted'; data: { afterOpIndex: number; unitOp: UnitOperationBlock } }
+  | { type: 'clipboardStateUpdated'; data: { hasUnitOp: boolean } }
   | { type: 'sampleInserted'; data: { text: string } }
   | { type: 'textInserted'; data: { text: string } }
   | { type: 'workflowAdded'; data: WorkflowReference & { workflow?: WorkflowDocument } }
@@ -137,4 +138,5 @@ export type WebviewToExtensionMessage =
     }
   | { type: 'openAttachment'; data: { path: string } }
   | { type: 'copyUnitOp'; data: { payload: string } }
-  | { type: 'requestPasteUnitOp'; data: { afterOpIndex: number } };
+  | { type: 'requestPasteUnitOp'; data: { afterOpIndex: number } }
+  | { type: 'queryClipboardState' };

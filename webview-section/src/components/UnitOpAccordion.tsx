@@ -53,6 +53,13 @@ interface UnitOpAccordionProps {
   onCopy?: (opIndex: number) => void;
   /** Request a Paste below the UnitOp at `opIndex`. Use `-1` to paste at the start. */
   onPasteBelow?: (opIndex: number) => void;
+  /** Whether the system clipboard currently holds a valid labnotev UnitOp
+   *  envelope. When `false`, Paste below items and the empty-state Paste
+   *  button render as `disabled`. */
+  clipboardHasUnitOp?: boolean;
+  /** Fired whenever the actions Menu opens, so callers can refresh
+   *  `clipboardHasUnitOp` (the system clipboard has no change event). */
+  onMenuOpen?: () => void;
 }
 
 function GripIcon() {
@@ -298,9 +305,11 @@ interface SortableUnitOpProps {
   onCopy?: (opIndex: number) => void;
   onPasteBelow?: (opIndex: number) => void;
   onDelete: (opIndex: number) => void;
+  clipboardHasUnitOp?: boolean;
+  onMenuOpen?: () => void;
 }
 
-function SortableUnitOp({ op, opIndex, onUpdateSection, onUpdateAlias, onUpdateDescription, onSectionFocus, onCursorActivity, onCreateSample, onSearchProducts, productSearchResult, availableTypes, sampleTypeColors, sampleDefs, onAddCustomType, docBaseUri, getCursorForSection, onAttachFile, onCopy, onPasteBelow, onDelete }: SortableUnitOpProps) {
+function SortableUnitOp({ op, opIndex, onUpdateSection, onUpdateAlias, onUpdateDescription, onSectionFocus, onCursorActivity, onCreateSample, onSearchProducts, productSearchResult, availableTypes, sampleTypeColors, sampleDefs, onAddCustomType, docBaseUri, getCursorForSection, onAttachFile, onCopy, onPasteBelow, onDelete, clipboardHasUnitOp, onMenuOpen }: SortableUnitOpProps) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: op.id });
   const [confirmOpen, setConfirmOpen] = useState(false);
 
@@ -346,7 +355,13 @@ function SortableUnitOp({ op, opIndex, onUpdateSection, onUpdateAlias, onUpdateD
               styles={{ input: { fontSize: '13px', color: op.alias ? 'var(--mantine-color-text)' : 'var(--mantine-color-dimmed)' } }}
               style={{ flex: 1 }}
             />
-            <Menu position="bottom-end" shadow="md" withinPortal closeOnItemClick>
+            <Menu
+              position="bottom-end"
+              shadow="md"
+              withinPortal
+              closeOnItemClick
+              onChange={(opened) => { if (opened) onMenuOpen?.(); }}
+            >
               <Menu.Target>
                 <ActionIcon
                   size="sm"
@@ -359,14 +374,25 @@ function SortableUnitOp({ op, opIndex, onUpdateSection, onUpdateAlias, onUpdateD
                 </ActionIcon>
               </Menu.Target>
               <Menu.Dropdown>
-                <Menu.Item leftSection={<CopyIcon />} onClick={() => onCopy?.(opIndex)}>
+                <Menu.Item
+                  leftSection={<CopyIcon />}
+                  onClick={(e) => { e.stopPropagation(); onCopy?.(opIndex); }}
+                >
                   Copy
                 </Menu.Item>
-                <Menu.Item leftSection={<PasteIcon />} onClick={() => onPasteBelow?.(opIndex)}>
+                <Menu.Item
+                  leftSection={<PasteIcon />}
+                  disabled={!clipboardHasUnitOp}
+                  onClick={(e) => { e.stopPropagation(); onPasteBelow?.(opIndex); }}
+                >
                   Paste below
                 </Menu.Item>
                 <Menu.Divider />
-                <Menu.Item color="red" leftSection={<TrashIcon />} onClick={() => setConfirmOpen(true)}>
+                <Menu.Item
+                  color="red"
+                  leftSection={<TrashIcon />}
+                  onClick={(e) => { e.stopPropagation(); setConfirmOpen(true); }}
+                >
                   Delete...
                 </Menu.Item>
               </Menu.Dropdown>
@@ -486,7 +512,7 @@ function SortableUnitOp({ op, opIndex, onUpdateSection, onUpdateAlias, onUpdateD
   );
 }
 
-export function UnitOpAccordion({ unitOperations, onChange, onSectionFocus, onCursorActivity, onCreateSample, onSearchProducts, productSearchResult, availableTypes, sampleTypeColors, sampleDefs, onAddCustomType, docBaseUri, getCursorForSection, onAttachFile, openedOpIds, onOpenedChange, onCopy, onPasteBelow }: UnitOpAccordionProps) {
+export function UnitOpAccordion({ unitOperations, onChange, onSectionFocus, onCursorActivity, onCreateSample, onSearchProducts, productSearchResult, availableTypes, sampleTypeColors, sampleDefs, onAddCustomType, docBaseUri, getCursorForSection, onAttachFile, openedOpIds, onOpenedChange, onCopy, onPasteBelow, clipboardHasUnitOp, onMenuOpen }: UnitOpAccordionProps) {
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 8 } }),
     useSensor(KeyboardSensor)
@@ -541,7 +567,12 @@ export function UnitOpAccordion({ unitOperations, onChange, onSectionFocus, onCu
             No unit operations yet. Add one from the TreeView.
           </Text>
           {onPasteBelow && (
-            <Button size="xs" variant="light" onClick={() => onPasteBelow(-1)}>
+            <Button
+              size="xs"
+              variant="light"
+              disabled={!clipboardHasUnitOp}
+              onClick={() => onPasteBelow(-1)}
+            >
               Paste Unit Operation
             </Button>
           )}
@@ -589,6 +620,8 @@ export function UnitOpAccordion({ unitOperations, onChange, onSectionFocus, onCu
               onCopy={onCopy}
               onPasteBelow={onPasteBelow}
               onDelete={deleteOp}
+              clipboardHasUnitOp={clipboardHasUnitOp}
+              onMenuOpen={onMenuOpen}
             />
           ))}
         </Accordion>

@@ -92,6 +92,7 @@ describe('UnitOpAccordion + actions menu', () => {
         onChange={() => {}}
         onCopy={() => {}}
         onPasteBelow={onPasteBelow}
+        clipboardHasUnitOp
       />
     );
     const items = await openActionsMenu(container, 0);
@@ -157,6 +158,7 @@ describe('UnitOpAccordion + actions menu', () => {
         onChange={() => {}}
         onCopy={() => {}}
         onPasteBelow={onPasteBelow}
+        clipboardHasUnitOp
       />
     );
 
@@ -165,6 +167,124 @@ describe('UnitOpAccordion + actions menu', () => {
     expect(btn!.textContent).toMatch(/Paste Unit Operation/);
 
     act(() => { fireEvent.click(btn!); });
+    expect(onPasteBelow).toHaveBeenCalledWith(-1);
+  });
+
+  it('clicking Copy does not toggle the Accordion (menu-item stopPropagation)', async () => {
+    const onCopy = vi.fn();
+    const { container } = renderWithMantine(
+      <UnitOpAccordion
+        unitOperations={[makeOp()]}
+        onChange={() => {}}
+        onCopy={onCopy}
+        onPasteBelow={() => {}}
+        clipboardHasUnitOp
+      />
+    );
+
+    const control = container.querySelector('button.mantine-Accordion-control') as HTMLButtonElement;
+    const expandedBefore = control.getAttribute('aria-expanded');
+
+    const items = await openActionsMenu(container);
+    act(() => { fireEvent.click(findMenuItem(items, 'Copy')); });
+
+    expect(control.getAttribute('aria-expanded')).toBe(expandedBefore);
+    expect(onCopy).toHaveBeenCalledWith(0);
+  });
+
+  it('disables Paste below when clipboard does not hold a Unit Operation', async () => {
+    const onPasteBelow = vi.fn();
+    const { container } = renderWithMantine(
+      <UnitOpAccordion
+        unitOperations={[makeOp()]}
+        onChange={() => {}}
+        onCopy={() => {}}
+        onPasteBelow={onPasteBelow}
+      />
+    );
+
+    const items = await openActionsMenu(container, 0);
+    const pasteItem = findMenuItem(items, 'Paste below');
+    // Mantine marks disabled menu items via aria-disabled / data-disabled.
+    expect(
+      pasteItem.getAttribute('aria-disabled') === 'true'
+      || pasteItem.hasAttribute('data-disabled'),
+    ).toBe(true);
+
+    act(() => { fireEvent.click(pasteItem); });
+    expect(onPasteBelow).not.toHaveBeenCalled();
+  });
+
+  it('enables Paste below when clipboardHasUnitOp is true', async () => {
+    const onPasteBelow = vi.fn();
+    const { container } = renderWithMantine(
+      <UnitOpAccordion
+        unitOperations={[makeOp()]}
+        onChange={() => {}}
+        onCopy={() => {}}
+        onPasteBelow={onPasteBelow}
+        clipboardHasUnitOp
+      />
+    );
+
+    const items = await openActionsMenu(container, 0);
+    const pasteItem = findMenuItem(items, 'Paste below');
+    expect(pasteItem.getAttribute('aria-disabled')).not.toBe('true');
+    expect(pasteItem.hasAttribute('data-disabled')).toBe(false);
+
+    act(() => { fireEvent.click(pasteItem); });
+    expect(onPasteBelow).toHaveBeenCalledWith(0);
+  });
+
+  it('invokes onMenuOpen exactly once when the actions menu opens', async () => {
+    const onMenuOpen = vi.fn();
+    const { container } = renderWithMantine(
+      <UnitOpAccordion
+        unitOperations={[makeOp()]}
+        onChange={() => {}}
+        onCopy={() => {}}
+        onPasteBelow={() => {}}
+        onMenuOpen={onMenuOpen}
+      />
+    );
+
+    await openActionsMenu(container, 0);
+    expect(onMenuOpen).toHaveBeenCalledTimes(1);
+  });
+
+  it('disables the empty-state Paste button until clipboardHasUnitOp is true', () => {
+    const onPasteBelow = vi.fn();
+    const { container, rerender } = renderWithMantine(
+      <UnitOpAccordion
+        unitOperations={[]}
+        onChange={() => {}}
+        onCopy={() => {}}
+        onPasteBelow={onPasteBelow}
+      />
+    );
+
+    const btnDisabled = container.querySelector('button') as HTMLButtonElement;
+    expect(btnDisabled.textContent).toMatch(/Paste Unit Operation/);
+    expect(btnDisabled.disabled).toBe(true);
+
+    act(() => { fireEvent.click(btnDisabled); });
+    expect(onPasteBelow).not.toHaveBeenCalled();
+
+    rerender(
+      <MantineProvider>
+        <UnitOpAccordion
+          unitOperations={[]}
+          onChange={() => {}}
+          onCopy={() => {}}
+          onPasteBelow={onPasteBelow}
+          clipboardHasUnitOp
+        />
+      </MantineProvider>
+    );
+
+    const btnEnabled = container.querySelector('button') as HTMLButtonElement;
+    expect(btnEnabled.disabled).toBe(false);
+    act(() => { fireEvent.click(btnEnabled); });
     expect(onPasteBelow).toHaveBeenCalledWith(-1);
   });
 });
