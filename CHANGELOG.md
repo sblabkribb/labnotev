@@ -5,6 +5,11 @@
 형식은 [Keep a Changelog](https://keepachangelog.com/ko/1.1.0/)를 기반으로 하며,
 이 프로젝트는 [유의적 버전 관리](https://semver.org/lang/ko/)를 따릅니다.
 
+## [0.54.10] - 2026-05-16
+
+### Added
+- **Section Editor의 각 Unit Operation 패널 끝에 "Collapse" 아이콘 추가**: 펼친 UnitOp의 본문이 길어 마지막 섹션에서 작업을 마쳤을 때 헤더의 chevron까지 위로 다시 스크롤하지 않아도 되도록, panel 우측 하단에 작은 chevron-up `ActionIcon`(aria-label `Collapse unit operation`, Tooltip `Collapse`)을 배치. 클릭 시 controlled 상태의 `openedOpIds`에서 해당 op.id가 제거되어 Accordion이 닫히고, 두 번의 `requestAnimationFrame`으로 Mantine collapse transition이 안정화된 다음 frame에서 해당 UnitOp wrapper로 `scrollIntoView({ block: 'start', behavior: 'smooth' })`를 호출하여 헤더가 viewport 최상단에 부드럽게 도착함 ([webview-section/src/components/UnitOpAccordion.tsx](webview-section/src/components/UnitOpAccordion.tsx))
+
 ## [0.54.9] - 2026-05-16
 
 ### Changed

@@ -292,6 +292,14 @@ function TrashIcon() {
   );
 }
 
+function ChevronUpIcon() {
+  return (
+    <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" strokeLinejoin="round">
+      <polyline points="3,10 8,5 13,10" />
+    </svg>
+  );
+}
+
 interface SortableUnitOpProps {
   op: UnitOperationBlock;
   opIndex: number;
@@ -313,13 +321,16 @@ interface SortableUnitOpProps {
   onCopy?: (opIndex: number) => void;
   onPasteBelow?: (opIndex: number) => void;
   onDelete: (opIndex: number) => void;
+  /** Collapse this UnitOp (only effective in controlled mode). */
+  onCollapse?: (opIndex: number) => void;
   clipboardHasUnitOp?: boolean;
   onMenuOpen?: () => void;
 }
 
-function SortableUnitOp({ op, opIndex, onUpdateSection, onUpdateAlias, onUpdateDescription, onSectionFocus, onCursorActivity, onCreateSample, onSearchProducts, productSearchResult, availableTypes, sampleTypeColors, sampleDefs, onAddCustomType, docBaseUri, getCursorForSection, onAttachFile, onCopy, onPasteBelow, onDelete, clipboardHasUnitOp, onMenuOpen }: SortableUnitOpProps) {
+function SortableUnitOp({ op, opIndex, onUpdateSection, onUpdateAlias, onUpdateDescription, onSectionFocus, onCursorActivity, onCreateSample, onSearchProducts, productSearchResult, availableTypes, sampleTypeColors, sampleDefs, onAddCustomType, docBaseUri, getCursorForSection, onAttachFile, onCopy, onPasteBelow, onDelete, onCollapse, clipboardHasUnitOp, onMenuOpen }: SortableUnitOpProps) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: op.id });
   const [confirmOpen, setConfirmOpen] = useState(false);
+  const wrapperRef = useRef<HTMLDivElement | null>(null);
 
   const style = {
     transform: CSS.Transform.toString(transform),
@@ -330,7 +341,10 @@ function SortableUnitOp({ op, opIndex, onUpdateSection, onUpdateAlias, onUpdateD
   const opLabel = op.alias ? `[${op.opId} ${op.opName}] ${op.alias}` : `[${op.opId} ${op.opName}]`;
 
   return (
-    <div ref={setNodeRef} style={style}>
+    <div
+      ref={(el) => { setNodeRef(el); wrapperRef.current = el; }}
+      style={style}
+    >
       <Accordion.Item value={op.id}>
         <Accordion.Control>
           <Group gap="sm" wrap="nowrap">
@@ -486,6 +500,26 @@ function SortableUnitOp({ op, opIndex, onUpdateSection, onUpdateAlias, onUpdateD
                 />
               );
             })}
+            <Group justify="flex-end" mt="xs">
+              <Tooltip label="Collapse" position="top" withArrow>
+                <ActionIcon
+                  size="sm"
+                  variant="subtle"
+                  color="gray"
+                  aria-label="Collapse unit operation"
+                  onClick={() => {
+                    onCollapse?.(opIndex);
+                    requestAnimationFrame(() =>
+                      requestAnimationFrame(() =>
+                        wrapperRef.current?.scrollIntoView({ block: 'start', behavior: 'smooth' })
+                      )
+                    );
+                  }}
+                >
+                  <ChevronUpIcon />
+                </ActionIcon>
+              </Tooltip>
+            </Group>
           </Stack>
         </Accordion.Panel>
       </Accordion.Item>
@@ -595,6 +629,16 @@ export function UnitOpAccordion({ unitOperations, onChange, onSectionFocus, onCu
   // target UnitOp from "Go to definition".
   const controlled = openedOpIds !== undefined;
 
+  // Footer "Collapse" button: in controlled mode, drop this op.id from the
+  // opened list so the Accordion closes. Uncontrolled callers fall through
+  // (the panel's footer icon becomes a no-op for them).
+  const handleCollapse = (opIndex: number) => {
+    if (!controlled) return;
+    const id = unitOperations[opIndex]?.id;
+    if (!id) return;
+    onOpenedChange?.((openedOpIds ?? []).filter((v) => v !== id));
+  };
+
   return (
     <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
       <SortableContext items={unitOperations.map(op => op.id)} strategy={verticalListSortingStrategy}>
@@ -628,6 +672,7 @@ export function UnitOpAccordion({ unitOperations, onChange, onSectionFocus, onCu
               onCopy={onCopy}
               onPasteBelow={onPasteBelow}
               onDelete={deleteOp}
+              onCollapse={handleCollapse}
               clipboardHasUnitOp={clipboardHasUnitOp}
               onMenuOpen={onMenuOpen}
             />

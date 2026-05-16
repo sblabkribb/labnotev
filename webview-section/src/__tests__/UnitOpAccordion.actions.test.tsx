@@ -288,3 +288,69 @@ describe('UnitOpAccordion + actions menu', () => {
     expect(onPasteBelow).toHaveBeenCalledWith(-1);
   });
 });
+
+describe('UnitOpAccordion + footer collapse icon', () => {
+  // jsdom doesn't implement scrollIntoView. We install a fresh mock per test
+  // so the call-argument assertion below is isolated from other tests in the
+  // file (which don't touch scrollIntoView).
+  let scrollSpy: ReturnType<typeof vi.fn>;
+  beforeEach(() => {
+    scrollSpy = vi.fn();
+    Element.prototype.scrollIntoView = scrollSpy as unknown as typeof Element.prototype.scrollIntoView;
+  });
+
+  it('renders a Collapse icon inside the expanded panel', () => {
+    const { container } = renderWithMantine(
+      <UnitOpAccordion
+        unitOperations={[makeOp()]}
+        onChange={() => {}}
+        openedOpIds={['op-1']}
+        onOpenedChange={() => {}}
+      />
+    );
+
+    const collapseBtns = container.querySelectorAll('button[aria-label="Collapse unit operation"]');
+    expect(collapseBtns.length).toBe(1);
+  });
+
+  it('removes the op.id from openedOpIds when the Collapse icon is clicked', () => {
+    const onOpenedChange = vi.fn();
+    const { container } = renderWithMantine(
+      <UnitOpAccordion
+        unitOperations={[makeOp(), makeOp({ id: 'op-2', opId: 'UHW020', opName: 'Other' })]}
+        onChange={() => {}}
+        openedOpIds={['op-1', 'op-2']}
+        onOpenedChange={onOpenedChange}
+      />
+    );
+
+    const collapseBtns = container.querySelectorAll('button[aria-label="Collapse unit operation"]');
+    expect(collapseBtns.length).toBe(2);
+    act(() => { fireEvent.click(collapseBtns[0] as HTMLButtonElement); });
+
+    expect(onOpenedChange).toHaveBeenCalledTimes(1);
+    expect(onOpenedChange).toHaveBeenCalledWith(['op-2']);
+  });
+
+  it('scrolls the UnitOp wrapper into view with smooth behaviour after collapsing', async () => {
+    const { container } = renderWithMantine(
+      <UnitOpAccordion
+        unitOperations={[makeOp()]}
+        onChange={() => {}}
+        openedOpIds={['op-1']}
+        onOpenedChange={() => {}}
+      />
+    );
+
+    const collapseBtn = container.querySelector('button[aria-label="Collapse unit operation"]') as HTMLButtonElement;
+    act(() => { fireEvent.click(collapseBtn); });
+
+    // Two requestAnimationFrame hops are used inside the click handler so the
+    // scroll runs after Mantine has settled the Accordion height; wait for
+    // the spy to flush before asserting the arguments.
+    await waitFor(() => {
+      if (scrollSpy.mock.calls.length === 0) throw new Error('scrollIntoView not called yet');
+    });
+    expect(scrollSpy).toHaveBeenCalledWith({ block: 'start', behavior: 'smooth' });
+  });
+});
