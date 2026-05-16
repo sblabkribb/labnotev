@@ -495,6 +495,74 @@ export class SectionEditorProvider implements vscode.CustomTextEditorProvider {
           await openAttachmentFile(vscode.Uri.file(absPath));
           break;
         }
+
+        case 'copyUnitOp': {
+          const payload = message.data?.payload;
+          if (typeof payload !== 'string' || payload.length === 0) break;
+          await vscode.env.clipboard.writeText(payload);
+          vscode.window.setStatusBarMessage(
+            vscode.l10n.t('Unit operation copied to clipboard'),
+            2000,
+          );
+          break;
+        }
+
+        case 'requestPasteUnitOp': {
+          const rawAfterIndex = (message.data as { afterOpIndex?: unknown } | undefined)?.afterOpIndex;
+          const afterOpIndex = typeof rawAfterIndex === 'number' && Number.isFinite(rawAfterIndex)
+            ? rawAfterIndex
+            : -1;
+          let text: string;
+          try {
+            text = await vscode.env.clipboard.readText();
+          } catch {
+            vscode.window.showInformationMessage(
+              vscode.l10n.t('Clipboard does not contain a Unit Operation.'),
+            );
+            break;
+          }
+          // Validate the JSON envelope. Reject anything that isn't a labnotev
+          // unit-operation payload so plain text on the clipboard doesn't
+          // accidentally splice malformed data into the workflow.
+          let parsed: unknown;
+          try {
+            parsed = JSON.parse(text);
+          } catch {
+            vscode.window.showInformationMessage(
+              vscode.l10n.t('Clipboard does not contain a Unit Operation.'),
+            );
+            break;
+          }
+          const envelope = parsed as { kind?: unknown; version?: unknown; data?: unknown } | null;
+          if (
+            !envelope || typeof envelope !== 'object'
+            || envelope.kind !== 'labnotev/unit-operation'
+            || envelope.version !== 1
+            || !envelope.data || typeof envelope.data !== 'object'
+          ) {
+            vscode.window.showInformationMessage(
+              vscode.l10n.t('Clipboard does not contain a Unit Operation.'),
+            );
+            break;
+          }
+          const data = envelope.data as Partial<UnitOperationBlock> & { sections?: unknown };
+          if (
+            typeof data.opId !== 'string'
+            || typeof data.opName !== 'string'
+            || (data.opType !== 'hw' && data.opType !== 'sw')
+            || !Array.isArray(data.sections)
+          ) {
+            vscode.window.showInformationMessage(
+              vscode.l10n.t('Clipboard does not contain a Unit Operation.'),
+            );
+            break;
+          }
+          webviewPanel.webview.postMessage({
+            type: 'unitOpPasted',
+            data: { afterOpIndex, unitOp: data as UnitOperationBlock },
+          });
+          break;
+        }
       }
     });
 

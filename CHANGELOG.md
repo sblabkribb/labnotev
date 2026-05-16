@@ -5,7 +5,17 @@
 형식은 [Keep a Changelog](https://keepachangelog.com/ko/1.1.0/)를 기반으로 하며,
 이 프로젝트는 [유의적 버전 관리](https://semver.org/lang/ko/)를 따릅니다.
 
-## [0.54.5] - 2026-05-16
+## [0.54.6] - 2026-05-16
+
+### Added
+- **이슈 #23 — Section Editor 워크플로우에서 Unit Operation 단위 Copy / Paste below / Delete**: UnitOp 헤더 우측의 케밥(More) 아이콘을 누르면 펼쳐지는 Mantine `<Menu>`에서 세 액션을 일괄 제공. Copy는 op 데이터를 `{ kind: 'labnotev/unit-operation', version: 1, data: {...} }` JSON envelope로 직렬화해 `vscode.env.clipboard.writeText`로 시스템 클립보드에 기록하므로 다른 워크플로우 파일을 열어도 Paste below가 동작(cross-workflow). Paste below는 익스텐션이 클립보드 envelope를 검증한 뒤 `unitOpPasted` 메시지로 op을 회신해 호출 위치 바로 아래(`afterOpIndex + 1`)에 새 React 키(`unitop-paste-<ts>-<rand>`)를 부여해 삽입하고 해당 op을 자동으로 펼침. 빈 워크플로우에서는 안내 영역에 "Paste Unit Operation" 버튼이 표시되어 `afterOpIndex = -1`로 맨 앞 삽입. Delete...는 확인 Mantine `<Modal>`을 거쳐 실제 배열에서 제거하며, 같은 변경 경로에서 `openedOpIds`와 `activeSectionRef`의 stale 참조를 정리(삭제된 op은 제거, 인덱스가 밀린 op은 새 위치로 재정렬)
+- **새 메시지 타입**: webview→extension `copyUnitOp` / `requestPasteUnitOp`, extension→webview `unitOpPasted` ([webview-section/src/types.ts](webview-section/src/types.ts), [src/sectionEditorProvider.ts](src/sectionEditorProvider.ts))
+- **클립보드 envelope 검증 실패 시 안내 토스트**: `kind`/`version`/`opId`/`opName`/`opType`/`sections` 중 어느 하나라도 어긋나면 익스텐션이 "Clipboard does not contain a Unit Operation." 정보 메시지를 띄우고 webview 상태는 그대로 유지(silent noop)
+
+### Changed
+- **Section Editor 비-텍스트 영역의 기본 우클릭 메뉴 억제**: VS Code webview 기본 contextmenu(cut/copy/paste)가 텍스트 영역 밖에서는 동작하지 않아 혼란을 주던 문제 해소. `document` 레벨 `contextmenu` 핸들러가 `textarea`/`input`/`contentEditable` 외 영역에서만 `preventDefault`를 호출하므로, 텍스트 편집 위치의 네이티브 cut/copy/paste는 그대로 보존됨
+
+
 
 ### Fixed
 - **이슈 #21 — Section Editor 텍스트에리어에서 내용이 길어진 뒤 키 입력마다 화면이 위로 점프**: `HighlightedTextarea`의 autosize 로직이 매 키 입력마다 `style.height = 'auto'`로 textarea를 일시적으로 `min-height`까지 축소시키면서, 큰 폭(예: 50줄 ≈ 800px → 97px)의 레이아웃 변화가 outer 스크롤러를 위로 끌어올리는 부수효과를 발생시키던 문제 수정. 새 `resizeToContent(ta)` 헬퍼가 `style.height` 변경 직전 `document.scrollingElement`(또는 `documentElement`)의 `scrollTop`을 저장하고, 변경 직후 동기적으로 복원하여 페이지 스크롤 점프를 차단. `value` 변경 useEffect와 `ResizeObserver` 콜백 모두 동일 헬퍼로 일원화

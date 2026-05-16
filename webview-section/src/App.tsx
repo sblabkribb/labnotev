@@ -80,6 +80,23 @@ export default function App() {
     if (insertWarningTimerRef.current) clearTimeout(insertWarningTimerRef.current);
   }, []);
 
+  // Suppress the default browser context menu outside text-editing surfaces.
+  // VS Code webviews show a generic cut/copy/paste menu that only works inside
+  // textareas/inputs/contentEditable, so exposing it on accordion headers and
+  // background areas confuses users. We keep the native menu intact wherever
+  // text editing is actually possible.
+  useEffect(() => {
+    const handler = (e: MouseEvent) => {
+      const t = e.target as HTMLElement | null;
+      if (!t) return;
+      const tag = t.tagName?.toLowerCase();
+      if (tag === 'textarea' || tag === 'input' || t.isContentEditable) return;
+      e.preventDefault();
+    };
+    document.addEventListener('contextmenu', handler);
+    return () => document.removeEventListener('contextmenu', handler);
+  }, []);
+
   const toggleColorScheme = useCallback(() => {
     setColorScheme(prev => {
       const next = prev === 'light' ? 'dark' : 'light';
@@ -158,6 +175,23 @@ export default function App() {
           } : prev);
           markDirty();
           break;
+
+        case 'unitOpPasted': {
+          const { afterOpIndex, unitOp } = message.data;
+          // Generate a fresh React key so a paste-twice-in-a-row doesn't
+          // collide with the source op's parser-assigned `unitop-N` id.
+          const newId = `unitop-paste-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+          setWorkflow(prev => {
+            if (!prev) return prev;
+            const ops = [...prev.unitOperations];
+            const insertAt = Math.max(0, Math.min(afterOpIndex + 1, ops.length));
+            ops.splice(insertAt, 0, { ...unitOp, id: newId });
+            return { ...prev, unitOperations: ops };
+          });
+          setOpenedOpIds(prev => (prev.includes(newId) ? prev : [...prev, newId]));
+          markDirty();
+          break;
+        }
 
         case 'workflowAdded':
           setLabNote(prev => {
@@ -644,6 +678,26 @@ export default function App() {
     []
   );
 
+  const handleCopyUnitOp = useCallback((opIndex: number) => {
+    const op = workflowRef.current?.unitOperations[opIndex];
+    if (!op) return;
+    // The React-only `id` is regenerated on every load, so it must not travel
+    // through the clipboard — otherwise pasting twice in a row would create
+    // two ops with the same Accordion/DnD key. The extension serialises only
+    // the data fields the parser produces.
+    const { id: _drop, ...rest } = op;
+    const payload = JSON.stringify({
+      kind: 'labnotev/unit-operation',
+      version: 1,
+      data: rest,
+    });
+    postMessage({ type: 'copyUnitOp', data: { payload } });
+  }, []);
+
+  const handleRequestPaste = useCallback((afterOpIndex: number) => {
+    postMessage({ type: 'requestPasteUnitOp', data: { afterOpIndex } });
+  }, []);
+
   if (!mode) {
     return (
       <MantineProvider forceColorScheme={colorScheme}>
@@ -872,7 +926,30 @@ export default function App() {
               <UnitOpAccordion
                 unitOperations={workflow.unitOperations}
                 onChange={(ops) => {
+                  // Detect removed unit ops so we can prune stale references
+                  // in openedOpIds and activeSectionRef. Non-delete edits
+                  // (alias, sections, DnD) preserve op.id, so hasRemoval is
+                  // false and behaviour is unchanged.
+                  const newIds = new Set(ops.map(o => o.id));
+                  const hasRemoval = workflow.unitOperations.some(o => !newIds.has(o.id));
                   setWorkflow({ ...workflow, unitOperations: ops });
+                  if (hasRemoval) {
+                    setOpenedOpIds(prev => prev.filter(id => newIds.has(id)));
+                    const a = activeSectionRef.current;
+                    if (a?.area === 'unitOp') {
+                      // activeSectionRef carries the user-facing `opId` (not
+                      // the React key); look it up in the new array to either
+                      // re-anchor the index or drop the stale ref entirely.
+                      const newIdx = a.opId
+                        ? ops.findIndex(o => o.opId === a.opId)
+                        : -1;
+                      if (newIdx < 0) {
+                        activeSectionRef.current = null;
+                      } else if (newIdx !== a.opIndex) {
+                        activeSectionRef.current = { ...a, opIndex: newIdx };
+                      }
+                    }
+                  }
                   markDirty();
                 }}
                 onSectionFocus={(opIndex, secIndex, opId, secHeading) => {
@@ -891,6 +968,8 @@ export default function App() {
                 onAttachFile={(opI, secI) => handleAttachFile({ area: 'unitOp', opIndex: opI, secIndex: secI })}
                 openedOpIds={openedOpIds}
                 onOpenedChange={setOpenedOpIds}
+                onCopy={handleCopyUnitOp}
+                onPasteBelow={handleRequestPaste}
               />
             </Paper>
 

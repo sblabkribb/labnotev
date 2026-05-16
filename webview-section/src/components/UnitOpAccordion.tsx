@@ -1,5 +1,5 @@
 import { useRef, useState } from 'react';
-import { Accordion, Badge, Group, Text, Stack, TextInput, Textarea, Title, Paper, ActionIcon, Tooltip } from '@mantine/core';
+import { Accordion, Badge, Group, Text, Stack, TextInput, Textarea, Title, Paper, ActionIcon, Tooltip, Menu, Modal, Button } from '@mantine/core';
 import { DndContext, closestCenter, KeyboardSensor, PointerSensor, useSensor, useSensors, type DragEndEvent } from '@dnd-kit/core';
 import { SortableContext, verticalListSortingStrategy, useSortable, arrayMove } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
@@ -49,6 +49,10 @@ interface UnitOpAccordionProps {
    * state so existing callers keep working unchanged. */
   openedOpIds?: string[];
   onOpenedChange?: (ids: string[]) => void;
+  /** Copy the UnitOp at `opIndex` to the system clipboard. */
+  onCopy?: (opIndex: number) => void;
+  /** Request a Paste below the UnitOp at `opIndex`. Use `-1` to paste at the start. */
+  onPasteBelow?: (opIndex: number) => void;
 }
 
 function GripIcon() {
@@ -234,6 +238,45 @@ function AlignIcon() {
   );
 }
 
+function MoreIcon() {
+  return (
+    <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
+      <circle cx="8" cy="3" r="1.5" />
+      <circle cx="8" cy="8" r="1.5" />
+      <circle cx="8" cy="13" r="1.5" />
+    </svg>
+  );
+}
+
+function CopyIcon() {
+  return (
+    <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" strokeLinejoin="round">
+      <rect x="5" y="5" width="9" height="9" rx="1" />
+      <path d="M2 11V3a1 1 0 011-1h8" />
+    </svg>
+  );
+}
+
+function PasteIcon() {
+  return (
+    <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M5 2.5h6M5 2.5a1 1 0 00-1 1V4H3a1 1 0 00-1 1v9a1 1 0 001 1h10a1 1 0 001-1V5a1 1 0 00-1-1h-1v-.5a1 1 0 00-1-1" />
+      <rect x="5" y="1.5" width="6" height="2" rx="0.5" />
+    </svg>
+  );
+}
+
+function TrashIcon() {
+  return (
+    <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M3 4h10" />
+      <path d="M5.5 4V3a1 1 0 011-1h3a1 1 0 011 1v1" />
+      <path d="M4.5 4l.6 9a1 1 0 001 .9h3.8a1 1 0 001-.9l.6-9" />
+      <path d="M7 7v4M9 7v4" />
+    </svg>
+  );
+}
+
 interface SortableUnitOpProps {
   op: UnitOperationBlock;
   opIndex: number;
@@ -252,16 +295,22 @@ interface SortableUnitOpProps {
   docBaseUri?: string;
   getCursorForSection?: (opIndex: number, secIndex: number) => { pos: number; tick: number; scroll?: 'none' | 'nearest' | 'center' } | null | undefined;
   onAttachFile?: (opIndex: number, secIndex: number) => void;
+  onCopy?: (opIndex: number) => void;
+  onPasteBelow?: (opIndex: number) => void;
+  onDelete: (opIndex: number) => void;
 }
 
-function SortableUnitOp({ op, opIndex, onUpdateSection, onUpdateAlias, onUpdateDescription, onSectionFocus, onCursorActivity, onCreateSample, onSearchProducts, productSearchResult, availableTypes, sampleTypeColors, sampleDefs, onAddCustomType, docBaseUri, getCursorForSection, onAttachFile }: SortableUnitOpProps) {
+function SortableUnitOp({ op, opIndex, onUpdateSection, onUpdateAlias, onUpdateDescription, onSectionFocus, onCursorActivity, onCreateSample, onSearchProducts, productSearchResult, availableTypes, sampleTypeColors, sampleDefs, onAddCustomType, docBaseUri, getCursorForSection, onAttachFile, onCopy, onPasteBelow, onDelete }: SortableUnitOpProps) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: op.id });
+  const [confirmOpen, setConfirmOpen] = useState(false);
 
   const style = {
     transform: CSS.Transform.toString(transform),
     transition,
     opacity: isDragging ? 0.5 : 1,
   };
+
+  const opLabel = op.alias ? `[${op.opId} ${op.opName}] ${op.alias}` : `[${op.opId} ${op.opName}]`;
 
   return (
     <div ref={setNodeRef} style={style}>
@@ -297,6 +346,31 @@ function SortableUnitOp({ op, opIndex, onUpdateSection, onUpdateAlias, onUpdateD
               styles={{ input: { fontSize: '13px', color: op.alias ? 'var(--mantine-color-text)' : 'var(--mantine-color-dimmed)' } }}
               style={{ flex: 1 }}
             />
+            <Menu position="bottom-end" shadow="md" withinPortal closeOnItemClick>
+              <Menu.Target>
+                <ActionIcon
+                  size="sm"
+                  variant="subtle"
+                  color="gray"
+                  aria-label="Unit Operation actions"
+                  onClick={(e) => e.stopPropagation()}
+                >
+                  <MoreIcon />
+                </ActionIcon>
+              </Menu.Target>
+              <Menu.Dropdown>
+                <Menu.Item leftSection={<CopyIcon />} onClick={() => onCopy?.(opIndex)}>
+                  Copy
+                </Menu.Item>
+                <Menu.Item leftSection={<PasteIcon />} onClick={() => onPasteBelow?.(opIndex)}>
+                  Paste below
+                </Menu.Item>
+                <Menu.Divider />
+                <Menu.Item color="red" leftSection={<TrashIcon />} onClick={() => setConfirmOpen(true)}>
+                  Delete...
+                </Menu.Item>
+              </Menu.Dropdown>
+            </Menu>
           </Group>
         </Accordion.Control>
         <Accordion.Panel>
@@ -381,11 +455,38 @@ function SortableUnitOp({ op, opIndex, onUpdateSection, onUpdateAlias, onUpdateD
           </Stack>
         </Accordion.Panel>
       </Accordion.Item>
+      <Modal
+        opened={confirmOpen}
+        onClose={() => setConfirmOpen(false)}
+        title="Delete Unit Operation?"
+        size="sm"
+        centered
+      >
+        <Stack gap="sm">
+          <Text size="sm">{opLabel}</Text>
+          <Text size="xs" c="dimmed">This action cannot be undone.</Text>
+          <Group justify="flex-end" gap="xs">
+            <Button variant="default" size="xs" onClick={() => setConfirmOpen(false)}>
+              Cancel
+            </Button>
+            <Button
+              color="red"
+              size="xs"
+              onClick={() => {
+                onDelete(opIndex);
+                setConfirmOpen(false);
+              }}
+            >
+              Delete
+            </Button>
+          </Group>
+        </Stack>
+      </Modal>
     </div>
   );
 }
 
-export function UnitOpAccordion({ unitOperations, onChange, onSectionFocus, onCursorActivity, onCreateSample, onSearchProducts, productSearchResult, availableTypes, sampleTypeColors, sampleDefs, onAddCustomType, docBaseUri, getCursorForSection, onAttachFile, openedOpIds, onOpenedChange }: UnitOpAccordionProps) {
+export function UnitOpAccordion({ unitOperations, onChange, onSectionFocus, onCursorActivity, onCreateSample, onSearchProducts, productSearchResult, availableTypes, sampleTypeColors, sampleDefs, onAddCustomType, docBaseUri, getCursorForSection, onAttachFile, openedOpIds, onOpenedChange, onCopy, onPasteBelow }: UnitOpAccordionProps) {
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 8 } }),
     useSensor(KeyboardSensor)
@@ -428,12 +529,23 @@ export function UnitOpAccordion({ unitOperations, onChange, onSectionFocus, onCu
     onChange(arrayMove(unitOperations, oldIndex, newIndex));
   };
 
+  const deleteOp = (opIndex: number) => {
+    onChange(unitOperations.filter((_, oi) => oi !== opIndex));
+  };
+
   if (unitOperations.length === 0) {
     return (
       <Paper p="sm" withBorder>
-        <Text c="dimmed" size="sm">
-          No unit operations yet. Add one from the TreeView.
-        </Text>
+        <Group justify="space-between" wrap="nowrap">
+          <Text c="dimmed" size="sm">
+            No unit operations yet. Add one from the TreeView.
+          </Text>
+          {onPasteBelow && (
+            <Button size="xs" variant="light" onClick={() => onPasteBelow(-1)}>
+              Paste Unit Operation
+            </Button>
+          )}
+        </Group>
       </Paper>
     );
   }
@@ -474,6 +586,9 @@ export function UnitOpAccordion({ unitOperations, onChange, onSectionFocus, onCu
               docBaseUri={docBaseUri}
               getCursorForSection={getCursorForSection}
               onAttachFile={onAttachFile}
+              onCopy={onCopy}
+              onPasteBelow={onPasteBelow}
+              onDelete={deleteOp}
             />
           ))}
         </Accordion>
