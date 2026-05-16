@@ -124,4 +124,47 @@ describe('SampleCreateModal', () => {
     const submit = getByRole('button', { name: 'Create' }) as HTMLButtonElement;
     expect(submit.disabled).toBe(true);
   });
+
+  it('disables the type Select when lockedType + defaultType are provided', () => {
+    const { getByPlaceholderText } = renderWithMantine(
+      <SampleCreateModal
+        opened
+        onClose={() => {}}
+        onSubmit={() => {}}
+        availableTypes={DEFAULT_AVAILABLE}
+        defaultType="Reagent"
+        lockedType
+      />
+    );
+
+    // Mantine Select renders an underlying input that carries the placeholder.
+    // Avoiding jest-dom matchers (toBeDisabled / toBeInTheDocument) keeps this
+    // robust against the pre-existing toBeInTheDocument flake.
+    const typeInput = getByPlaceholderText('Select type') as HTMLInputElement;
+    expect(typeInput.disabled).toBe(true);
+  });
+
+  it('submits with the locked defaultType when lockedType=true', async () => {
+    const onSubmit = vi.fn();
+    const onClose = vi.fn();
+    const { getByPlaceholderText, getByRole } = renderWithMantine(
+      <SampleCreateModal
+        opened
+        onClose={onClose}
+        onSubmit={onSubmit}
+        availableTypes={DEFAULT_AVAILABLE}
+        defaultType="Reagent"
+        lockedType
+      />
+    );
+
+    // User can only edit alias; the type Select is locked.
+    const alias = getByPlaceholderText('e.g. Sample-A') as HTMLInputElement;
+    fireEvent.change(alias, { target: { value: 'Buffer-A' } });
+    fireEvent.click(getByRole('button', { name: 'Create' }));
+
+    await waitFor(() => {
+      expect(onSubmit).toHaveBeenCalledWith('Reagent', 'Buffer-A', '');
+    });
+  });
 });

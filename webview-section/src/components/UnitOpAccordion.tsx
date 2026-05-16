@@ -11,7 +11,7 @@ import { DateTimeField } from './DateTimeField';
 import { TableInsertModal } from './TableInsertModal';
 import { SampleCreateModal } from './SampleCreateModal';
 import { useTableEditing } from '../hooks/useTableEditing';
-import { normalizeUnitOpSectionHeading, unitOpSectionAllowsSampleButton } from '../utils/unitOpSectionHeading';
+import { normalizeUnitOpSectionHeading, unitOpSectionAllowsSampleButton, getSectionTypeLock } from '../utils/unitOpSectionHeading';
 
 function parseMetaContent(content: string): Record<string, string> {
   const result: Record<string, string> = {};
@@ -190,17 +190,25 @@ function UnitOpSectionTextarea({
         onClose={() => setTableModalOpen(false)}
         onInsert={handleTableInsert}
       />
-      {showSampleButton && onCreateSample && (
-        <SampleCreateModal
-          opened={sampleModalOpen}
-          onClose={() => setSampleModalOpen(false)}
-          onSubmit={onCreateSample}
-          onSearchProducts={onSearchProducts}
-          productSearchResult={productSearchResult}
-          availableTypes={availableTypes ?? []}
-          onAddCustomType={onAddCustomType}
-        />
-      )}
+      {showSampleButton && onCreateSample && (() => {
+        // `heading` is already the normalized displayHeading from
+        // `normalizeUnitOpSectionHeading`, so the lookup directly returns the
+        // built-in type (or undefined for Input/Output → free choice).
+        const lockType = getSectionTypeLock(heading);
+        return (
+          <SampleCreateModal
+            opened={sampleModalOpen}
+            onClose={() => setSampleModalOpen(false)}
+            onSubmit={onCreateSample}
+            onSearchProducts={onSearchProducts}
+            productSearchResult={productSearchResult}
+            availableTypes={availableTypes ?? []}
+            onAddCustomType={onAddCustomType}
+            defaultType={lockType}
+            lockedType={!!lockType}
+          />
+        );
+      })()}
     </div>
   );
 }

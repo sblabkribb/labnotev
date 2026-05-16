@@ -18,13 +18,19 @@ interface SampleCreateModalProps {
   availableTypes: string[];
   onAddCustomType?: (typeName: string) => void;
   defaultType?: string;
+  /**
+   * When true, the type Select is locked to `defaultType` and the user cannot
+   * switch types or define a new one. Used by section-bound +Sample buttons
+   * (Reagent / Labware and Consumables / Equipment).
+   */
+  lockedType?: boolean;
   /** Phase B-1: disables the submit button while the extension is generating the id. */
   submitting?: boolean;
 }
 
 export function SampleCreateModal({
   opened, onClose, onSubmit, onSearchProducts, productSearchResult,
-  availableTypes,   onAddCustomType, defaultType, submitting,
+  availableTypes,   onAddCustomType, defaultType, lockedType, submitting,
 }: SampleCreateModalProps) {
   const isControlledSubmission = submitting !== undefined;
   const isSubmitting = submitting === true;
@@ -68,7 +74,9 @@ export function SampleCreateModal({
     ...(customTypes.length > 0
       ? [{ group: 'Custom types', items: customTypes.map(t => ({ value: t, label: t })) }]
       : []),
-    { group: '', items: [{ value: NEW_TYPE_VALUE, label: '+ Add new type' }] },
+    ...(lockedType
+      ? []
+      : [{ group: '', items: [{ value: NEW_TYPE_VALUE, label: '+ Add new type' }] }]),
   ];
 
   const trimmedNewType = newTypeName.trim();
@@ -135,8 +143,9 @@ export function SampleCreateModal({
             data={selectData}
             value={addingNewType ? NEW_TYPE_VALUE : selectedType}
             onChange={handleTypeChange}
-            searchable
+            searchable={!lockedType}
             allowDeselect={false}
+            disabled={lockedType}
             required
           />
 

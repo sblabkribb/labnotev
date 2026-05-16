@@ -5,6 +5,13 @@
 형식은 [Keep a Changelog](https://keepachangelog.com/ko/1.1.0/)를 기반으로 하며,
 이 프로젝트는 [유의적 버전 관리](https://semver.org/lang/ko/)를 따릅니다.
 
+## [0.54.9] - 2026-05-16
+
+### Changed
+- **Section Editor의 +Sample 버튼이 섹션 의미에 맞는 빌트인 타입으로 잠금**: Reagent 섹션은 `Reagent`, Labware and Consumables 섹션은 `Labware`, Equipment 섹션은 `Equip`로 모달의 Sample type Select가 자동 지정·잠금(disabled)되어 사용자가 다른 타입으로 바꾸거나 새 커스텀 타입을 정의할 수 없음. Input/Output 섹션은 종전대로 모든 빌트인·커스텀 타입을 자유 선택 가능. 잠금 매핑은 정규화된 heading 기준이라 기존 노트북의 `#### Consumables` 헤딩도 `Labware`로 동일하게 잠김
+- **`SampleCreateModal`에 `lockedType?: boolean` prop 추가**: true일 때 type Select에 `disabled` 적용 + `+ Add new type` 항목을 `selectData` 구성 단계에서 제외하여 잠금 우회 경로를 두 겹으로 차단. 기존 `defaultType` 동작(modal 진입 시 alias 입력으로 포커스 이동)은 그대로 활용 ([webview-section/src/components/SampleCreateModal.tsx](webview-section/src/components/SampleCreateModal.tsx))
+- **`getSectionTypeLock(heading)` 헬퍼 추가**: `webview-section/src/utils/unitOpSectionHeading.ts`에 정규화된 섹션 heading → 빌트인 타입 매핑 테이블(`'Reagent'→'Reagent'`, `'Labware and Consumables'→'Labware'`, `'Equipment'→'Equip'`)과 단일 lookup 헬퍼 도입. 자유 선택 섹션은 `undefined` 반환
+
 ## [0.54.8] - 2026-05-16
 
 ### Changed
