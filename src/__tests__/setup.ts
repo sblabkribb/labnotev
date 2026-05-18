@@ -167,6 +167,14 @@ export const mockVscode = {
     onDidSaveTextDocument: vi.fn((_listener: AnyHandler) => makeDisposable()),
     onDidChangeConfiguration: vi.fn((_listener: AnyHandler) => makeDisposable()),
     applyEdit: vi.fn((_edit: unknown) => Promise.resolve(true)),
+    createFileSystemWatcher: vi.fn((_glob: string) => ({
+      onDidChange: vi.fn((_listener: AnyHandler) => makeDisposable()),
+      onDidCreate: vi.fn((_listener: AnyHandler) => makeDisposable()),
+      onDidDelete: vi.fn((_listener: AnyHandler) => makeDisposable()),
+      dispose: vi.fn(),
+    })),
+    findFiles: vi.fn((..._args: unknown[]) => Promise.resolve([])),
+    openTextDocument: vi.fn((_uri: unknown) => Promise.resolve(undefined as unknown)),
     getConfiguration: vi.fn(() => ({
       get: vi.fn((key: string, defaultValue?: unknown) => defaultValue),
       has: vi.fn(() => false),

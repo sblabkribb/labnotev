@@ -5,6 +5,25 @@
 형식은 [Keep a Changelog](https://keepachangelog.com/ko/1.1.0/)를 기반으로 하며,
 이 프로젝트는 [유의적 버전 관리](https://semver.org/lang/ko/)를 따릅니다.
 
+## [0.55.0] - 2026-05-19
+
+### Fixed
+- **샘플 트리 ↔ 섹션 에디터 양방향 동기화 단절 해소**: (1) 트리뷰의 `edit/add/delete/moveSampleToGlobal/moveSampleToLocal` 5개 명령이 종료될 때마다 `SectionEditorProvider.broadcastSampleDefsUpdated()`를 호출해 살아있는 모든 webview에 `sampleDefsUpdated` 메시지를 발신, (2) 마크다운 문서 저장 시점(`onDidSaveTextDocument`)에도 동일 broadcast 추가, (3) `resources/labsamples/*.json`을 감시하는 `FileSystemWatcher`가 100ms 디바운스로 트리뷰 refresh + broadcast를 트리거 — 외부 도구·git pull 등으로 JSON이 바뀐 경우에도 webview의 하이라이트와 정의 호버 카드가 즉시 갱신 ([src/sectionEditorProvider.ts](src/sectionEditorProvider.ts), [src/commands/sampleCommands.ts](src/commands/sampleCommands.ts), [src/commands/utilityCommands.ts](src/commands/utilityCommands.ts), [src/extension.ts](src/extension.ts))
+- **트리뷰 `editSample`이 다른 파일에 있는 정의도 갱신**: 종전에는 활성 섹션 에디터 / 활성 plain editor 한 곳만 시도하다가 매치 실패 시 무음 폐기되던 문제 수정. 새 `resolveDefinitionDocument` 헬퍼가 (a) 활성 webview 문서 → (b) 활성 plain editor → (c) `SampleRecord.sources[0]` 후보 파일 → (d) 워크스페이스 `**/*.labnote.md` + `**/*.workflow.md` 스캔의 4단계 fallback으로 정의를 찾고, 매치된 문서가 아직 보이지 않으면 `showTextDocument({ preview: false, preserveFocus: false })`로 새 탭에 자동 표시 ([src/commands/sampleCommands.ts](src/commands/sampleCommands.ts), [src/views/SampleTreeViewProvider.ts](src/views/SampleTreeViewProvider.ts))
+- **다중 Section Editor webview broadcast**: `SectionEditorProvider`가 기존 `activeEditor`/`_lastActiveEditor` 한 쌍 외에 `_allEditors: Set<ActiveEditor>`를 통해 살아있는 모든 webview를 추적. `broadcastSampleDefsUpdated()`는 각 webview에 자기 문서 URI 기준으로 빌드한 `sampleDefs`를 push 하여 local/global 해상도를 panel별로 정확히 유지 ([src/sectionEditorProvider.ts](src/sectionEditorProvider.ts))
+
+### Performance
+- **섹션 에디터 타이핑 시 React 리렌더 범위를 변경된 unit op / section으로 축소**: 핵심 컴포넌트를 `React.memo`로 감싸고 props ref를 안정화하여, 사용자가 한 textarea에 타이핑하는 동안 다른 UnitOp / 다른 section의 textarea가 매 키 입력마다 다시 그려지던 비용을 제거. 구체적으로:
+  - `SortableUnitOp`, `UnitOpSectionTextarea`을 `React.memo` 래핑. `UnitOpSectionTextarea` props를 `(opIndex, secIndex, op)` + 평탄 콜백 형태로 재설계하여 부모가 매 render마다 새 inline arrow를 만들지 않도록 함 ([webview-section/src/components/UnitOpAccordion.tsx](webview-section/src/components/UnitOpAccordion.tsx))
+  - `HighlightedTextarea`을 `React.memo(forwardRef(...))`로 래핑, `handleSampleMouseDown` / `reportCursor`을 `useCallback`으로 안정화하여 자식 `SampleHighlighter`의 memo가 실제로 발휘되도록 함 ([webview-section/src/components/HighlightedTextarea.tsx](webview-section/src/components/HighlightedTextarea.tsx))
+  - `SampleHighlighter`을 `React.memo`로 감싸고 regex 매칭으로 빌드되는 `parts: ReactNode[]` 배열 전체를 `useMemo([text, regex, sampleTypeColors, sampleDefs, interactive, onSampleClick])`로 메모이즈 ([webview-section/src/components/SampleHighlighter.tsx](webview-section/src/components/SampleHighlighter.tsx))
+  - `UnitOpAccordion` 내부의 `updateSection`/`updateAlias`/`updateDescription`/`deleteOp`/`handleCollapse`를 `useCallback` + latest-ref 패턴으로 deps 비움으로 안정화, App.tsx의 `handleUnitOpsChange`/`handleUnitOpSectionFocus`/`getCursorForUnitOpSection`/`handleUnitOpAttachFile`/`handleQueryClipboardOnMenuOpen`/`updateCursorPos`/`getCursorForArea` 등 hot-path 콜백도 `useCallback`으로 안정화 ([webview-section/src/components/UnitOpAccordion.tsx](webview-section/src/components/UnitOpAccordion.tsx), [webview-section/src/App.tsx](webview-section/src/App.tsx))
+
+### Added
+- **`SampleTreeViewProvider.getSampleSources(scope, type, id)`**: 특정 sample의 `sources`(마크다운 basename 목록)를 외부에 노출. `resolveDefinitionDocument`의 3단계 fallback에서 활성 디렉토리 기준 후보 파일을 결정하는 데 사용 ([src/views/SampleTreeViewProvider.ts](src/views/SampleTreeViewProvider.ts))
+- **`createDebouncedLabsamplesHandler(refresh, broadcast, delay)`**: `extension.ts`에 디바운스 헬퍼 export. JSON 와처가 같은 tick에 여러 파일이 바뀌더라도 한 번의 refresh + broadcast로 합쳐 처리. 단위 테스트가 `vi.useFakeTimers`로 직접 검증 가능하도록 분리 ([src/extension.ts](src/extension.ts), [src/__tests__/sampleJsonWatcher.test.ts](src/__tests__/sampleJsonWatcher.test.ts))
+- **신규 단위 테스트 4종**: `sectionEditorProvider.broadcast.test.ts` (3건), `sampleCommands.broadcast.test.ts` (5건), `resolveDefinitionDocument.test.ts` (5건), `sampleJsonWatcher.test.ts` (3건) — 총 16건이 신규 통과. 사전 flake 9건(v0.54.10 기준선)은 그대로 유지
+
 ## [0.54.10] - 2026-05-16
 
 ### Added

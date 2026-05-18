@@ -1,4 +1,4 @@
-import { forwardRef, useEffect, useImperativeHandle, useRef, useState } from 'react';
+import { forwardRef, memo, useCallback, useEffect, useImperativeHandle, useRef, useState } from 'react';
 import { SampleHighlighter, highlightSampleIds } from './SampleHighlighter';
 import type { SampleDefMap } from '../types';
 import { getTextareaCaretRect, scrollCaretIntoView } from '../utils/caretPosition';
@@ -78,7 +78,7 @@ export interface HighlightedTextareaProps {
  *   (HoverCard). The overlay itself stays `pointer-events: none`, so clicks
  *   on non-sample regions still reach the textarea for caret positioning.
  */
-export const HighlightedTextarea = forwardRef<HTMLTextAreaElement, HighlightedTextareaProps>(
+export const HighlightedTextarea = memo(forwardRef<HTMLTextAreaElement, HighlightedTextareaProps>(
   function HighlightedTextarea(
     {
       value,
@@ -144,12 +144,14 @@ export const HighlightedTextarea = forwardRef<HTMLTextAreaElement, HighlightedTe
       return () => ta.removeEventListener('keydown', block, { capture: true } as EventListenerOptions);
     }, []);
 
-    const reportCursor = () => {
+    // Stable identity so `handleSampleMouseDown` below (which is passed to
+    // the memoized `SampleHighlighter`) doesn't recreate on every keystroke.
+    const reportCursor = useCallback(() => {
       if (isApplyingFocusRef.current) return;
       if (textareaRef.current && onCursorChange) {
         onCursorChange(textareaRef.current.selectionStart);
       }
-    };
+    }, [onCursorChange]);
 
     useEffect(() => {
       if (!requestFocusAt) return;
@@ -214,7 +216,7 @@ export const HighlightedTextarea = forwardRef<HTMLTextAreaElement, HighlightedTe
      * padding, line-height), so the character offset inside the overlay's
      * text nodes maps 1:1 to the textarea value.
      */
-    const handleSampleMouseDown = (e: React.MouseEvent<HTMLSpanElement>) => {
+    const handleSampleMouseDown = useCallback((e: React.MouseEvent<HTMLSpanElement>) => {
       const ta = textareaRef.current;
       const overlay = overlayRef.current;
       if (!ta || !overlay) return;
@@ -278,7 +280,7 @@ export const HighlightedTextarea = forwardRef<HTMLTextAreaElement, HighlightedTe
       ta.focus();
       ta.setSelectionRange(offset, offset);
       reportCursor();
-    };
+    }, [reportCursor]);
 
     const textareaStyle: React.CSSProperties = {
       fontFamily: 'monospace',
@@ -353,4 +355,4 @@ export const HighlightedTextarea = forwardRef<HTMLTextAreaElement, HighlightedTe
       </div>
     );
   }
-);
+));

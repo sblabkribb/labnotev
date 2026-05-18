@@ -618,6 +618,23 @@ export class SampleTreeViewProvider implements vscode.TreeDataProvider<SampleTre
   }
 
   /**
+   * Return the `sources` array (markdown basenames) recorded for a sample.
+   * Used by `editSample` to locate the document that contains the
+   * `@type;id;...` definition when the active webview's text does not match.
+   * Returns `undefined` if the (scope, type, id) record is absent.
+   */
+  public getSampleSources(
+    scope: 'local' | 'global',
+    sampleType: string,
+    sampleId: string
+  ): string[] | undefined {
+    const folder = scope === 'local' ? this.localFolder : this.globalFolder;
+    const samples = this.loadSamples(folder, sampleType);
+    const rec = samples[sampleId];
+    return rec ? rec.sources : undefined;
+  }
+
+  /**
    * Issue #18-1: persist a user-defined sample order for a scope+type bucket.
    *
    * The JSON file is rewritten with keys in `orderedIds` order. Any existing

@@ -18,6 +18,31 @@ import { SectionEditorProvider } from './sectionEditorProvider';
 // point at bundle size / top-level import cost rather than activation logic.
 const moduleLoadedAt = performance.now();
 
+/**
+ * Build a debounced handler for `resources/labsamples/*.json` changes.
+ *
+ * Bursty file writes (e.g. saving one markdown that touches multiple sample
+ * type JSON files) get collapsed into a single `refresh()` + `broadcast()`
+ * pair after `delay` ms of quiescence. Extracted from `activate` so unit
+ * tests can drive it with `vi.useFakeTimers` without booting the whole
+ * extension.
+ */
+export function createDebouncedLabsamplesHandler(
+  refresh: () => void,
+  broadcast: () => void,
+  delay = 100
+): () => void {
+  let pending: ReturnType<typeof setTimeout> | undefined;
+  return () => {
+    if (pending) clearTimeout(pending);
+    pending = setTimeout(() => {
+      pending = undefined;
+      refresh();
+      broadcast();
+    }, delay);
+  };
+}
+
 export async function activate(context: vscode.ExtensionContext) {
   const activateStart = performance.now();
   const logStep = (step: string) => {
@@ -168,9 +193,29 @@ export async function activate(context: vscode.ExtensionContext) {
 
   registerUtilityCommands(context, {
     sampleTreeProvider,
+    sectionEditorProvider,
   });
 
   registerCreationCommands(context, { sectionEditorProvider });
+
+  // Watch `resources/labsamples/*.json` for any change/create/delete and
+  // refresh both the TreeView and every live Section Editor. This catches
+  // edits made outside the extension (manual JSON edits, git pulls, etc.)
+  // and serves as a single idempotent rendezvous for the same flow that the
+  // tree/save handlers trigger directly. The 100ms debounce collapses bursts
+  // (e.g. multiple files written in sequence) into one refresh + broadcast.
+  const labsamplesWatcher = vscode.workspace.createFileSystemWatcher(
+    '**/resources/labsamples/*.json'
+  );
+  const onLabsamplesChange = createDebouncedLabsamplesHandler(
+    () => sampleTreeProvider.refresh(),
+    () => sectionEditorProvider.broadcastSampleDefsUpdated(),
+    100
+  );
+  labsamplesWatcher.onDidChange(onLabsamplesChange);
+  labsamplesWatcher.onDidCreate(onLabsamplesChange);
+  labsamplesWatcher.onDidDelete(onLabsamplesChange);
+  context.subscriptions.push(labsamplesWatcher);
 
   context.subscriptions.push(
     vscode.commands.registerCommand('labnotev.openWithSectionEditor', () => {

@@ -1,4 +1,4 @@
-import React, { useMemo } from 'react';
+import React, { memo, useMemo } from 'react';
 import { HoverCard, Stack, Text, Button } from '@mantine/core';
 import type { SampleDefMap } from '../types';
 import { postMessage } from '../vscodeApi';
@@ -106,7 +106,7 @@ function SampleHoverDropdown({
   );
 }
 
-export function SampleHighlighter({
+export const SampleHighlighter = memo(function SampleHighlighter({
   text,
   interactive = false,
   availableTypes,
@@ -114,75 +114,78 @@ export function SampleHighlighter({
   sampleDefs,
   onSampleClick,
 }: SampleHighlighterProps) {
-  const parts: React.ReactNode[] = [];
-  let lastIndex = 0;
-  let match: RegExpExecArray | null;
-
   const regex = useMemo(() => buildSamplePattern(availableTypes), [availableTypes]);
 
-  if (!regex) {
-    return <>{text}</>;
-  }
+  // Memoize the entire parts array. Previously we rebuilt this regex-driven
+  // ReactNode list on every parent re-render (i.e. every keystroke), even
+  // when none of the inputs that affect highlighting actually changed.
+  // Keying on the textual / configurable inputs means we only re-run the
+  // tokenizer when one of them moves.
+  const parts = useMemo<React.ReactNode[]>(() => {
+    if (!regex) return [text];
+    const result: React.ReactNode[] = [];
+    let lastIndex = 0;
+    let match: RegExpExecArray | null;
+    const pattern = new RegExp(regex.source, 'g');
+    while ((match = pattern.exec(text)) !== null) {
+      if (match.index > lastIndex) {
+        result.push(text.slice(lastIndex, match.index));
+      }
+      const sampleType = match[1];
+      const fullMatch = match[0];
+      const sampleId = fullMatch.split(/[;|]/)[0];
+      const color = sampleTypeColors?.[sampleType] || DEFAULT_CUSTOM_COLOR;
 
-  const pattern = new RegExp(regex.source, 'g');
-  while ((match = pattern.exec(text)) !== null) {
-    if (match.index > lastIndex) {
-      parts.push(text.slice(lastIndex, match.index));
-    }
-    const sampleType = match[1];
-    const fullMatch = match[0];
-    const sampleId = fullMatch.split(/[;|]/)[0];
-    const color = sampleTypeColors?.[sampleType] || DEFAULT_CUSTOM_COLOR;
+      const spanStyle: React.CSSProperties = {
+        color,
+        fontWeight: 600,
+        backgroundColor: `${color}15`,
+        padding: '0 2px',
+        borderRadius: '2px',
+        ...(interactive ? { pointerEvents: 'auto' as const } : {}),
+      };
 
-    const spanStyle: React.CSSProperties = {
-      color,
-      fontWeight: 600,
-      backgroundColor: `${color}15`,
-      padding: '0 2px',
-      borderRadius: '2px',
-      ...(interactive ? { pointerEvents: 'auto' as const } : {}),
-    };
-
-    const span = (
-      <span
-        key={match.index}
-        style={spanStyle}
-        onMouseDown={onSampleClick}
-      >
-        {fullMatch}
-      </span>
-    );
-
-    if (interactive) {
-      parts.push(
-        <HoverCard
-          key={`hc-${match.index}`}
-          width={300}
-          shadow="md"
-          withArrow
-          openDelay={HOVER_OPEN_DELAY}
-          closeDelay={HOVER_CLOSE_DELAY}
-          withinPortal
+      const span = (
+        <span
+          key={match.index}
+          style={spanStyle}
+          onMouseDown={onSampleClick}
         >
-          <HoverCard.Target>{span}</HoverCard.Target>
-          <HoverCard.Dropdown>
-            <SampleHoverDropdown sampleType={sampleType} sampleId={sampleId} sampleDefs={sampleDefs} />
-          </HoverCard.Dropdown>
-        </HoverCard>
+          {fullMatch}
+        </span>
       );
-    } else {
-      parts.push(span);
+
+      if (interactive) {
+        result.push(
+          <HoverCard
+            key={`hc-${match.index}`}
+            width={300}
+            shadow="md"
+            withArrow
+            openDelay={HOVER_OPEN_DELAY}
+            closeDelay={HOVER_CLOSE_DELAY}
+            withinPortal
+          >
+            <HoverCard.Target>{span}</HoverCard.Target>
+            <HoverCard.Dropdown>
+              <SampleHoverDropdown sampleType={sampleType} sampleId={sampleId} sampleDefs={sampleDefs} />
+            </HoverCard.Dropdown>
+          </HoverCard>
+        );
+      } else {
+        result.push(span);
+      }
+
+      lastIndex = pattern.lastIndex;
     }
-
-    lastIndex = pattern.lastIndex;
-  }
-
-  if (lastIndex < text.length) {
-    parts.push(text.slice(lastIndex));
-  }
+    if (lastIndex < text.length) {
+      result.push(text.slice(lastIndex));
+    }
+    return result;
+  }, [text, regex, sampleTypeColors, sampleDefs, interactive, onSampleClick]);
 
   return <>{parts}</>;
-}
+});
 
 export function highlightSampleIds(text: string, availableTypes?: string[]): boolean {
   const pattern = buildSamplePattern(availableTypes);

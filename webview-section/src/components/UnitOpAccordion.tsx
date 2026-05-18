@@ -1,4 +1,4 @@
-import { useRef, useState } from 'react';
+import { memo, useCallback, useEffect, useRef, useState } from 'react';
 import { Accordion, Badge, Group, Text, Stack, TextInput, Textarea, Title, Paper, ActionIcon, Tooltip, Menu, Modal, Button } from '@mantine/core';
 import { DndContext, closestCenter, KeyboardSensor, PointerSensor, useSensor, useSensors, type DragEndEvent } from '@dnd-kit/core';
 import { SortableContext, verticalListSortingStrategy, useSortable, arrayMove } from '@dnd-kit/sortable';
@@ -76,13 +76,21 @@ function GripIcon() {
 }
 
 interface UnitOpSectionTextareaProps {
-  heading: string;
+  // Identity props let the textarea call parent callbacks directly so the
+  // parent (SortableUnitOp / UnitOpAccordion) doesn't have to allocate a
+  // fresh inline arrow per render. Combined with React.memo below, this is
+  // what lets unrelated sections stay un-rendered on every keystroke.
+  opIndex: number;
+  secIndex: number;
+  op: UnitOperationBlock;
+  heading: string;       // normalized display heading
+  rawHeading: string;    // original section.heading (passed to onSectionFocus)
   content: string;
   showSampleButton?: boolean;
-  onChange: (content: string) => void;
-  onFocus?: () => void;
+  onUpdateSection: (opIndex: number, secIndex: number, content: string) => void;
+  onSectionFocus?: (opIndex: number, secIndex: number, opId: string, secHeading: string) => void;
   onCursorActivity?: (pos: number) => void;
-  onCreateSample?: (sampleType: string, alias: string, description: string) => void;
+  onCreateSample?: (opIndex: number, secIndex: number, sampleType: string, alias: string, description: string) => void;
   onSearchProducts?: (sampleType: string) => void;
   productSearchResult?: { alias: string; description: string } | null;
   availableTypes?: string[];
@@ -91,13 +99,15 @@ interface UnitOpSectionTextareaProps {
   onAddCustomType?: (typeName: string) => void;
   docBaseUri?: string;
   requestFocusAt?: { pos: number; tick: number; scroll?: 'none' | 'nearest' | 'center' } | null;
-  onAttachFile?: () => void;
+  onAttachFile?: (opIndex: number, secIndex: number) => void;
   minRows?: number;
 }
 
-function UnitOpSectionTextarea({
-  heading, content, showSampleButton, onChange, onFocus, onCursorActivity,
-  onCreateSample, onSearchProducts, productSearchResult, availableTypes, sampleTypeColors, sampleDefs, onAddCustomType, docBaseUri,
+const UnitOpSectionTextarea = memo(function UnitOpSectionTextarea({
+  opIndex, secIndex, op, heading, rawHeading, content, showSampleButton,
+  onUpdateSection, onSectionFocus, onCursorActivity,
+  onCreateSample, onSearchProducts, productSearchResult,
+  availableTypes, sampleTypeColors, sampleDefs, onAddCustomType, docBaseUri,
   requestFocusAt,
   onAttachFile,
   minRows = 2,
@@ -106,11 +116,27 @@ function UnitOpSectionTextarea({
   const [tableModalOpen, setTableModalOpen] = useState(false);
   const [sampleModalOpen, setSampleModalOpen] = useState(false);
 
-  const reportCursor = () => {
+  const reportCursor = useCallback(() => {
     if (textareaRef.current && onCursorActivity) {
       onCursorActivity(textareaRef.current.selectionStart);
     }
-  };
+  }, [onCursorActivity]);
+
+  const handleChange = useCallback((c: string) => {
+    onUpdateSection(opIndex, secIndex, c);
+  }, [onUpdateSection, opIndex, secIndex]);
+
+  const handleFocus = useCallback(() => {
+    onSectionFocus?.(opIndex, secIndex, op.opId, rawHeading);
+  }, [onSectionFocus, opIndex, secIndex, op.opId, rawHeading]);
+
+  const handleCreateSample = useCallback((type: string, alias: string, desc: string) => {
+    onCreateSample?.(opIndex, secIndex, type, alias, desc);
+  }, [onCreateSample, opIndex, secIndex]);
+
+  const handleAttachFile = useCallback(() => {
+    onAttachFile?.(opIndex, secIndex);
+  }, [onAttachFile, opIndex, secIndex]);
 
   const {
     handleTableInsert,
@@ -118,7 +144,7 @@ function UnitOpSectionTextarea({
     handleKeyDown,
     handlePaste,
     cursorInTable,
-  } = useTableEditing(textareaRef, content, onChange, reportCursor);
+  } = useTableEditing(textareaRef, content, handleChange, reportCursor);
 
   return (
     <div>
@@ -139,7 +165,7 @@ function UnitOpSectionTextarea({
                   const ta = textareaRef.current;
                   if (ta) {
                     ta.focus({ preventScroll: true });
-                    onFocus?.();
+                    handleFocus();
                     onCursorActivity?.(ta.selectionStart);
                   }
                   setSampleModalOpen(true);
@@ -152,7 +178,7 @@ function UnitOpSectionTextarea({
           )}
           {onAttachFile && (
             <Tooltip label="Attach file" position="bottom" withArrow>
-              <ActionIcon variant="subtle" size="xs" onClick={onAttachFile} aria-label="Attach file">
+              <ActionIcon variant="subtle" size="xs" onClick={handleAttachFile} aria-label="Attach file">
                 <AttachIcon />
               </ActionIcon>
             </Tooltip>
@@ -172,8 +198,8 @@ function UnitOpSectionTextarea({
       <HighlightedTextarea
         ref={textareaRef}
         value={content}
-        onChange={onChange}
-        onFocus={onFocus}
+        onChange={handleChange}
+        onFocus={handleFocus}
         onCursorChange={onCursorActivity}
         onKeyDown={handleKeyDown}
         onPaste={handlePaste}
@@ -199,7 +225,7 @@ function UnitOpSectionTextarea({
           <SampleCreateModal
             opened={sampleModalOpen}
             onClose={() => setSampleModalOpen(false)}
-            onSubmit={onCreateSample}
+            onSubmit={handleCreateSample}
             onSearchProducts={onSearchProducts}
             productSearchResult={productSearchResult}
             availableTypes={availableTypes ?? []}
@@ -211,7 +237,7 @@ function UnitOpSectionTextarea({
       })()}
     </div>
   );
-}
+});
 
 function AttachIcon() {
   return (
@@ -327,7 +353,7 @@ interface SortableUnitOpProps {
   onMenuOpen?: () => void;
 }
 
-function SortableUnitOp({ op, opIndex, onUpdateSection, onUpdateAlias, onUpdateDescription, onSectionFocus, onCursorActivity, onCreateSample, onSearchProducts, productSearchResult, availableTypes, sampleTypeColors, sampleDefs, onAddCustomType, docBaseUri, getCursorForSection, onAttachFile, onCopy, onPasteBelow, onDelete, onCollapse, clipboardHasUnitOp, onMenuOpen }: SortableUnitOpProps) {
+const SortableUnitOp = memo(function SortableUnitOp({ op, opIndex, onUpdateSection, onUpdateAlias, onUpdateDescription, onSectionFocus, onCursorActivity, onCreateSample, onSearchProducts, productSearchResult, availableTypes, sampleTypeColors, sampleDefs, onAddCustomType, docBaseUri, getCursorForSection, onAttachFile, onCopy, onPasteBelow, onDelete, onCollapse, clipboardHasUnitOp, onMenuOpen }: SortableUnitOpProps) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: op.id });
   const [confirmOpen, setConfirmOpen] = useState(false);
   const wrapperRef = useRef<HTMLDivElement | null>(null);
@@ -481,13 +507,17 @@ function SortableUnitOp({ op, opIndex, onUpdateSection, onUpdateAlias, onUpdateD
               return (
                 <UnitOpSectionTextarea
                   key={secIndex}
+                  opIndex={opIndex}
+                  secIndex={secIndex}
+                  op={op}
                   heading={displayHeading}
+                  rawHeading={section.heading}
                   content={section.content}
                   showSampleButton={hasSamples}
-                  onChange={(c) => onUpdateSection(opIndex, secIndex, c)}
-                  onFocus={() => onSectionFocus?.(opIndex, secIndex, op.opId, section.heading)}
+                  onUpdateSection={onUpdateSection}
+                  onSectionFocus={onSectionFocus}
                   onCursorActivity={onCursorActivity}
-                  onCreateSample={onCreateSample ? (type: string, alias: string, desc: string) => onCreateSample(opIndex, secIndex, type, alias, desc) : undefined}
+                  onCreateSample={onCreateSample}
                   onSearchProducts={onSearchProducts}
                   productSearchResult={productSearchResult}
                   availableTypes={availableTypes}
@@ -495,8 +525,8 @@ function SortableUnitOp({ op, opIndex, onUpdateSection, onUpdateAlias, onUpdateD
                   sampleDefs={sampleDefs}
                   onAddCustomType={onAddCustomType}
                   docBaseUri={docBaseUri}
-                  requestFocusAt={getCursorForSection?.(opIndex, secIndex)}
-                  onAttachFile={onAttachFile ? () => onAttachFile(opIndex, secIndex) : undefined}
+                  requestFocusAt={getCursorForSection?.(opIndex, secIndex) ?? null}
+                  onAttachFile={onAttachFile}
                 />
               );
             })}
@@ -552,7 +582,7 @@ function SortableUnitOp({ op, opIndex, onUpdateSection, onUpdateAlias, onUpdateD
       </Modal>
     </div>
   );
-}
+});
 
 export function UnitOpAccordion({ unitOperations, onChange, onSectionFocus, onCursorActivity, onCreateSample, onSearchProducts, productSearchResult, availableTypes, sampleTypeColors, sampleDefs, onAddCustomType, docBaseUri, getCursorForSection, onAttachFile, openedOpIds, onOpenedChange, onCopy, onPasteBelow, clipboardHasUnitOp, onMenuOpen }: UnitOpAccordionProps) {
   const sensors = useSensors(
@@ -560,8 +590,23 @@ export function UnitOpAccordion({ unitOperations, onChange, onSectionFocus, onCu
     useSensor(KeyboardSensor)
   );
 
-  const updateSection = (opIndex: number, secIndex: number, content: string) => {
-    const updated = unitOperations.map((op, oi) => {
+  // Latest-ref pattern: keep `onChange` / `unitOperations` / opened-state
+  // reachable from callbacks without listing them in `useCallback` deps.
+  // This is what lets `updateSection`, `updateAlias`, `updateDescription`,
+  // `deleteOp`, and `handleCollapse` retain a stable identity across
+  // re-renders, so each `SortableUnitOp` (now wrapped in React.memo) only
+  // re-renders when its own `op` reference actually changed.
+  const onChangeRef = useRef(onChange);
+  const unitOpsRef = useRef(unitOperations);
+  const openedOpIdsRef = useRef(openedOpIds);
+  const onOpenedChangeRef = useRef(onOpenedChange);
+  useEffect(() => { onChangeRef.current = onChange; }, [onChange]);
+  useEffect(() => { unitOpsRef.current = unitOperations; }, [unitOperations]);
+  useEffect(() => { openedOpIdsRef.current = openedOpIds; }, [openedOpIds]);
+  useEffect(() => { onOpenedChangeRef.current = onOpenedChange; }, [onOpenedChange]);
+
+  const updateSection = useCallback((opIndex: number, secIndex: number, content: string) => {
+    const updated = unitOpsRef.current.map((op, oi) => {
       if (oi !== opIndex) return op;
       return {
         ...op,
@@ -570,36 +615,37 @@ export function UnitOpAccordion({ unitOperations, onChange, onSectionFocus, onCu
         ),
       };
     });
-    onChange(updated);
-  };
+    onChangeRef.current(updated);
+  }, []);
 
-  const updateAlias = (opIndex: number, alias: string) => {
-    const updated = unitOperations.map((op, oi) => {
+  const updateAlias = useCallback((opIndex: number, alias: string) => {
+    const updated = unitOpsRef.current.map((op, oi) => {
       if (oi !== opIndex) return op;
       return { ...op, alias: alias || undefined };
     });
-    onChange(updated);
-  };
+    onChangeRef.current(updated);
+  }, []);
 
-  const updateDescription = (opIndex: number, opDescription: string) => {
-    const updated = unitOperations.map((op, oi) =>
+  const updateDescription = useCallback((opIndex: number, opDescription: string) => {
+    const updated = unitOpsRef.current.map((op, oi) =>
       oi === opIndex ? { ...op, opDescription } : op
     );
-    onChange(updated);
-  };
+    onChangeRef.current(updated);
+  }, []);
 
-  const handleDragEnd = (event: DragEndEvent) => {
+  const handleDragEnd = useCallback((event: DragEndEvent) => {
     const { active, over } = event;
     if (!over || active.id === over.id) return;
-    const oldIndex = unitOperations.findIndex(op => op.id === active.id);
-    const newIndex = unitOperations.findIndex(op => op.id === over.id);
+    const ops = unitOpsRef.current;
+    const oldIndex = ops.findIndex(op => op.id === active.id);
+    const newIndex = ops.findIndex(op => op.id === over.id);
     if (oldIndex === -1 || newIndex === -1) return;
-    onChange(arrayMove(unitOperations, oldIndex, newIndex));
-  };
+    onChangeRef.current(arrayMove(ops, oldIndex, newIndex));
+  }, []);
 
-  const deleteOp = (opIndex: number) => {
-    onChange(unitOperations.filter((_, oi) => oi !== opIndex));
-  };
+  const deleteOp = useCallback((opIndex: number) => {
+    onChangeRef.current(unitOpsRef.current.filter((_, oi) => oi !== opIndex));
+  }, []);
 
   if (unitOperations.length === 0) {
     return (
@@ -632,12 +678,13 @@ export function UnitOpAccordion({ unitOperations, onChange, onSectionFocus, onCu
   // Footer "Collapse" button: in controlled mode, drop this op.id from the
   // opened list so the Accordion closes. Uncontrolled callers fall through
   // (the panel's footer icon becomes a no-op for them).
-  const handleCollapse = (opIndex: number) => {
-    if (!controlled) return;
-    const id = unitOperations[opIndex]?.id;
+  const handleCollapse = useCallback((opIndex: number) => {
+    const openedIds = openedOpIdsRef.current;
+    if (openedIds === undefined) return;  // uncontrolled
+    const id = unitOpsRef.current[opIndex]?.id;
     if (!id) return;
-    onOpenedChange?.((openedOpIds ?? []).filter((v) => v !== id));
-  };
+    onOpenedChangeRef.current?.(openedIds.filter((v) => v !== id));
+  }, []);
 
   return (
     <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>

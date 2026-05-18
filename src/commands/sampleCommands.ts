@@ -1,4 +1,6 @@
 import * as vscode from 'vscode';
+import * as fs from 'fs';
+import * as path from 'path';
 import { SampleType, findSamplePrefixRange } from '../lib/sampleUtils';
 import { generateSampleId } from '../lib/sampleUtils';
 import {
@@ -11,6 +13,77 @@ import {
 import { findSampleDefinitionMatch } from '../lib/sampleStorage';
 import { showProductPicker } from '../lib/productPicker';
 import type { SectionEditorProvider } from '../sectionEditorProvider';
+
+/**
+ * Locate the markdown document that holds the `@type;id;alias[:description]`
+ * definition for a sample, so the TreeView edit command can replace it.
+ *
+ * Order of attempts (first hit wins):
+ *   (a) the active Section Editor webview's document,
+ *   (b) the active plain text editor (markdown),
+ *   (c) `record.sources[0]` resolved against the active document's directory,
+ *   (d) a workspace scan over `*.labnote.md` and `*.workflow.md`.
+ *
+ * Returns both the document and the regex match so callers don't have to
+ * re-run `findSampleDefinitionMatch`.
+ */
+export async function resolveDefinitionDocument(
+  sampleTreeProvider: SampleTreeViewProvider,
+  sectionEditorProvider: SectionEditorProvider | undefined,
+  item: SampleTreeItem
+): Promise<{ doc: vscode.TextDocument; match: { start: number; length: number } } | undefined> {
+  const sampleType = item.sampleType!;
+  const sampleId = item.sampleId!;
+  const currentAlias = item.alias ?? null;
+  const tryMatch = (doc: vscode.TextDocument) =>
+    findSampleDefinitionMatch(doc.getText(), sampleType, sampleId, currentAlias);
+
+  const active = sectionEditorProvider?.getActiveDocument();
+  if (active) {
+    const m = tryMatch(active);
+    if (m) return { doc: active, match: m };
+  }
+
+  const plain = vscode.window.activeTextEditor;
+  if (plain && plain.document.languageId === 'markdown') {
+    const m = tryMatch(plain.document);
+    if (m) return { doc: plain.document, match: m };
+  }
+
+  const baseDir = active
+    ? path.dirname(active.uri.fsPath)
+    : (plain ? path.dirname(plain.document.uri.fsPath) : undefined);
+  const sources = sampleTreeProvider.getSampleSources(item.scope, sampleType, sampleId);
+  if (sources && sources.length > 0 && baseDir) {
+    const candidate = path.join(baseDir, sources[0]);
+    if (fs.existsSync(candidate)) {
+      try {
+        const doc = await vscode.workspace.openTextDocument(vscode.Uri.file(candidate));
+        const m = tryMatch(doc);
+        if (m) return { doc, match: m };
+      } catch {
+        // fall through
+      }
+    }
+  }
+
+  // Two findFiles calls instead of a `{a,b}` brace glob — simpler and not
+  // dependent on VS Code's glob brace expansion behaviour.
+  const found: vscode.Uri[] = [];
+  found.push(...await vscode.workspace.findFiles('**/*.labnote.md', '**/node_modules/**', 100));
+  found.push(...await vscode.workspace.findFiles('**/*.workflow.md', '**/node_modules/**', 100));
+  for (const uri of found) {
+    try {
+      const doc = await vscode.workspace.openTextDocument(uri);
+      const m = tryMatch(doc);
+      if (m) return { doc, match: m };
+    } catch {
+      // skip unreadable files
+    }
+  }
+
+  return undefined;
+}
 
 export interface SampleCommandProviders {
   sampleTreeProvider: SampleTreeViewProvider;
@@ -184,6 +257,7 @@ export function registerSampleCommands(
 
       const result = await createSampleWithPrompt(sampleType, sampleTreeProvider, scope);
       if (result) {
+        sectionEditorProvider?.broadcastSampleDefsUpdated();
         vscode.window.showInformationMessage(vscode.l10n.t('Sample added: {0}', result.id));
       }
     })
@@ -209,6 +283,7 @@ export function registerSampleCommands(
           item.sampleType!,
           item.sampleId!
         );
+        sectionEditorProvider?.broadcastSampleDefsUpdated();
         vscode.window.showInformationMessage(vscode.l10n.t('Sample deleted: {0}', item.sampleId ?? ''));
       }
     })
@@ -258,47 +333,45 @@ export function registerSampleCommands(
         sampleDescription: newDescription || null,
       } as SampleTreeItem);
 
-      // Try section editor first
-      const secDoc = sectionEditorProvider?.getActiveDocument();
-      if (secDoc) {
-        const docText = secDoc.getText();
-        const match = findSampleDefinitionMatch(
-          docText,
-          item.sampleType!,
-          item.sampleId!,
-          item.alias ?? null
+      // Locate the document that holds the `@type;id;...` definition. The
+      // helper falls back from the active webview → active plain editor →
+      // `sources[0]` → workspace scan, so edits made from the TreeView land
+      // even when the definition lives in a different file.
+      const resolved = await resolveDefinitionDocument(
+        sampleTreeProvider,
+        sectionEditorProvider,
+        item
+      );
+      if (resolved) {
+        const { doc, match } = resolved;
+        const edit = new vscode.WorkspaceEdit();
+        edit.replace(
+          doc.uri,
+          new vscode.Range(
+            doc.positionAt(match.start),
+            doc.positionAt(match.start + match.length)
+          ),
+          newDefinitionText
         );
-        if (match) {
-          const edit = new vscode.WorkspaceEdit();
-          const range = new vscode.Range(
-            secDoc.positionAt(match.start),
-            secDoc.positionAt(match.start + match.length)
-          );
-          edit.replace(secDoc.uri, range, newDefinitionText);
-          await vscode.workspace.applyEdit(edit);
+        await vscode.workspace.applyEdit(edit);
+
+        // Surface the definition file in a new tab when it's not already
+        // visible (either as a Section Editor webview or as a plain editor).
+        const activeDocUri = sectionEditorProvider?.getActiveDocument()?.uri.toString();
+        const inWebview = activeDocUri === doc.uri.toString();
+        const inPlainEditor = vscode.window.visibleTextEditors.some(
+          (e) => e.document.uri.toString() === doc.uri.toString()
+        );
+        if (!inWebview && !inPlainEditor) {
+          await vscode.window.showTextDocument(doc, { preview: false, preserveFocus: false });
         }
       } else {
-        const editor = vscode.window.activeTextEditor;
-        if (editor && editor.document.languageId === 'markdown') {
-          const docText = editor.document.getText();
-          const match = findSampleDefinitionMatch(
-            docText,
-            item.sampleType!,
-            item.sampleId!,
-            item.alias ?? null
-          );
-          if (match) {
-            const range = new vscode.Range(
-              editor.document.positionAt(match.start),
-              editor.document.positionAt(match.start + match.length)
-            );
-            await editor.edit((editBuilder) => {
-              editBuilder.replace(range, newDefinitionText);
-            });
-          }
-        }
+        console.log(
+          `[labnotev] editSample: definition for ${item.sampleType};${item.sampleId} not found in any markdown; JSON updated only.`
+        );
       }
 
+      sectionEditorProvider?.broadcastSampleDefsUpdated();
       vscode.window.showInformationMessage(vscode.l10n.t('Sample updated: {0}', item.sampleId ?? ''));
     })
   );
@@ -308,6 +381,7 @@ export function registerSampleCommands(
     vscode.commands.registerCommand('labnotev.moveSampleToGlobal', async (item: SampleTreeItem) => {
       if (item?.sampleType && item?.sampleId) {
         await sampleTreeProvider.moveSampleToGlobal(item.sampleType, item.sampleId);
+        sectionEditorProvider?.broadcastSampleDefsUpdated();
         vscode.window.showInformationMessage(vscode.l10n.t('Moved {0} to Global', item.sampleId));
       }
     })
@@ -318,6 +392,7 @@ export function registerSampleCommands(
     vscode.commands.registerCommand('labnotev.moveSampleToLocal', async (item: SampleTreeItem) => {
       if (item?.sampleType && item?.sampleId) {
         await sampleTreeProvider.moveSampleToLocal(item.sampleType, item.sampleId);
+        sectionEditorProvider?.broadcastSampleDefsUpdated();
         vscode.window.showInformationMessage(vscode.l10n.t('Moved {0} to Local', item.sampleId));
       }
     })

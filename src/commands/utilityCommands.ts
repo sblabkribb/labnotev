@@ -15,16 +15,22 @@ import { saveSamplesFromDocument, getGlobalLabsamplesFolder } from '../lib/sampl
 import { SampleTreeViewProvider } from '../views/SampleTreeViewProvider';
 import { findResourcesFolder, ensureResourcesFolder, saveSampleToResources } from '../lib/dataLoader';
 import { showProductPicker } from '../lib/productPicker';
+import type { SectionEditorProvider } from '../sectionEditorProvider';
 
 export interface UtilityCommandProviders {
   sampleTreeProvider: SampleTreeViewProvider;
+  // Optional so existing tests that build a partial providers object keep
+  // working. When present, the save handler pushes a sampleDefsUpdated
+  // message to every live webview so highlights stay in sync after the user
+  // saves a markdown that defines / renames samples.
+  sectionEditorProvider?: SectionEditorProvider;
 }
 
 export function registerUtilityCommands(
   context: vscode.ExtensionContext,
   providers: UtilityCommandProviders
 ): void {
-  const { sampleTreeProvider } = providers;
+  const { sampleTreeProvider, sectionEditorProvider } = providers;
 
   // Register insert date command
   context.subscriptions.push(
@@ -409,6 +415,7 @@ export function registerUtilityCommands(
         const customTypes = vscode.workspace.getConfiguration('labnotev').get<string[]>('customSampleTypes', []);
         saveSamplesFromDocument(document.uri.fsPath, document.getText(), globalLabsamplesFolder, customTypes);
         sampleTreeProvider.refresh();
+        sectionEditorProvider?.broadcastSampleDefsUpdated();
       } catch (error) {
         console.error('[LabNote] Failed to save sample info:', error);
       }

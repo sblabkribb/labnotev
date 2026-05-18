@@ -109,13 +109,16 @@ export default function App() {
       return next;
     });
   }, []);
-  const updateCursorPos = (pos: number) => {
+  // Stable identity so it can be passed as `onCursorActivity` to memoized
+  // children (UnitOpAccordion, HighlightedTextarea) without retriggering
+  // their re-renders on every parent state change.
+  const updateCursorPos = useCallback((pos: number) => {
     if (activeSectionRef.current) {
       activeSectionRef.current = { ...activeSectionRef.current, cursorPos: pos };
     }
-  };
+  }, []);
 
-  const getCursorForArea = (area: string, extra?: Record<string, number>) => {
+  const getCursorForArea = useCallback((area: string, extra?: Record<string, number>) => {
     const active = activeSectionRef.current;
     if (!pendingCursor || !active || active.area !== area) return undefined;
     if (extra) {
@@ -124,7 +127,7 @@ export default function App() {
       }
     }
     return pendingCursor;
-  };
+  }, [pendingCursor]);
   const modeRef = useRef<string | null>(null);
   const labNoteRef = useRef<LabNoteDocument | null>(null);
   const workflowRef = useRef<WorkflowDocument | null>(null);
@@ -711,6 +714,48 @@ export default function App() {
     postMessage({ type: 'requestPasteUnitOp', data: { afterOpIndex } });
   }, []);
 
+  // Stable wrappers for the UnitOpAccordion props. Without these, every
+  // keystroke in any textarea recreates the inline arrows inside the
+  // <UnitOpAccordion .../> JSX block, defeating React.memo on its children.
+  // setWorkflow's functional form lets us avoid putting `workflow` in deps.
+  const handleUnitOpsChange = useCallback((ops: UnitOperationBlock[]) => {
+    setWorkflow(prev => {
+      if (!prev) return prev;
+      const newIds = new Set(ops.map(o => o.id));
+      const hasRemoval = prev.unitOperations.some(o => !newIds.has(o.id));
+      if (hasRemoval) {
+        setOpenedOpIds(prevIds => prevIds.filter(id => newIds.has(id)));
+        const a = activeSectionRef.current;
+        if (a?.area === 'unitOp') {
+          const newIdx = a.opId ? ops.findIndex(o => o.opId === a.opId) : -1;
+          if (newIdx < 0) {
+            activeSectionRef.current = null;
+          } else if (newIdx !== a.opIndex) {
+            activeSectionRef.current = { ...a, opIndex: newIdx };
+          }
+        }
+      }
+      return { ...prev, unitOperations: ops };
+    });
+    markDirty();
+  }, [markDirty]);
+
+  const handleUnitOpSectionFocus = useCallback((opIndex: number, secIndex: number, opId: string, secHeading: string) => {
+    activeSectionRef.current = { area: 'unitOp', opIndex, secIndex, opId, secHeading };
+  }, []);
+
+  const getCursorForUnitOpSection = useCallback((opI: number, secI: number) => {
+    return getCursorForArea('unitOp', { opIndex: opI, secIndex: secI });
+  }, [getCursorForArea]);
+
+  const handleUnitOpAttachFile = useCallback((opI: number, secI: number) => {
+    handleAttachFile({ area: 'unitOp', opIndex: opI, secIndex: secI });
+  }, [handleAttachFile]);
+
+  const handleQueryClipboardOnMenuOpen = useCallback(() => {
+    postMessage({ type: 'queryClipboardState' });
+  }, []);
+
   if (!mode) {
     return (
       <MantineProvider forceColorScheme={colorScheme}>
@@ -938,36 +983,8 @@ export default function App() {
               <Title order={3} mb="xs">Unit Operations</Title>
               <UnitOpAccordion
                 unitOperations={workflow.unitOperations}
-                onChange={(ops) => {
-                  // Detect removed unit ops so we can prune stale references
-                  // in openedOpIds and activeSectionRef. Non-delete edits
-                  // (alias, sections, DnD) preserve op.id, so hasRemoval is
-                  // false and behaviour is unchanged.
-                  const newIds = new Set(ops.map(o => o.id));
-                  const hasRemoval = workflow.unitOperations.some(o => !newIds.has(o.id));
-                  setWorkflow({ ...workflow, unitOperations: ops });
-                  if (hasRemoval) {
-                    setOpenedOpIds(prev => prev.filter(id => newIds.has(id)));
-                    const a = activeSectionRef.current;
-                    if (a?.area === 'unitOp') {
-                      // activeSectionRef carries the user-facing `opId` (not
-                      // the React key); look it up in the new array to either
-                      // re-anchor the index or drop the stale ref entirely.
-                      const newIdx = a.opId
-                        ? ops.findIndex(o => o.opId === a.opId)
-                        : -1;
-                      if (newIdx < 0) {
-                        activeSectionRef.current = null;
-                      } else if (newIdx !== a.opIndex) {
-                        activeSectionRef.current = { ...a, opIndex: newIdx };
-                      }
-                    }
-                  }
-                  markDirty();
-                }}
-                onSectionFocus={(opIndex, secIndex, opId, secHeading) => {
-                  activeSectionRef.current = { area: 'unitOp', opIndex, secIndex, opId, secHeading };
-                }}
+                onChange={handleUnitOpsChange}
+                onSectionFocus={handleUnitOpSectionFocus}
                 onCursorActivity={updateCursorPos}
                 onCreateSample={handleCreateSample}
                 onSearchProducts={handleSearchProducts}
@@ -977,14 +994,14 @@ export default function App() {
                 sampleDefs={sampleDefs}
                 onAddCustomType={handleAddCustomType}
                 docBaseUri={docBaseUri}
-                getCursorForSection={(opI, secI) => getCursorForArea('unitOp', { opIndex: opI, secIndex: secI })}
-                onAttachFile={(opI, secI) => handleAttachFile({ area: 'unitOp', opIndex: opI, secIndex: secI })}
+                getCursorForSection={getCursorForUnitOpSection}
+                onAttachFile={handleUnitOpAttachFile}
                 openedOpIds={openedOpIds}
                 onOpenedChange={setOpenedOpIds}
                 onCopy={handleCopyUnitOp}
                 onPasteBelow={handleRequestPaste}
                 clipboardHasUnitOp={clipboardHasUnitOp}
-                onMenuOpen={() => postMessage({ type: 'queryClipboardState' })}
+                onMenuOpen={handleQueryClipboardOnMenuOpen}
               />
             </Paper>
 

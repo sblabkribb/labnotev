@@ -199,6 +199,11 @@ export class SectionEditorProvider implements vscode.CustomTextEditorProvider {
   // sample inserts from the TreeView still post messages to the last webview
   // the user was editing. Cleared only on dispose.
   private _lastActiveEditor: ActiveEditor | undefined;
+  // Every live webview, used by broadcastSampleDefsUpdated() so a TreeView
+  // command / save / JSON watcher can refresh sampleDefs in all open Section
+  // Editors at once (not just the active one). Entries are removed in
+  // `webviewPanel.onDidDispose`.
+  private _allEditors: Set<ActiveEditor> = new Set();
   private _suppressDocChange = false;
   private _sampleTreeProvider: SampleTreeViewProvider | undefined;
 
@@ -220,6 +225,25 @@ export class SectionEditorProvider implements vscode.CustomTextEditorProvider {
     const editor = this.activeEditor ?? this._lastActiveEditor;
     if (!editor) return undefined;
     return path.dirname(editor.document.uri.fsPath);
+  }
+
+  /**
+   * Push a freshly built `sampleDefs` map to every live Section Editor
+   * webview. Each webview gets a map resolved against its own document URI
+   * so local/global sample lookups stay accurate per panel.
+   *
+   * Called after TreeView commands (edit/add/delete/move), document save,
+   * and the labsamples JSON file watcher.
+   */
+  public broadcastSampleDefsUpdated(): void {
+    if (this._allEditors.size === 0) return;
+    const types = getAvailableTypes();
+    for (const editor of this._allEditors) {
+      editor.webviewPanel.webview.postMessage({
+        type: 'sampleDefsUpdated',
+        data: { sampleDefs: buildSampleDefMap(editor.document.uri, types) },
+      });
+    }
   }
 
   public async appendUnitOpToDocument(
@@ -298,6 +322,7 @@ export class SectionEditorProvider implements vscode.CustomTextEditorProvider {
 
     this.activeEditor = { document, webviewPanel, mode };
     this._lastActiveEditor = this.activeEditor;
+    this._allEditors.add(this.activeEditor);
     if (document.uri.fsPath.endsWith('.labnote.md') && this._sampleTreeProvider) {
       const experimentFolder = path.dirname(document.uri.fsPath);
       this._sampleTreeProvider.updateDocumentFolder(experimentFolder);
@@ -617,6 +642,12 @@ export class SectionEditorProvider implements vscode.CustomTextEditorProvider {
       }
       if (this._lastActiveEditor?.document === document) {
         this._lastActiveEditor = undefined;
+      }
+      for (const editor of this._allEditors) {
+        if (editor.webviewPanel === webviewPanel) {
+          this._allEditors.delete(editor);
+          break;
+        }
       }
     });
 
