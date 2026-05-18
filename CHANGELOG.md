@@ -5,6 +5,14 @@
 형식은 [Keep a Changelog](https://keepachangelog.com/ko/1.1.0/)를 기반으로 하며,
 이 프로젝트는 [유의적 버전 관리](https://semver.org/lang/ko/)를 따릅니다.
 
+## [0.55.1] - 2026-05-19
+
+### Fixed
+- **섹션 에디터에서 sample 토큰이 포함된 줄의 caret이 보이는 위치보다 한 줄 아래로 표시되던 정렬 오류 수정**: `HighlightedTextarea`는 transparent 처리한 native textarea 위에 `SampleHighlighter` 오버레이를 absolute로 띄워 텍스트를 보여주는 구조다. 그동안 두 레이어의 콘텐츠 영역이 정확히 2px 어긋나 있었는데(textarea는 8px padding + 1px border, overlay는 8px padding + border 없음), 13px monospace에서 단어 wrap 위치가 어긋나 같은 offset이라도 시각적인 줄이 한 줄 어긋나 보이는 문제였다. overlay에 `border: 1px solid transparent`와 `boxSizing: border-box`를 명시해 textarea와 콘텐츠 영역을 픽셀 단위로 정렬했고, `SampleHighlighter` 토큰 span의 `padding: '0 2px'`(토큰당 4px 가산)도 제거해 sample 토큰이 textarea와 동일한 character grid를 차지하도록 했다. 시각적 강조감 보완을 위해 토큰 배경 alpha를 `15 → 22`로 살짝 강화 ([webview-section/src/components/HighlightedTextarea.tsx](webview-section/src/components/HighlightedTextarea.tsx), [webview-section/src/components/SampleHighlighter.tsx](webview-section/src/components/SampleHighlighter.tsx))
+
+### Added
+- **신규 단위 테스트 2종**: `HighlightedTextarea.alignment.test.tsx`(4건) — overlay/textarea가 `box-sizing: border-box`, 동일 padding, 동일 1px border 두께, 보정된 `minHeight` 공식을 갖는지 검증. `SampleHighlighter.padding.test.tsx`(2건) — 토큰 span이 인라인 padding을 갖지 않고 background tint만으로 강조됨을 검증
+
 ## [0.55.0] - 2026-05-19
 
 ### Fixed

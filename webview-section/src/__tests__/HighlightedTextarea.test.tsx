@@ -138,7 +138,7 @@ describe('HighlightedTextarea', () => {
         <HighlightedTextarea value="" onChange={() => {}} />
       );
       const textarea = getTextarea(container);
-      const expected = `${4 * 1.55 * 13 + 16}px`;
+      const expected = `${4 * 1.55 * 13 + 18}px`;
       expect(textarea.style.minHeight).toBe(expected);
     });
 
@@ -147,7 +147,7 @@ describe('HighlightedTextarea', () => {
         <HighlightedTextarea value="" onChange={() => {}} minRows={2} />
       );
       const textarea = getTextarea(container);
-      const expected = `${2 * 1.55 * 13 + 16}px`;
+      const expected = `${2 * 1.55 * 13 + 18}px`;
       expect(textarea.style.minHeight).toBe(expected);
     });
   });

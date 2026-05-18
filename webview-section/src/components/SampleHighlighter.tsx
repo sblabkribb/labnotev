@@ -136,11 +136,15 @@ export const SampleHighlighter = memo(function SampleHighlighter({
       const sampleId = fullMatch.split(/[;|]/)[0];
       const color = sampleTypeColors?.[sampleType] || DEFAULT_CUSTOM_COLOR;
 
+      // No horizontal padding: any extra inline width on these spans would
+      // diverge from the underlying textarea's character grid and shift wrap
+      // positions, making the caret appear one visual line off. The slightly
+      // stronger background alpha (22 vs 15) keeps the token visually
+      // recognisable without claiming any extra layout width.
       const spanStyle: React.CSSProperties = {
         color,
         fontWeight: 600,
-        backgroundColor: `${color}15`,
-        padding: '0 2px',
+        backgroundColor: `${color}22`,
         borderRadius: '2px',
         ...(interactive ? { pointerEvents: 'auto' as const } : {}),
       };

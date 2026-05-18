@@ -290,9 +290,10 @@ export const HighlightedTextarea = memo(forwardRef<HTMLTextAreaElement, Highligh
       padding: '8px',
       border: '1px solid var(--mantine-color-default-border)',
       borderRadius: '4px',
+      boxSizing: 'border-box',
       resize: 'none',
       overflow: 'hidden',
-      minHeight: `${minRows * 1.55 * 13 + 16}px`,
+      minHeight: `${minRows * 1.55 * 13 + 18}px`,
       background: hasSamples ? 'transparent' : 'var(--mantine-color-body)',
       color: hasSamples ? 'transparent' : 'var(--mantine-color-text)',
       caretColor: 'var(--mantine-color-text)',
@@ -300,11 +301,18 @@ export const HighlightedTextarea = memo(forwardRef<HTMLTextAreaElement, Highligh
       zIndex: hasSamples ? 2 : undefined,
     };
 
+    // Overlay must match textarea's content-box geometry exactly: same padding,
+    // same 1px border footprint (transparent so it's invisible), same
+    // box-sizing. Otherwise wrap positions diverge by ~2px of content width and
+    // a single word can slip onto the next line in the overlay only, making
+    // the caret appear one visual line offset from the actual selectionStart.
     const overlayStyle: React.CSSProperties = {
       fontFamily: 'monospace',
       fontSize: '13px',
       lineHeight: '1.55',
       padding: '8px',
+      border: '1px solid transparent',
+      boxSizing: 'border-box',
       position: 'absolute',
       top: 0,
       left: 0,
