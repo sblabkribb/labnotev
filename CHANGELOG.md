@@ -5,6 +5,18 @@
 형식은 [Keep a Changelog](https://keepachangelog.com/ko/1.1.0/)를 기반으로 하며,
 이 프로젝트는 [유의적 버전 관리](https://semver.org/lang/ko/)를 따릅니다.
 
+## [0.55.2] - 2026-05-22
+
+### Fixed
+- **Sample 트리뷰 우클릭에 Delete Sample 항목이 보이지 않던 등록 누락 수정**: `labnotev.deleteSample` 명령 자체는 [src/commands/sampleCommands.ts](src/commands/sampleCommands.ts) 268-289줄에 이미 구현되어 있었으나 [package.json](package.json) `view/item/context` 매핑에서만 빠져 있어 우클릭 메뉴에 노출되지 않았다. `sample_local` / `sample_global` viewItem에 대해 `2_delete` 그룹으로 등록을 추가해 워크플로 트리뷰의 `deleteWorkflowItem` / `deleteUnitOperation`과 동일한 패턴으로 정렬됨
+
+### Changed
+- **섹션 에디터 ↔ 트리뷰 sample DB 자동 동기화 (삭제 방향)**: 그동안 섹션 에디터에서 `@type;id;...` 정의 토큰을 추가하면 저장 시 트리뷰에 자동 반영되었지만 토큰을 *삭제*하면 트리뷰 record가 그대로 남아 비대칭이었다. 새 헬퍼 `removeSourcesForDocument`가 `onDidSaveTextDocument` 시점에 sources 기반 ground-truth 재계산을 수행: (a) sources에 현재 문서 basename이 있고 그 (type, id)가 더 이상 정의되지 않으면 sources에서 해당 basename 제거, (b) sources가 비면 record 자체를 JSON에서 삭제. 정리된 sample은 `Removed from sample tree: ...` 토스트로 안내 — 1~3개는 id 나열, 4개 이상은 요약 카운트 ([src/lib/sampleStorage.ts](src/lib/sampleStorage.ts), [src/commands/utilityCommands.ts](src/commands/utilityCommands.ts))
+- **자동 삭제 안전 가드**: (1) `record.sources` 가 원래 비어 있는 record (트리뷰에서 Add Sample 으로 직접 만든, 아직 markdown에 안 쓰인 entry)는 자동 삭제 대상에서 제외 — 다른 markdown을 저장해도 사라지지 않음. (2) sources에 다른 markdown이 남아 있으면 그 문서의 basename만 그대로 두고 record는 유지. (3) workspace root가 실험 폴더라 local/global 경로가 일치하는 경우 한 번만 처리해 알림 중복 회피
+
+### Added
+- **신규 단위 테스트 2종 14건**: `sampleStorage.removeSourcesForDocument.test.ts`(8건) — 토큰 남아있을 때 보존, 다른 sources의 문서 존재 시 sources에서만 제거, 현재 문서가 유일한 sources일 때 record 삭제, sources 빈 record 보호, local/global 동시 처리, local==global 경로 중복 처리 회피, customTypes 처리, 폴더 부재 시 no-op. `utilityCommands.orphanCleanup.test.ts`(6건) — 저장 훅이 `removeSourcesForDocument`를 호출하고 토스트/refresh/broadcast를 분기 처리하는지, non-markdown 문서는 무시하는지, `showOrphanRemovedNotice`가 0/2/5건에 대해 올바른 메시지를 내는지 검증
+
 ## [0.55.1] - 2026-05-19
 
 ### Fixed

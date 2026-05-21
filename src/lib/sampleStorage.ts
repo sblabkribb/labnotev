@@ -414,6 +414,112 @@ export function saveSamplesFromDocument(
 }
 
 /**
+ * Identifies a record that was auto-removed from the sample tree by
+ * `removeSourcesForDocument`. Returned to the caller so it can surface a
+ * notification (e.g. "Removed from sample tree: DNA-001, RNA-002").
+ */
+export interface RemovedSampleRef {
+  scope: 'local' | 'global';
+  type: string;
+  id: string;
+}
+
+/**
+ * Reconcile a document's `@type;id;...` definitions against the on-disk
+ * sample JSONs. For every record whose `sources` includes this document's
+ * basename:
+ *  - drop the basename if the document no longer defines (type, id),
+ *  - if `sources` becomes empty as a result (and was non-empty before),
+ *    delete the record entirely.
+ *
+ * Records that started with empty `sources` (e.g. user-created via the
+ * tree's Add Sample command before they have been written into any
+ * document) are NEVER touched here. That is what stops a freshly added
+ * sample from disappearing as soon as the user saves an unrelated file.
+ *
+ * Both the document's local labsamples folder and the optional global
+ * folder are processed; if both paths resolve to the same directory
+ * (e.g. workspaceRoot is the experiment folder, mirroring
+ * `saveSamplesFromDocument`'s `skipGlobalDedupe` guard) the global pass
+ * is skipped so removed entries are not reported twice.
+ *
+ * Returns the records that were removed so the caller can surface a toast.
+ */
+export function removeSourcesForDocument(
+  documentPath: string,
+  documentText: string,
+  globalLabsamplesFolder?: string,
+  additionalTypes?: string[]
+): RemovedSampleRef[] {
+  const localFolder = getLabsamplesFolder(documentPath);
+  const documentBasename = path.basename(documentPath);
+
+  // Set of "type|id" pairs still defined in the document. Anything *not*
+  // in this set is a candidate for source removal in scopes whose existing
+  // record has this document listed as a source.
+  const liveDefs = new Set<string>();
+  for (const sample of extractSampleInfoFromText(documentText, additionalTypes)) {
+    liveDefs.add(`${sample.type}|${sample.id}`);
+  }
+
+  const allTypes: string[] = [
+    ...SAMPLE_TYPES,
+    ...(additionalTypes ?? []).filter(
+      (t) => !(SAMPLE_TYPES as readonly string[]).includes(t)
+    ),
+  ];
+
+  // Mirror saveSamplesFromDocument's skipGlobalDedupe logic so we don't
+  // process the same folder twice and double-report removals.
+  const localResolved = path.resolve(localFolder).toLowerCase();
+  const globalResolved = globalLabsamplesFolder
+    ? path.resolve(globalLabsamplesFolder).toLowerCase()
+    : '';
+  const scopes: Array<{ scope: 'local' | 'global'; folder: string }> = [
+    { scope: 'local', folder: localFolder },
+  ];
+  if (globalLabsamplesFolder && globalResolved !== localResolved) {
+    scopes.push({ scope: 'global', folder: globalLabsamplesFolder });
+  }
+
+  const removed: RemovedSampleRef[] = [];
+
+  for (const { scope, folder } of scopes) {
+    if (!fs.existsSync(folder)) continue;
+
+    for (const type of allTypes) {
+      const samples = loadSamplesByType(folder, type);
+      let mutated = false;
+
+      for (const id of Object.keys(samples)) {
+        const record = samples[id];
+        // Guard: tree-created records (sources === []) are off-limits to
+        // automatic cleanup. They only exist in the tree until a markdown
+        // file defines them, and silently deleting them on save would
+        // erase data the user explicitly entered through the UI.
+        if (record.sources.length === 0) continue;
+        if (!record.sources.includes(documentBasename)) continue;
+        if (liveDefs.has(`${type}|${id}`)) continue;
+
+        record.sources = record.sources.filter((s) => s !== documentBasename);
+        mutated = true;
+
+        if (record.sources.length === 0) {
+          delete samples[id];
+          removed.push({ scope, type, id });
+        }
+      }
+
+      if (mutated) {
+        saveSamplesByType(folder, type, samples);
+      }
+    }
+  }
+
+  return removed;
+}
+
+/**
  * Parse YAML front matter and check if Sample Tracking is enabled
  * Supports key formats: "Sample Tracking", "sampleTracking", "sample-tracking"
  * Supports values: Yes/No, true/false, on/off, 1/0 (case-insensitive)

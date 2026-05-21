@@ -11,7 +11,12 @@ import {
 import { sampleDecorations, getDecoration } from '../lib/sampleDecorations';
 import { ImagePreviewPanel } from '../views/ImagePreviewPanel';
 import { ImageLinkProvider } from '../lib/imageLinkProvider';
-import { saveSamplesFromDocument, getGlobalLabsamplesFolder } from '../lib/sampleStorage';
+import {
+  saveSamplesFromDocument,
+  getGlobalLabsamplesFolder,
+  removeSourcesForDocument,
+  RemovedSampleRef,
+} from '../lib/sampleStorage';
 import { SampleTreeViewProvider } from '../views/SampleTreeViewProvider';
 import { findResourcesFolder, ensureResourcesFolder, saveSampleToResources } from '../lib/dataLoader';
 import { showProductPicker } from '../lib/productPicker';
@@ -413,7 +418,21 @@ export function registerUtilityCommands(
         const workspaceRoot = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath;
         const globalLabsamplesFolder = workspaceRoot ? getGlobalLabsamplesFolder(workspaceRoot) : undefined;
         const customTypes = vscode.workspace.getConfiguration('labnotev').get<string[]>('customSampleTypes', []);
-        saveSamplesFromDocument(document.uri.fsPath, document.getText(), globalLabsamplesFolder, customTypes);
+        const text = document.getText();
+        saveSamplesFromDocument(document.uri.fsPath, text, globalLabsamplesFolder, customTypes);
+        // Reconcile the other direction: any sample whose definition was
+        // *removed* from this document since the last save is dropped from
+        // the tree (when no other document still references it). Tree-only
+        // records (sources === []) are protected, see removeSourcesForDocument.
+        const removed = removeSourcesForDocument(
+          document.uri.fsPath,
+          text,
+          globalLabsamplesFolder,
+          customTypes
+        );
+        if (removed.length > 0) {
+          showOrphanRemovedNotice(removed);
+        }
         sampleTreeProvider.refresh();
         sectionEditorProvider?.broadcastSampleDefsUpdated();
       } catch (error) {
@@ -425,5 +444,31 @@ export function registerUtilityCommands(
   // Apply highlights to current active editor
   if (vscode.window.activeTextEditor && vscode.window.activeTextEditor.document.languageId === 'markdown') {
     applySampleIdHighlights(vscode.window.activeTextEditor);
+  }
+}
+
+/**
+ * Surface a one-line toast describing samples that
+ * `removeSourcesForDocument` just dropped from the tree.
+ *
+ * Up to three ids are listed verbatim so the user can recognise what
+ * vanished; larger batches collapse into a count to avoid an unreadably
+ * long message. The branch is exported via the file scope so unit tests
+ * can call it directly; it is not part of the extension's public API.
+ */
+export function showOrphanRemovedNotice(removed: RemovedSampleRef[]): void {
+  if (removed.length === 0) return;
+  if (removed.length <= 3) {
+    const ids = removed.map(r => r.id).join(', ');
+    vscode.window.showInformationMessage(
+      vscode.l10n.t('Removed from sample tree: {0}', ids)
+    );
+  } else {
+    vscode.window.showInformationMessage(
+      vscode.l10n.t(
+        'Removed {0} samples from sample tree (no longer defined in any document)',
+        removed.length
+      )
+    );
   }
 }
