@@ -5,6 +5,16 @@
 형식은 [Keep a Changelog](https://keepachangelog.com/ko/1.1.0/)를 기반으로 하며,
 이 프로젝트는 [유의적 버전 관리](https://semver.org/lang/ko/)를 따릅니다.
 
+## [0.55.3] - 2026-05-22
+
+### Removed
+- **Workflow TreeView의 미사용 Edit/Delete 명령 4종 제거**: 사용자가 실제로 사용하지 않는다고 명시한 `labnotev.editWorkflowItem` / `labnotev.deleteWorkflowItem` / `labnotev.editUnitOperation` / `labnotev.deleteUnitOperation` 4개 명령을 매니페스트 등록(`contributes.commands` 4 entry + `view/item/context` 4 entry)과 핸들러 본체에서 모두 제거. Workflow 트리뷰 우클릭 메뉴와 명령 팔레트에서 `Labnote: Edit/Delete Workflow` · `Labnote: Edit/Delete Unit Operation` 항목이 더 이상 노출되지 않음. `Add Workflow`, `Create Workflow`, `Insert Unit Operation`, `Add Unit Operation`, `Rename Workflow` 등 실사용 명령은 그대로 유지 ([package.json](package.json), [src/commands/workflowCommands.ts](src/commands/workflowCommands.ts))
+- **연관 dead code 정리**: 위 4개 명령에서만 호출되던 `updateWorkflow` / `deleteWorkflow` / `updateUnitOperation` / `deleteUnitOperation` 라이브러리 함수와 그 단위 테스트 5건(`workflowDataLoader.test.ts`의 4개 describe)을 함께 제거 — 더 이상 호출 경로가 없는 사실상 dead code였음. `loadWorkflows` / `saveWorkflows` / `addWorkflow` / `searchWorkflows` 등 add/insert/search 흐름에서 계속 쓰이는 export는 그대로 유지 ([src/lib/workflowDataLoader.ts](src/lib/workflowDataLoader.ts), [src/__tests__/workflowDataLoader.test.ts](src/__tests__/workflowDataLoader.test.ts))
+- **dead l10n 키 4건 정리**: 위 핸들러 제거로 사용처가 사라진 `Workflow updated: {0}` / `Workflow deleted: {0}` / `Unit operation updated: {0}` / `Unit operation deleted: {0}` 4개 한국어 번역 키를 [l10n/bundle.l10n.ko.json](l10n/bundle.l10n.ko.json)에서 삭제. 다른 핸들러와 공유되는 `Enter a new description` / `Are you sure you want to delete {0}?` 등 공용 문구는 보존
+
+### Notes
+- 회귀: 루트 vitest 42 파일 / 505 테스트 전부 통과(이전 510에서 dead 함수 테스트 5건이 정상 감소). webview-section은 사전 flake 9건(v0.55.2 베이스라인)이 동일하게 유지되어 신규 회귀 없음. `tsc --noEmit` 통과
+
 ## [0.55.2] - 2026-05-22
 
 ### Fixed

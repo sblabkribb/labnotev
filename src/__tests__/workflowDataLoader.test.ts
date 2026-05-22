@@ -1,7 +1,8 @@
 /**
  * Tests for workflowDataLoader
  * Handles loading, saving, and copying workflow/unit operation JSON files
- */import * as fs from 'fs';
+ */
+import * as fs from 'fs';
 import * as path from 'path';
 
 // Mock fs module
@@ -324,47 +325,6 @@ describe('workflowDataLoader', () => {
     });
   });
 
-  describe('updateWorkflow', () => {
-    it('should update an existing workflow', async () => {
-      const { loadWorkflows, updateWorkflow } = await import('../lib/workflowDataLoader');
-      
-      vi.mocked(fs.existsSync).mockReturnValue(true);
-      vi.mocked(fs.readFileSync).mockReturnValue(JSON.stringify(mockWorkflowsJson));
-      
-      const data = loadWorkflows('/workspace');
-      const updated = updateWorkflow(data, 'WD010', { name: 'Updated Name' });
-      
-      expect(updated.workflows.find(w => w.id === 'WD010')?.name).toBe('Updated Name');
-    });
-
-    it('should return unchanged data if workflow not found', async () => {
-      const { loadWorkflows, updateWorkflow } = await import('../lib/workflowDataLoader');
-      
-      vi.mocked(fs.existsSync).mockReturnValue(true);
-      vi.mocked(fs.readFileSync).mockReturnValue(JSON.stringify(mockWorkflowsJson));
-      
-      const data = loadWorkflows('/workspace');
-      const updated = updateWorkflow(data, 'WD999', { name: 'Updated Name' });
-      
-      expect(updated).toEqual(data);
-    });
-  });
-
-  describe('deleteWorkflow', () => {
-    it('should delete a workflow from the list', async () => {
-      const { loadWorkflows, deleteWorkflow } = await import('../lib/workflowDataLoader');
-      
-      vi.mocked(fs.existsSync).mockReturnValue(true);
-      vi.mocked(fs.readFileSync).mockReturnValue(JSON.stringify(mockWorkflowsJson));
-      
-      const data = loadWorkflows('/workspace');
-      const updated = deleteWorkflow(data, 'WD010');
-      
-      expect(updated.workflows).toHaveLength(1);
-      expect(updated.workflows.find(w => w.id === 'WD010')).toBeUndefined();
-    });
-  });
-
   describe('addUnitOperation', () => {
     it('should add a new HW unit operation', async () => {
       const { loadUnitOperations, addUnitOperation } = await import('../lib/workflowDataLoader');
@@ -384,35 +344,6 @@ describe('workflowDataLoader', () => {
       
       expect(updated.unitOperations).toHaveLength(3);
       expect(updated.unitOperations.find(op => op.id === 'UHW030')).toBeDefined();
-    });
-  });
-
-  describe('updateUnitOperation', () => {
-    it('should update an existing unit operation', async () => {
-      const { loadUnitOperations, updateUnitOperation } = await import('../lib/workflowDataLoader');
-      
-      vi.mocked(fs.existsSync).mockReturnValue(true);
-      vi.mocked(fs.readFileSync).mockReturnValue(JSON.stringify(mockHwUnitOpsJson));
-      
-      const data = loadUnitOperations('/workspace', 'hw');
-      const updated = updateUnitOperation(data, 'UHW010', { name: 'Updated Name' });
-      
-      expect(updated.unitOperations.find(op => op.id === 'UHW010')?.name).toBe('Updated Name');
-    });
-  });
-
-  describe('deleteUnitOperation', () => {
-    it('should delete a unit operation from the list', async () => {
-      const { loadUnitOperations, deleteUnitOperation } = await import('../lib/workflowDataLoader');
-      
-      vi.mocked(fs.existsSync).mockReturnValue(true);
-      vi.mocked(fs.readFileSync).mockReturnValue(JSON.stringify(mockHwUnitOpsJson));
-      
-      const data = loadUnitOperations('/workspace', 'hw');
-      const updated = deleteUnitOperation(data, 'UHW010');
-      
-      expect(updated.unitOperations).toHaveLength(1);
-      expect(updated.unitOperations.find(op => op.id === 'UHW010')).toBeUndefined();
     });
   });
 

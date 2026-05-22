@@ -292,42 +292,6 @@ export function addWorkflow(
 }
 
 /**
- * Update an existing workflow
- */
-export function updateWorkflow(
-  data: WorkflowJson,
-  id: string,
-  updates: Partial<Omit<WorkflowItem, 'id'>>
-): WorkflowJson {
-  const index = data.workflows.findIndex(w => w.id === id);
-  
-  if (index === -1) {
-    return data;
-  }
-  
-  const updatedWorkflows = [...data.workflows];
-  updatedWorkflows[index] = {
-    ...updatedWorkflows[index],
-    ...updates,
-  };
-  
-  return {
-    ...data,
-    workflows: updatedWorkflows,
-  };
-}
-
-/**
- * Delete a workflow
- */
-export function deleteWorkflow(data: WorkflowJson, id: string): WorkflowJson {
-  return {
-    ...data,
-    workflows: data.workflows.filter(w => w.id !== id),
-  };
-}
-
-/**
  * Add a new unit operation
  */
 export function addUnitOperation(
@@ -337,45 +301,6 @@ export function addUnitOperation(
   return {
     ...data,
     unitOperations: [...data.unitOperations, operation],
-  };
-}
-
-/**
- * Update an existing unit operation
- */
-export function updateUnitOperation(
-  data: UnitOperationJson,
-  id: string,
-  updates: Partial<Omit<UnitOperationItem, 'id'>>
-): UnitOperationJson {
-  const index = data.unitOperations.findIndex(op => op.id === id);
-  
-  if (index === -1) {
-    return data;
-  }
-  
-  const updatedOperations = [...data.unitOperations];
-  updatedOperations[index] = {
-    ...updatedOperations[index],
-    ...updates,
-  };
-  
-  return {
-    ...data,
-    unitOperations: updatedOperations,
-  };
-}
-
-/**
- * Delete a unit operation
- */
-export function deleteUnitOperation(
-  data: UnitOperationJson,
-  id: string
-): UnitOperationJson {
-  return {
-    ...data,
-    unitOperations: data.unitOperations.filter(op => op.id !== id),
   };
 }
 
