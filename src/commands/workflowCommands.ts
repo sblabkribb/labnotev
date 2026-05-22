@@ -12,11 +12,7 @@ import {
   saveWorkflows,
   saveUnitOperations,
   addWorkflow as addWorkflowToJson,
-  updateWorkflow,
-  deleteWorkflow,
   addUnitOperation as addUnitOpToJson,
-  updateUnitOperation,
-  deleteUnitOperation,
   generateNextWorkflowId,
   generateNextUnitOpId,
   WorkflowItem,
@@ -212,64 +208,6 @@ export function registerWorkflowCommands(
     })
   );
 
-  // Register edit workflow item command
-  context.subscriptions.push(
-    vscode.commands.registerCommand('labnotev.editWorkflowItem', async (item: WorkflowTreeItem) => {
-      if (!item || item.itemType !== WorkflowTreeItemType.Workflow) {
-        return;
-      }
-
-      const newName = await vscode.window.showInputBox({
-        prompt: vscode.l10n.t('Enter a new name'),
-        value: item.workflowName,
-      });
-
-      if (newName === undefined) return;
-
-      const newDescription = await vscode.window.showInputBox({
-        prompt: vscode.l10n.t('Enter a new description'),
-        value: item.workflowDescription,
-      });
-
-      if (newDescription === undefined) return;
-
-      const data = loadWorkflowsFromJson(workflowTreeProvider.getWorkspaceRoot());
-      const updated = updateWorkflow(data, item.workflowId!, {
-        name: newName,
-        description: newDescription,
-      });
-      saveWorkflows(workflowTreeProvider.getWorkspaceRoot(), updated);
-      workflowTreeProvider.refresh();
-
-      vscode.window.showInformationMessage(vscode.l10n.t('Workflow updated: {0}', item.workflowId ?? ''));
-    })
-  );
-
-  // Register delete workflow item command
-  context.subscriptions.push(
-    vscode.commands.registerCommand('labnotev.deleteWorkflowItem', async (item: WorkflowTreeItem) => {
-      if (!item || item.itemType !== WorkflowTreeItemType.Workflow) {
-        return;
-      }
-
-      const deleteLabel = vscode.l10n.t('Delete');
-      const confirm = await vscode.window.showWarningMessage(
-        vscode.l10n.t('Are you sure you want to delete {0}?', item.workflowId ?? ''),
-        { modal: true },
-        deleteLabel
-      );
-
-      if (confirm === deleteLabel) {
-        const data = loadWorkflowsFromJson(workflowTreeProvider.getWorkspaceRoot());
-        const updated = deleteWorkflow(data, item.workflowId!);
-        saveWorkflows(workflowTreeProvider.getWorkspaceRoot(), updated);
-        workflowTreeProvider.refresh();
-
-        vscode.window.showInformationMessage(vscode.l10n.t('Workflow deleted: {0}', item.workflowId ?? ''));
-      }
-    })
-  );
-
   // Register add workflow item command
   context.subscriptions.push(
     vscode.commands.registerCommand('labnotev.addWorkflowItem', async (item: WorkflowTreeItem) => {
@@ -394,66 +332,6 @@ export function registerWorkflowCommands(
       vscode.window.showInformationMessage(
         vscode.l10n.t('Unit operation inserted: {0} {1}', opId, opName)
       );
-    })
-  );
-
-  // Register edit unit operation command
-  context.subscriptions.push(
-    vscode.commands.registerCommand('labnotev.editUnitOperation', async (item: WorkflowTreeItem) => {
-      if (!item || item.itemType !== WorkflowTreeItemType.UnitOperation) {
-        return;
-      }
-
-      const newName = await vscode.window.showInputBox({
-        prompt: vscode.l10n.t('Enter a new name'),
-        value: item.opName,
-      });
-
-      if (newName === undefined) return;
-
-      const newDescription = await vscode.window.showInputBox({
-        prompt: vscode.l10n.t('Enter a new description'),
-        value: item.opDescription,
-      });
-
-      if (newDescription === undefined) return;
-
-      const opType = item.opType!;
-      const data = loadUnitOpsFromJson(workflowTreeProvider.getWorkspaceRoot(), opType);
-      const updated = updateUnitOperation(data, item.opId!, {
-        name: newName,
-        description: newDescription,
-      });
-      saveUnitOperations(workflowTreeProvider.getWorkspaceRoot(), opType, updated);
-      workflowTreeProvider.refresh();
-
-      vscode.window.showInformationMessage(vscode.l10n.t('Unit operation updated: {0}', item.opId ?? ''));
-    })
-  );
-
-  // Register delete unit operation command
-  context.subscriptions.push(
-    vscode.commands.registerCommand('labnotev.deleteUnitOperation', async (item: WorkflowTreeItem) => {
-      if (!item || item.itemType !== WorkflowTreeItemType.UnitOperation) {
-        return;
-      }
-
-      const deleteLabel = vscode.l10n.t('Delete');
-      const confirm = await vscode.window.showWarningMessage(
-        vscode.l10n.t('Are you sure you want to delete {0}?', item.opId ?? ''),
-        { modal: true },
-        deleteLabel
-      );
-
-      if (confirm === deleteLabel) {
-        const opType = item.opType!;
-        const data = loadUnitOpsFromJson(workflowTreeProvider.getWorkspaceRoot(), opType);
-        const updated = deleteUnitOperation(data, item.opId!);
-        saveUnitOperations(workflowTreeProvider.getWorkspaceRoot(), opType, updated);
-        workflowTreeProvider.refresh();
-
-        vscode.window.showInformationMessage(vscode.l10n.t('Unit operation deleted: {0}', item.opId ?? ''));
-      }
     })
   );
 

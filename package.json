@@ -2,7 +2,7 @@
   "name": "labnotev",
   "displayName": "Labnote Assistant",
   "description": "Markdown-based lab notebook with sample tracking, workflow checklists, and a structured Section Editor for biology and bioinformatics experiments.",
-  "version": "0.55.2",
+  "version": "0.55.3",
   "license": "MIT",
   "publisher": "korea-biofoundry",
   "icon": "resources/icons/labnotev-128.png",
@@ -181,16 +181,6 @@
         "icon": "$(new-file)"
       },
       {
-        "command": "labnotev.editWorkflowItem",
-        "title": "Labnote: Edit Workflow",
-        "icon": "$(edit)"
-      },
-      {
-        "command": "labnotev.deleteWorkflowItem",
-        "title": "Labnote: Delete Workflow",
-        "icon": "$(trash)"
-      },
-      {
         "command": "labnotev.renameWorkflow",
         "title": "Labnote: Rename Workflow"
       },
@@ -203,16 +193,6 @@
         "command": "labnotev.insertUnitOperation",
         "title": "Labnote: Insert Unit Operation",
         "icon": "$(insert)"
-      },
-      {
-        "command": "labnotev.editUnitOperation",
-        "title": "Labnote: Edit Unit Operation",
-        "icon": "$(edit)"
-      },
-      {
-        "command": "labnotev.deleteUnitOperation",
-        "title": "Labnote: Delete Unit Operation",
-        "icon": "$(trash)"
       },
       {
         "command": "labnotev.addUnitOperationItem",
@@ -334,16 +314,6 @@
           "group": "inline"
         },
         {
-          "command": "labnotev.editWorkflowItem",
-          "when": "view == labnotev.workflowTreeView && viewItem == workflow",
-          "group": "1_modify@1"
-        },
-        {
-          "command": "labnotev.deleteWorkflowItem",
-          "when": "view == labnotev.workflowTreeView && viewItem == workflow",
-          "group": "2_delete"
-        },
-        {
           "command": "labnotev.addWorkflowItem",
           "when": "view == labnotev.workflowTreeView && viewItem == category",
           "group": "1_modify"
@@ -352,16 +322,6 @@
           "command": "labnotev.insertUnitOperation",
           "when": "view == labnotev.workflowTreeView && viewItem == unitOperation",
           "group": "inline"
-        },
-        {
-          "command": "labnotev.editUnitOperation",
-          "when": "view == labnotev.workflowTreeView && viewItem == unitOperation",
-          "group": "1_modify@1"
-        },
-        {
-          "command": "labnotev.deleteUnitOperation",
-          "when": "view == labnotev.workflowTreeView && viewItem == unitOperation",
-          "group": "2_delete"
         },
         {
           "command": "labnotev.addUnitOperationItem",
