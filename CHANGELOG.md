@@ -5,6 +5,19 @@
 형식은 [Keep a Changelog](https://keepachangelog.com/ko/1.1.0/)를 기반으로 하며,
 이 프로젝트는 [유의적 버전 관리](https://semver.org/lang/ko/)를 따릅니다.
 
+## [0.56.0] - 2026-05-22
+
+### Added
+- **Section Editor 텍스트 선택 → VS Code Chat으로 보내기**: 모든 `HighlightedTextarea`(Lab Note 모드의 Experiment Objective·Results·Summary 영역과 Workflow 모드의 모든 UnitOp 섹션 textarea)에서 드래그로 텍스트를 선택하면 selection-end caret 우측 상단에 작은 "Send selection to Chat" floating `ActionIcon`이 표시됨. 버튼 클릭 또는 textarea 포커스 상태에서 `Ctrl+Alt+L` (macOS: `Cmd+Alt+L`) 단축키로 VS Code Chat 패널을 prefill된 상태로 열 수 있음. 단축키 hint는 버튼 `title`에만 노출되고 `contributes.keybindings`는 등록하지 않아 VS Code 기본 keybinding과 충돌 가능성을 0으로 유지함 ([webview-section/src/components/HighlightedTextarea.tsx](webview-section/src/components/HighlightedTextarea.tsx))
+- **Chat prompt에 `#file:` reference variable과 메타 라인 자동 첨부**: 새 `SectionEditorProvider.handleSendSelectionToChat`이 (1) `vscode.workspace.asRelativePath(document.uri, false)`로 첫 줄에 `#file:<relativePath>`를 넣어 Chat이 **현재 노트 전체 파일**을 참조 변수로 자동 첨부하도록 하고, (2) 둘째 메타 라인에 `Selected from <fileBaseName> / UnitOp <opId> / Section "<heading>":` 형태로 호출 위치 정보를 명시한 뒤, (3) selection 텍스트를 세 backtick 펜스로 감싸 prompt를 조립함. 마지막으로 `workbench.action.chat.open`을 `isPartialQuery: true`로 호출해 Chat 입력창에 prefill만 하고 사용자가 질문을 마저 입력한 뒤 직접 Enter를 누르도록 제어권을 넘김. Chat이 비활성화된 환경에서는 `Failed to open Chat. Ensure VS Code Chat is enabled.` 토스트로 안내(한국어 번역 포함) ([src/sectionEditorProvider.ts](src/sectionEditorProvider.ts), [l10n/bundle.l10n.ko.json](l10n/bundle.l10n.ko.json))
+- **호출 컨텍스트 전달용 평탄 props 2개**: `HighlightedTextarea`에 `chatContextOpId?: string` / `chatContextSectionHeading?: string`을 추가하고 `UnitOpAccordion`(opId + section heading 모두 전달) · `SectionEditor`(section heading만 전달) 호출처에서 평탄한 string 형태로 주입. 객체 prop이 매 render마다 새 ref가 되어 `React.memo`가 깨지는 회귀를 피하기 위해 의도적으로 평탄 string 두 개로 분리 ([webview-section/src/components/UnitOpAccordion.tsx](webview-section/src/components/UnitOpAccordion.tsx), [webview-section/src/components/SectionEditor.tsx](webview-section/src/components/SectionEditor.tsx))
+- **신규 단위 테스트 2종 10건**: `HighlightedTextarea.sendToChat.test.tsx`(6건) — selection 없을 때 버튼 미렌더, 버튼 클릭 시 `postMessage` 페이로드, `Ctrl+Alt+L` 단축키 페이로드 + 외부 `onKeyDown`에 위임하지 않음, 빈 selection에서 단축키 무시, 단축키 외 키는 외부 `onKeyDown`으로 그대로 위임, 버튼 `mousedown`의 `defaultPrevented`(focus·selection 유지 보장) 검증. `sectionEditorProvider.sendSelectionToChat.test.ts`(4건) — prompt 5줄 구조(`#file:` / 메타 라인 / 펜스 / selection / 펜스), `chatContextOpId`·`chatContextSectionHeading` 미전달 시 메타 라인이 `Selected from <fileBaseName>:`만 포함, 빈/공백 selection no-op, `executeCommand` reject 시 l10n 토스트 1회 호출 검증
+
+### Notes
+- 단축키 처리 위치: webview 내부 textarea `onKeyDown` wrapper에서만 처리. `package.json contributes.keybindings`에는 등록하지 않음 (외부 충돌 가능성 0). selection floating 버튼은 `onMouseDown={(e) => e.preventDefault()}`로 textarea의 blur를 차단해 클릭 시 selection·focus를 안정적으로 유지
+- 회귀: 루트 vitest 43 파일 / 509 테스트 통과 (이전 베이스라인 42/505 → 신규 1 파일 + 4 테스트). webview-section은 17 통과 / 9 사전 flake(`App.test.tsx` 3건, `FrontMatterForm.test.tsx` 2건, `SampleHighlighter.test.tsx` 4건, `resolveInsertPosition.test.ts`)가 베이스라인 그대로 유지 — 신규 `HighlightedTextarea.sendToChat.test.tsx` 6건은 모두 그린. `npx tsc --noEmit`은 루트에서 통과, webview-section은 사전 베이스라인 에러 2건(`DateTimeField.tsx`, `App.test.tsx` — 이번 변경과 무관)만 잔존
+- 비포함(별도 단계): Chat Participant `@labnotev` 등록 / Language Model Tools API / 우클릭 컨텍스트 메뉴 커스터마이즈 / Chat 모드(`agent`/`edit`) 강제 — 기본 ask 모드 사용
+
 ## [0.55.3] - 2026-05-22
 
 ### Removed

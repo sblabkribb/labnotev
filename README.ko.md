@@ -1,6 +1,6 @@
 # Labnote Assistant (LabnoteV)
 
-**v0.55.3** · [English → README.md](README.md)
+**v0.56.0** · [English → README.md](README.md)
 
 VS Code에서 실험 노트를 마크다운으로 작성할 수 있도록 돕는 확장입니다. `.labnote.md` 파일을 Section Editor(웹뷰 기반 구조화 편집기)로 열어 Front Matter 폼, 워크플로 체크리스트, 유닛 오퍼레이션 아코디언, 샘플 정의 버튼, 이미지 붙여넣기/썸네일 등 실험 기록에 최적화된 UI를 제공합니다.
 
@@ -110,6 +110,7 @@ VS Code에서 실험 노트를 마크다운으로 작성할 수 있도록 돕는
   - 정렬 버튼으로 테이블 컬럼 자동 정렬 (한글 등 CJK 문자 너비 고려)
 - **Tab 들여쓰기 / Shift+Tab 내어쓰기**: 테이블 외 영역에서 Tab은 2 공백 들여쓰기, Shift+Tab은 줄 시작 공백을 최대 2칸 제거. 여러 줄을 선택한 상태에서 Tab/Shift+Tab을 누르면 모든 줄에 일괄 적용됨 (마크다운 리스트 들여쓰기에 그대로 사용 가능)
   - 컬럼 정렬은 **툴바의 정렬 버튼**으로만 실행합니다(정렬 전용 키보드 단축키는 없음)
+- **Chat으로 선택 보내기** (v0.56.0+): Section Editor의 어떤 textarea에서든 — Lab Note 모드(Experiment Objective, Results & Discussion, Summary and Discussion)와 Workflow 모드의 모든 UnitOp 섹션 — 드래그로 텍스트를 선택하면 selection 우측 상단에 작은 "Send selection to Chat" 플로팅 버튼이 나타남. 버튼을 클릭하거나 textarea 포커스 상태에서 `Ctrl+Alt+L` (macOS: `Cmd+Alt+L`)을 누르면 VS Code Chat 패널이 prefill된 상태로 열림. prompt에는 (1) 현재 파일을 `#file:` reference variable로 자동 첨부, (2) 출처 메타 라인(`Selected from <파일명> / UnitOp <opId> / Section "<heading>":`), (3) 펜스로 감싼 선택 텍스트가 포함됨. `isPartialQuery: true`로 동작해 사용자가 질문(예: "summarize", "rewrite as bullet points")을 마저 입력한 뒤 직접 Enter로 전송. 단축키는 webview 내부에서만 처리되고 `contributes.keybindings`에는 등록하지 않아 다른 `Ctrl/Cmd+Alt+L` 키바인딩과 충돌하지 않음
 - **다크 모드**: 에디터 오른쪽 상단의 달/해 아이콘으로 다크/라이트 모드 전환 (설정은 자동 저장)
 - **텍스트로 열기**: 상단 버튼으로 원본 마크다운을 VS Code 텍스트 에디터로 열기
 - **에디터 3-way 전환 버튼**: 에디터 타이틀 바 오른쪽 상단에서 Text Editor, Section Editor, Preview 간 전환 가능

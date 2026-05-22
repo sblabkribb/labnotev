@@ -208,6 +208,8 @@ const UnitOpSectionTextarea = memo(function UnitOpSectionTextarea({
         sampleTypeColors={sampleTypeColors}
         sampleDefs={sampleDefs}
         requestFocusAt={requestFocusAt}
+        chatContextOpId={op.opId}
+        chatContextSectionHeading={rawHeading}
       />
       {docBaseUri && <ImageThumbnails content={content} docBaseUri={docBaseUri} />}
       <AttachmentLinks content={content} />

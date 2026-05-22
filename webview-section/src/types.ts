@@ -139,4 +139,12 @@ export type WebviewToExtensionMessage =
   | { type: 'openAttachment'; data: { path: string } }
   | { type: 'copyUnitOp'; data: { payload: string } }
   | { type: 'requestPasteUnitOp'; data: { afterOpIndex: number } }
-  | { type: 'queryClipboardState' };
+  | { type: 'queryClipboardState' }
+  | {
+      type: 'sendSelectionToChat';
+      data: {
+        selectedText: string;
+        chatContextOpId?: string;
+        chatContextSectionHeading?: string;
+      };
+    };

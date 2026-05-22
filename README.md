@@ -1,6 +1,6 @@
 # Labnote Assistant (LabnoteV)
 
-**v0.55.3** · [한국어 → README.ko.md](README.ko.md)
+**v0.56.0** · [한국어 → README.ko.md](README.ko.md)
 
 A VS Code extension that helps you write experiment notes in Markdown. It opens `.labnote.md` files in a webview-based Section Editor, providing a UI optimized for lab note keeping — Front Matter forms, workflow checklists, unit operation accordions, sample definition buttons, clipboard image paste/thumbnails, and more.
 
@@ -110,6 +110,7 @@ When you open a `.labnote.md` file, the Section Editor is shown automatically. I
   - The align button auto-aligns columns (CJK widths considered).
 - **Tab indent / Shift+Tab outdent**: outside of tables, Tab inserts 2 spaces and Shift+Tab removes up to 2 leading spaces. Selecting multiple lines applies the operation to all selected lines (useful for Markdown list indentation).
   - Column alignment is triggered only via the **toolbar align button** (there is no dedicated keyboard shortcut).
+- **Send selection to Chat** (v0.56.0+): drag-select text in any Section Editor textarea — including Lab Note mode (Experiment Objective, Results & Discussion, Summary and Discussion) and every UnitOp section in Workflow mode — and a small floating "Send selection to Chat" button appears next to the selection. Clicking the button (or pressing `Ctrl+Alt+L` / `Cmd+Alt+L` while the textarea is focused) opens the VS Code Chat panel with a prompt that includes the current file as a `#file:` reference variable, a meta line identifying the source section (UnitOp ID and section heading when applicable), and the selected text in a fenced code block. `isPartialQuery: true` is used so you can append your question (e.g. "summarize", "rewrite as bullet points") and submit manually. The shortcut is intentionally handled inside the webview only and not registered as a VS Code keybinding, so it cannot collide with the user's other Ctrl/Cmd+Alt+L bindings.
 - **Dark mode**: toggle dark/light via the moon/sun icon (auto-saved).
 - **Open as text**: a top-bar button opens the raw Markdown in VS Code's text editor.
 - **3-way editor switcher**: top-right buttons switch between Text Editor, Section Editor, and Preview.

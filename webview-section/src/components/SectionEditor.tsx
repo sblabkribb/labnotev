@@ -106,6 +106,7 @@ export function SectionEditor({
           sampleTypeColors={sampleTypeColors}
           sampleDefs={sampleDefs}
           requestFocusAt={requestFocusAt}
+          chatContextSectionHeading={heading}
         />
         {docBaseUri && <ImageThumbnails content={content} docBaseUri={docBaseUri} />}
         <AttachmentLinks content={content} />

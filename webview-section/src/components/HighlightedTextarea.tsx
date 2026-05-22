@@ -1,7 +1,9 @@
 import { forwardRef, memo, useCallback, useEffect, useImperativeHandle, useRef, useState } from 'react';
+import { ActionIcon } from '@mantine/core';
 import { SampleHighlighter, highlightSampleIds } from './SampleHighlighter';
 import type { SampleDefMap } from '../types';
 import { getTextareaCaretRect, scrollCaretIntoView } from '../utils/caretPosition';
+import { postMessage } from '../vscodeApi';
 
 /**
  * Auto-resize the textarea to fit its content while preserving the outer
@@ -62,6 +64,35 @@ export interface HighlightedTextareaProps {
    */
   requestFocusAt?: { pos: number; tick: number; scroll?: 'none' | 'nearest' | 'center' } | null;
   ariaLabel?: string;
+  /**
+   * Optional context metadata bundled with the Send-to-Chat payload so the
+   * extension can prepend a `Selected from <file> / UnitOp <id> / Section "..."`
+   * header to the LLM prompt. Both props are flat strings (not a single object)
+   * to keep this component's `memo` comparison stable when the caller does not
+   * memoize a context object.
+   */
+  chatContextOpId?: string;
+  chatContextSectionHeading?: string;
+}
+
+function SendToChatIcon() {
+  return (
+    <svg
+      xmlns="http://www.w3.org/2000/svg"
+      width="14"
+      height="14"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden="true"
+    >
+      <path d="M10 14 21 3" />
+      <path d="M21 3 14.5 21a.55.55 0 0 1-1 0L10 14l-7-3.5a.55.55 0 0 1 0-1Z" />
+    </svg>
+  );
 }
 
 /**
@@ -93,12 +124,18 @@ export const HighlightedTextarea = memo(forwardRef<HTMLTextAreaElement, Highligh
       sampleDefs,
       requestFocusAt,
       ariaLabel,
+      chatContextOpId,
+      chatContextSectionHeading,
     },
     forwardedRef
   ) {
     const textareaRef = useRef<HTMLTextAreaElement>(null);
     const overlayRef = useRef<HTMLDivElement>(null);
     const [hasSamples, setHasSamples] = useState(false);
+    const [selectionAnchor, setSelectionAnchor] = useState<{ top: number } | null>(null);
+    // Pending clear timer for the post-blur grace window so the floating
+    // button has time to receive its click before being unmounted.
+    const blurClearTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
     // While true, the imperative focus useEffect is mid-flight — onFocus
     // fires synchronously from `ta.focus()` before `selectionStart` has been
     // repositioned, so any `reportCursor()` during that window would latch
@@ -152,6 +189,68 @@ export const HighlightedTextarea = memo(forwardRef<HTMLTextAreaElement, Highligh
         onCursorChange(textareaRef.current.selectionStart);
       }
     }, [onCursorChange]);
+
+    /**
+     * Recompute the floating Send-to-Chat button position from the current
+     * selection. When the textarea has no selection (start === end), hide the
+     * button.
+     */
+    const updateSelectionAnchor = useCallback(() => {
+      const ta = textareaRef.current;
+      if (!ta) return;
+      if (ta.selectionStart === ta.selectionEnd) {
+        setSelectionAnchor(null);
+        return;
+      }
+      const caretRect = getTextareaCaretRect(ta, ta.selectionEnd);
+      const taRect = ta.getBoundingClientRect();
+      if (!caretRect) {
+        // Caret rect unavailable (e.g. jsdom) — anchor near the textarea top
+        // so the button still appears in tests/headless envs.
+        setSelectionAnchor({ top: 4 });
+        return;
+      }
+      setSelectionAnchor({ top: Math.max(0, caretRect.top - taRect.top) });
+    }, []);
+
+    const triggerSendToChat = useCallback(() => {
+      const ta = textareaRef.current;
+      if (!ta) return;
+      const start = ta.selectionStart;
+      const stop = ta.selectionEnd;
+      if (start === stop) return;
+      const selectedText = ta.value.slice(start, stop);
+      if (!selectedText.trim()) return;
+      postMessage({
+        type: 'sendSelectionToChat',
+        data: { selectedText, chatContextOpId, chatContextSectionHeading },
+      });
+    }, [chatContextOpId, chatContextSectionHeading]);
+
+    const handleKeyDown = useCallback(
+      (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
+        const isSendKey =
+          (e.ctrlKey || e.metaKey) &&
+          e.altKey &&
+          (e.key === 'l' || e.key === 'L');
+        if (isSendKey) {
+          e.preventDefault();
+          triggerSendToChat();
+          return;
+        }
+        onKeyDown?.(e);
+      },
+      [onKeyDown, triggerSendToChat]
+    );
+
+    useEffect(() => {
+      return () => {
+        if (blurClearTimerRef.current) {
+          clearTimeout(blurClearTimerRef.current);
+          blurClearTimerRef.current = null;
+        }
+      };
+    }, []);
 
     useEffect(() => {
       if (!requestFocusAt) return;
@@ -346,20 +445,63 @@ export const HighlightedTextarea = memo(forwardRef<HTMLTextAreaElement, Highligh
           onChange={(e) => {
             onChange(e.currentTarget.value);
             reportCursor();
+            updateSelectionAnchor();
           }}
           onFocus={() => {
             onFocus?.();
             reportCursor();
+            if (blurClearTimerRef.current) {
+              clearTimeout(blurClearTimerRef.current);
+              blurClearTimerRef.current = null;
+            }
+            updateSelectionAnchor();
           }}
-          onBlur={reportCursor}
-          onClick={reportCursor}
-          onKeyUp={reportCursor}
-          onKeyDown={onKeyDown}
+          onBlur={() => {
+            reportCursor();
+            // Give the floating button a chance to receive its click before
+            // it unmounts (mousedown on the button itself preventDefaults
+            // blur, but defensive in case focus moves elsewhere).
+            if (blurClearTimerRef.current) clearTimeout(blurClearTimerRef.current);
+            blurClearTimerRef.current = setTimeout(() => {
+              setSelectionAnchor(null);
+              blurClearTimerRef.current = null;
+            }, 150);
+          }}
+          onClick={() => {
+            reportCursor();
+            updateSelectionAnchor();
+          }}
+          onKeyUp={() => {
+            reportCursor();
+            updateSelectionAnchor();
+          }}
+          onMouseUp={updateSelectionAnchor}
+          onSelect={updateSelectionAnchor}
+          onKeyDown={handleKeyDown}
           onPaste={onPaste}
           onScroll={syncScroll}
           aria-label={ariaLabel}
           style={textareaStyle}
         />
+        {selectionAnchor && (
+          <ActionIcon
+            size="xs"
+            variant="filled"
+            color="blue"
+            aria-label="Send selection to Chat"
+            title="Send to Chat (Ctrl+Alt+L)"
+            onMouseDown={(e) => e.preventDefault()}
+            onClick={triggerSendToChat}
+            style={{
+              position: 'absolute',
+              right: 4,
+              top: selectionAnchor.top,
+              zIndex: 4,
+            }}
+          >
+            <SendToChatIcon />
+          </ActionIcon>
+        )}
       </div>
     );
   }

@@ -246,6 +246,56 @@ export class SectionEditorProvider implements vscode.CustomTextEditorProvider {
     }
   }
 
+  /**
+   * Build a Chat prompt that quotes the user's selection and attaches the
+   * full source document via the `#file:` reference variable, then open the
+   * Chat panel with the prompt prefilled. `isPartialQuery: true` keeps the
+   * Send button under user control so they can append a question (e.g.
+   * "summarize" / "rewrite as bullet points") before submitting.
+   */
+  public async handleSendSelectionToChat(
+    document: vscode.TextDocument,
+    data: {
+      selectedText?: string;
+      chatContextOpId?: string;
+      chatContextSectionHeading?: string;
+    } | undefined
+  ): Promise<void> {
+    const selectedText = (data?.selectedText ?? '').trim();
+    if (!selectedText) return;
+
+    const relativePath = vscode.workspace.asRelativePath(document.uri, false);
+    const fileBaseName = path.basename(document.uri.fsPath);
+
+    const opId = data?.chatContextOpId;
+    const sectionHeading = data?.chatContextSectionHeading;
+    const metaParts = [`Selected from ${fileBaseName}`];
+    if (opId) metaParts.push(`UnitOp ${opId}`);
+    if (sectionHeading) metaParts.push(`Section "${sectionHeading}"`);
+    const metaLine = metaParts.join(' / ') + ':';
+
+    const query = [
+      `#file:${relativePath}`,
+      '',
+      metaLine,
+      '',
+      '```',
+      data?.selectedText ?? '',
+      '```',
+    ].join('\n');
+
+    try {
+      await vscode.commands.executeCommand('workbench.action.chat.open', {
+        query,
+        isPartialQuery: true,
+      });
+    } catch {
+      vscode.window.showErrorMessage(
+        vscode.l10n.t('Failed to open Chat. Ensure VS Code Chat is enabled.'),
+      );
+    }
+  }
+
   public async appendUnitOpToDocument(
     document: vscode.TextDocument,
     unitOp: UnitOperationBlock
@@ -604,6 +654,11 @@ export class SectionEditorProvider implements vscode.CustomTextEditorProvider {
             type: 'clipboardStateUpdated',
             data: { hasUnitOp: parseClipboardUnitOp(text) !== null },
           });
+          break;
+        }
+
+        case 'sendSelectionToChat': {
+          await this.handleSendSelectionToChat(document, message.data);
           break;
         }
       }
