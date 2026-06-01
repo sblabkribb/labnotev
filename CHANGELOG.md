@@ -5,6 +5,18 @@
 형식은 [Keep a Changelog](https://keepachangelog.com/ko/1.1.0/)를 기반으로 하며,
 이 프로젝트는 [유의적 버전 관리](https://semver.org/lang/ko/)를 따릅니다.
 
+## [0.56.1] - 2026-06-02
+
+### Fixed
+- **이슈 #25 — 새로 생성한 빈 workflow에서 Paste Unit Operation 시 흰 화면 크래시**: [webview-section/src/components/UnitOpAccordion.tsx](webview-section/src/components/UnitOpAccordion.tsx)의 `handleCollapse` `useCallback`이 `unitOperations.length === 0` early return *뒤*에 위치해 React Hooks 규칙(Rules of Hooks)을 위반하던 문제 수정. 빈 workflow는 hook을 5개만 호출하고 early return 하다가, Paste로 첫 Unit Operation이 추가되면 다음 렌더에서 6번째 hook(`handleCollapse`)이 호출되어 "Rendered more hooks than during the previous render" 에러로 컴포넌트 트리가 언마운트되며 흰 화면이 발생했다. `handleCollapse` 선언을 early return 앞(다른 `useCallback`들과 같은 위치)으로 이동해 모든 렌더에서 hook 호출 순서·개수를 동일하게 맞춰 해소. 기존(비어있지 않은) workflow는 영향받지 않으며, 이슈의 "새로 생성한 workflow에서만 발생" 증상과 정확히 일치
+- **이슈 #27 — Editor/Text 모드 간 sample 하이라이트 범위 불일치**: Section Editor(Editor mode)의 `SampleHighlighter`가 ID 뒤의 `;alias` 첫 토큰까지 하이라이트(`@reagent;Reagent-...;TE buffer`에서 `;TE`까지)하던 반면, 텍스트 에디터(Text mode)는 ID(`Reagent-...`)까지만 하이라이트해 두 모드가 어긋났다. [webview-section/src/components/SampleHighlighter.tsx](webview-section/src/components/SampleHighlighter.tsx)의 `buildSamplePattern` 정규식에서 뒤꼬리 `(?:[;|][^\s;|]+)?`를 제거해 ID까지만 하이라이트하도록 통일([src/lib/sampleUtils.ts](src/lib/sampleUtils.ts)의 `buildSampleIdPattern`과 동일 범위). alias가 공백을 포함할 때 첫 단어만 어중간하게 잡히던 동작도 함께 해소. 토큰의 type 식별(`match[1]`)·ID 추출(`split(/[;|]/)[0]`)·`highlightSampleIds` 로직은 영향 없음
+
+### Changed
+- **이슈 #28 — Equipment 섹션에서도 Search product 검색 활성화**: Reagent/Labware만 지원하던 제품 검색을 Equip까지 확장. webview 모달의 버튼 노출 화이트리스트([webview-section/src/components/SampleCreateModal.tsx](webview-section/src/components/SampleCreateModal.tsx)의 `SEARCHABLE_TYPES`)와 확장의 후보 조회 화이트리스트([src/lib/productPicker.ts](src/lib/productPicker.ts)의 `REFERENCE_DB_TYPES`) 양쪽에 `'Equip'`을 추가해, Equipment 섹션의 +Sample 모달에서 Search product 버튼이 노출되고 로컬/글로벌 `resources/labsamples/Equip_*.json` reference DB에서 alias·description을 검색·자동 채움. MongoDB 조회 분기(`type === 'Labware'`)는 변경하지 않아 Equip은 JSON catalog만 사용 — `@equip:` 자동완성 경로와 동일한 데이터 소스
+
+### Notes
+- 회귀: 루트 vitest 43 파일 / 510 테스트 전부 통과(이전 509 + 신규 1). webview-section은 신규 테스트 2건(#25 빈→1개 전환 회귀, #27 하이라이트 범위) 모두 통과하며 사전 flake 9건(v0.56.0 베이스라인)이 동일하게 유지되어 신규 회귀 없음. `tsc --noEmit`은 루트 통과, webview-section은 사전 베이스라인 에러 2건(`App.test.tsx`/`DateTimeField.tsx`, 이번 변경과 무관)만 잔존
+
 ## [0.56.0] - 2026-05-22
 
 ### Added

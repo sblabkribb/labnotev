@@ -649,6 +649,22 @@ export function UnitOpAccordion({ unitOperations, onChange, onSectionFocus, onCu
     onChangeRef.current(unitOpsRef.current.filter((_, oi) => oi !== opIndex));
   }, []);
 
+  // Footer "Collapse" button: in controlled mode, drop this op.id from the
+  // opened list so the Accordion closes. Uncontrolled callers fall through
+  // (the panel's footer icon becomes a no-op for them).
+  //
+  // This hook MUST stay above the `unitOperations.length === 0` early return:
+  // otherwise an empty workflow renders one fewer hook than a populated one,
+  // and pasting the first unit operation triggers React's "rendered more hooks
+  // than during the previous render" crash (issue #25).
+  const handleCollapse = useCallback((opIndex: number) => {
+    const openedIds = openedOpIdsRef.current;
+    if (openedIds === undefined) return;  // uncontrolled
+    const id = unitOpsRef.current[opIndex]?.id;
+    if (!id) return;
+    onOpenedChangeRef.current?.(openedIds.filter((v) => v !== id));
+  }, []);
+
   if (unitOperations.length === 0) {
     return (
       <Paper p="sm" withBorder>
@@ -676,17 +692,6 @@ export function UnitOpAccordion({ unitOperations, onChange, onSectionFocus, onCu
   // while giving the Section Editor a way to programmatically expand the
   // target UnitOp from "Go to definition".
   const controlled = openedOpIds !== undefined;
-
-  // Footer "Collapse" button: in controlled mode, drop this op.id from the
-  // opened list so the Accordion closes. Uncontrolled callers fall through
-  // (the panel's footer icon becomes a no-op for them).
-  const handleCollapse = useCallback((opIndex: number) => {
-    const openedIds = openedOpIdsRef.current;
-    if (openedIds === undefined) return;  // uncontrolled
-    const id = unitOpsRef.current[opIndex]?.id;
-    if (!id) return;
-    onOpenedChangeRef.current?.(openedIds.filter((v) => v !== id));
-  }, []);
 
   return (
     <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>

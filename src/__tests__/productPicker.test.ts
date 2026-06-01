@@ -65,3 +65,43 @@ describe('showProductPicker — empty candidate guard (issue #22 Q2)', () => {
     );
   });
 });
+
+/**
+ * Issue #28: Equip was excluded from `REFERENCE_DB_TYPES`, so the Search
+ * product button (and `getProductCandidates`) treated Equip as unsearchable
+ * and returned []. Equip must now be searched against its reference JSON
+ * (local + global Equip_*.json), without ever consulting MongoDB.
+ */
+describe('getProductCandidates — Equip reference DB (issue #28)', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  const documentUri = { fsPath: '/test/workspace/exp/foo.labnote.md' } as any;
+
+  it('returns Equip candidates from the reference DB and does not consult MongoDB', async () => {
+    const { loadReferenceSamplesByType } = await import('../lib/sampleStorage');
+    const { getMongoIds } = await import('../lib/dataLoader');
+
+    // Local folder returns one Equip record; global folder is empty.
+    vi.mocked(loadReferenceSamplesByType).mockImplementation(
+      (folder: string, type: string) => {
+        if (type === 'Equip' && folder.includes('local')) {
+          return {
+            'Equip-001': { alias: 'Centrifuge', descriptions: ['5424 R'] },
+          } as any;
+        }
+        return {} as any;
+      }
+    );
+
+    const { getProductCandidates } = await import('../lib/productPicker');
+    const candidates = getProductCandidates('Equip', documentUri);
+
+    expect(candidates).toEqual([
+      { id: 'Equip-001', alias: 'Centrifuge', description: '5424 R' },
+    ]);
+    // Equip uses reference JSON only — the MongoDB path is Labware-specific.
+    expect(getMongoIds).not.toHaveBeenCalled();
+  });
+});

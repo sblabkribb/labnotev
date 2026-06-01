@@ -13,7 +13,7 @@ export interface ProductCandidate {
   description: string | null;
 }
 
-const REFERENCE_DB_TYPES = ['Reagent', 'Labware'];
+const REFERENCE_DB_TYPES = ['Reagent', 'Labware', 'Equip'];
 
 /**
  * Get all product candidates for a type (reference DB + MongoDB for Labware).

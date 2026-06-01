@@ -25,7 +25,12 @@ function buildSamplePattern(availableTypes?: string[]): RegExp | null {
     return null;
   }
   const typeStr = types.map(escapeRegExpForType).join('|');
-  return new RegExp(`\\b(${typeStr})-\\d+(?:-\\d+)*(?:[;|][^\\s;|]+)?`, 'g');
+  // Highlight the sample ID only (e.g. `Reagent-123`), matching the text-mode
+  // decoration in `sampleUtils.ts buildSampleIdPattern`. We deliberately do NOT
+  // extend into a trailing `;alias` token: aliases can contain spaces, so the
+  // old `(?:[;|][^\s;|]+)?` tail highlighted only the first word (e.g. `;TE` of
+  // `;TE buffer`), which made the two render paths disagree (issue #27).
+  return new RegExp(`\\b(${typeStr})-\\d+(?:-\\d+)*`, 'g');
 }
 
 interface SampleHighlighterProps {

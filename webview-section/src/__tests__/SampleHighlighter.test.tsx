@@ -86,13 +86,31 @@ describe('SampleHighlighter', () => {
     expect(spans[0].textContent).toBe('RNA-042');
   });
 
-  it('should highlight sample IDs with aliases', () => {
+  // Issue #27: highlight the ID only, leaving any trailing `|alias` / `;alias`
+  // unhighlighted so the Editor-mode overlay matches the text-mode decoration.
+  it('highlights only the ID, not a trailing |alias token', () => {
     const { container } = renderWithMantine(
       <SampleHighlighter text="Used DNA-001|SampleA in step" availableTypes={DEFAULT_AVAILABLE_TYPES} sampleTypeColors={DEFAULT_SAMPLE_COLORS} />
     );
     const spans = container.querySelectorAll('span');
     expect(spans.length).toBe(1);
-    expect(spans[0].textContent).toBe('DNA-001|SampleA');
+    expect(spans[0].textContent).toBe('DNA-001');
+  });
+
+  // Issue #27 exact reproduction: `;TE buffer` used to highlight `;TE` only
+  // (first whitespace-delimited token), diverging from the text editor which
+  // highlighted just the ID. Both must now stop at the ID.
+  it('highlights only the ID for a `;alias` definition with a spaced alias (issue #27)', () => {
+    const { container } = renderWithMantine(
+      <SampleHighlighter
+        text="@reagent;Reagent-1779928464616;TE buffer"
+        availableTypes={DEFAULT_AVAILABLE_TYPES}
+        sampleTypeColors={DEFAULT_SAMPLE_COLORS}
+      />
+    );
+    const spans = container.querySelectorAll('span');
+    expect(spans.length).toBe(1);
+    expect(spans[0].textContent).toBe('Reagent-1779928464616');
   });
 
   it('should highlight multiple sample IDs', () => {

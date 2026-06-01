@@ -287,6 +287,46 @@ describe('UnitOpAccordion + actions menu', () => {
     act(() => { fireEvent.click(btnEnabled); });
     expect(onPasteBelow).toHaveBeenCalledWith(-1);
   });
+
+  // Regression for issue #25: pasting the first unit operation into a freshly
+  // created (empty) workflow used to crash with a white screen because the
+  // empty-state early return rendered one fewer hook than the populated path.
+  // Re-rendering from [] to [op] must not throw a React Hooks ordering error.
+  it('transitions from empty to one op without a hooks-order crash (issue #25)', () => {
+    const { container, rerender } = renderWithMantine(
+      <UnitOpAccordion
+        unitOperations={[]}
+        onChange={() => {}}
+        onCopy={() => {}}
+        onPasteBelow={() => {}}
+        openedOpIds={[]}
+        onOpenedChange={() => {}}
+        clipboardHasUnitOp
+      />
+    );
+
+    expect((container.querySelector('button') as HTMLButtonElement).textContent)
+      .toMatch(/Paste Unit Operation/);
+
+    expect(() => {
+      rerender(
+        <MantineProvider>
+          <UnitOpAccordion
+            unitOperations={[makeOp({ id: 'op-paste-1' })]}
+            onChange={() => {}}
+            onCopy={() => {}}
+            onPasteBelow={() => {}}
+            openedOpIds={['op-paste-1']}
+            onOpenedChange={() => {}}
+            clipboardHasUnitOp
+          />
+        </MantineProvider>
+      );
+    }).not.toThrow();
+
+    // The Accordion now renders the pasted op (empty-state button is gone).
+    expect(container.querySelector('button.mantine-Accordion-control')).toBeTruthy();
+  });
 });
 
 describe('UnitOpAccordion + footer collapse icon', () => {

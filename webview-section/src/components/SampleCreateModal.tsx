@@ -3,7 +3,7 @@ import { Modal, Select, TextInput, Textarea, Group, Button, Stack, Text } from '
 
 const BUILTIN_TYPES = ['DNA', 'RNA', 'Plasmid', 'Reagent', 'Primer', 'Protein', 'Equip', 'Labware'];
 const NEW_TYPE_VALUE = '__new_type__';
-const SEARCHABLE_TYPES = ['Reagent', 'Labware'];
+const SEARCHABLE_TYPES = ['Reagent', 'Labware', 'Equip'];
 // Phase B-1: custom type names must not collide with the sample-id regex used
 // by storage/highlight. `-`, whitespace, and regex metachars are rejected so
 // downstream regex compilation (buildSampleIdPattern) stays predictable.
