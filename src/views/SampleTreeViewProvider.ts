@@ -28,6 +28,7 @@ export interface SampleTreeItemOptions {
   sampleId?: string;
   alias?: string | null;
   sampleDescription?: string | null;  // Renamed to avoid conflict with TreeItem.description
+  isCustom?: boolean;  // Type node: true for user-defined custom types (enables delete menu)
 }
 
 /**
@@ -148,9 +149,12 @@ export class SampleTreeItem extends vscode.TreeItem {
     this.sampleDescription = options.sampleDescription;
 
     // Set context value for menu contributions
-    // For Sample items, include scope to enable different context menus
+    // For Sample items, include scope to enable different context menus.
+    // For Type items, distinguish custom types so only they expose a delete menu.
     if (itemType === SampleTreeItemType.Sample) {
       this.contextValue = `sample_${options.scope}`;  // sample_local or sample_global
+    } else if (itemType === SampleTreeItemType.Type) {
+      this.contextValue = options.isCustom ? 'type_custom' : 'type';
     } else {
       this.contextValue = itemType;
     }
@@ -451,10 +455,11 @@ export class SampleTreeViewProvider implements vscode.TreeDataProvider<SampleTre
     return this.getAllTypes().map(type => {
       const samples = this.loadSamples(folder, type);
       const count = Object.keys(samples).length;
+      const isCustom = !(SAMPLE_TYPES as readonly string[]).includes(type);
       return new SampleTreeItem(
         `${type} [${count}]`,
         SampleTreeItemType.Type,
-        { scope, sampleType: type }
+        { scope, sampleType: type, isCustom }
       );
     });
   }

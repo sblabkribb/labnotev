@@ -1,8 +1,7 @@
 import * as vscode from 'vscode';
 import * as fs from 'fs';
 import * as path from 'path';
-import { SampleType, findSamplePrefixRange } from '../lib/sampleUtils';
-import { generateSampleId } from '../lib/sampleUtils';
+import { SampleType, findSamplePrefixRange, generateSampleId, SAMPLE_TYPES, buildSampleIdPattern } from '../lib/sampleUtils';
 import {
   SampleTreeViewProvider,
   SampleTreeItem,
@@ -82,6 +81,42 @@ export async function resolveDefinitionDocument(
     }
   }
 
+  return undefined;
+}
+
+/**
+ * Determine whether a custom sample type is still in use, so the delete
+ * command can block destructive removal. A type counts as "in use" when:
+ *   (a) any sample is registered under it (local or global JSON), or
+ *   (b) any `{TYPE}-<timestamp>` id appears in a labnote/workflow document.
+ *
+ * Returns a short human-readable reason when in use, otherwise `undefined`.
+ * The document scan reuses the same 2-glob pattern as `resolveDefinitionDocument`.
+ */
+export async function findCustomTypeUsage(
+  sampleTreeProvider: SampleTreeViewProvider,
+  type: string
+): Promise<string | undefined> {
+  const registered =
+    sampleTreeProvider.getSampleIds('local', type).length +
+    sampleTreeProvider.getSampleIds('global', type).length;
+  if (registered > 0) {
+    return vscode.l10n.t('{0} registered sample(s) use this type.', registered);
+  }
+
+  const uris: vscode.Uri[] = [];
+  uris.push(...await vscode.workspace.findFiles('**/*.labnote.md', '**/node_modules/**', 100));
+  uris.push(...await vscode.workspace.findFiles('**/*.workflow.md', '**/node_modules/**', 100));
+  for (const uri of uris) {
+    try {
+      const doc = await vscode.workspace.openTextDocument(uri);
+      if (buildSampleIdPattern(type).test(doc.getText())) {
+        return vscode.l10n.t('Referenced in {0}.', vscode.workspace.asRelativePath(uri));
+      }
+    } catch {
+      // skip unreadable files
+    }
+  }
   return undefined;
 }
 
@@ -503,6 +538,49 @@ export function registerSampleCommands(
           vscode.window.showWarningMessage(vscode.l10n.t('Please open a Markdown file.'));
         }
       }
+    })
+  );
+
+  // Register delete custom type command. Built-in types are protected, and a
+  // custom type that is still in use (registered samples or document tokens)
+  // is blocked to prevent silent data/highlight loss. Deletion only removes the
+  // name from `labnotev.customSampleTypes`; the JSON data files are preserved.
+  context.subscriptions.push(
+    vscode.commands.registerCommand('labnotev.deleteCustomType', async (item: SampleTreeItem) => {
+      if (!item || item.itemType !== SampleTreeItemType.Type || !item.sampleType) {
+        return;
+      }
+      const type = item.sampleType;
+      if ((SAMPLE_TYPES as readonly string[]).includes(type)) {
+        return; // built-in types cannot be deleted
+      }
+
+      const usage = await findCustomTypeUsage(sampleTreeProvider, type);
+      if (usage) {
+        vscode.window.showWarningMessage(
+          vscode.l10n.t('Cannot delete type "{0}" because it is in use. {1}', type, usage)
+        );
+        return;
+      }
+
+      const deleteLabel = vscode.l10n.t('Delete');
+      const confirm = await vscode.window.showWarningMessage(
+        vscode.l10n.t('Are you sure you want to delete the custom type "{0}"?', type),
+        { modal: true },
+        deleteLabel
+      );
+      if (confirm !== deleteLabel) {
+        return;
+      }
+
+      const config = vscode.workspace.getConfiguration('labnotev');
+      const existing = config.get<string[]>('customSampleTypes', []);
+      const updated = existing.filter(t => t !== type);
+      await config.update('customSampleTypes', updated, vscode.ConfigurationTarget.Workspace);
+
+      sampleTreeProvider.refresh();
+      sectionEditorProvider?.broadcastCustomTypesUpdated();
+      vscode.window.showInformationMessage(vscode.l10n.t('Custom type deleted: {0}', type));
     })
   );
 }

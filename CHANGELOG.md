@@ -5,6 +5,18 @@
 형식은 [Keep a Changelog](https://keepachangelog.com/ko/1.1.0/)를 기반으로 하며,
 이 프로젝트는 [유의적 버전 관리](https://semver.org/lang/ko/)를 따릅니다.
 
+## [0.57.0] - 2026-06-02
+
+### Added
+- **이슈 #29 — 커스텀 샘플 타입 삭제 기능**: Lab Samples 트리뷰에서 사용자가 추가한 커스텀 타입 노드를 우클릭하면 `Delete Custom Type` 메뉴가 노출되어 삭제할 수 있음. 빌트인 타입(DNA/RNA/Plasmid/Reagent/Primer/Protein/Equip/Labware)은 삭제 메뉴가 노출되지 않도록 보호됨. 트리 아이템의 `contextValue`를 커스텀 타입일 때 `type_custom`, 빌트인일 때 `type`으로 분기하고(`getTypeItems`에서 `SAMPLE_TYPES` 포함 여부로 판정), 메뉴는 `viewItem == type_custom`에만 바인딩. 기존 `Add Sample` 메뉴는 `viewItem =~ /^type(_custom)?$/`로 확장해 커스텀 타입에서도 그대로 동작 ([src/views/SampleTreeViewProvider.ts](src/views/SampleTreeViewProvider.ts), [package.json](package.json))
+- **삭제는 설정에서만 제거하고 JSON 데이터는 보존**: 삭제 시 `labnotev.customSampleTypes`(워크스페이스 설정)에서 타입명만 제거하며 `resources/labsamples/{TYPE}.json` 데이터 파일은 지우지 않음. 타입 목록 진입점(`getAllTypes`/`getAvailableTypes`)이 JSON을 스캔하지 않고 설정값만 읽으므로 설정 제거만으로 트리뷰·에디터·Add Sample 목록에서 즉시 사라지며, JSON이 남아도 자동 재등록되지 않음(데이터 손실 방지) ([src/commands/sampleCommands.ts](src/commands/sampleCommands.ts))
+- **사용 중인 타입 삭제 차단(block)**: 새 헬퍼 `findCustomTypeUsage`가 (a) local/global에 등록된 샘플이 있는지(`getSampleIds`), (b) 워크스페이스 `*.labnote.md`/`*.workflow.md` 본문에 `{TYPE}-<timestamp>` id 참조(`buildSampleIdPattern`)가 있는지 검사해, 둘 중 하나라도 사용 중이면 사유를 안내하고 삭제를 막음. 미사용일 때만 확인 모달 후 삭제 진행. 삭제 후 `sampleTreeProvider.refresh()` + 새 `SectionEditorProvider.broadcastCustomTypesUpdated()`로 모든 열린 Section Editor에 타입/색상 갱신을 전파 ([src/commands/sampleCommands.ts](src/commands/sampleCommands.ts), [src/sectionEditorProvider.ts](src/sectionEditorProvider.ts))
+- **신규 단위 테스트 7건**: `deleteCustomType.test.ts` — Type 노드 contextValue 분기(커스텀 `type_custom`/빌트인 `type`), 빌트인 타입 무시, 등록 샘플 존재 시 차단, 본문 id 참조 존재 시 차단, 확인 후 설정에서 제거(`config.update` 인자 검증)·refresh·broadcast 호출, 사용자 취소 시 no-op 검증. 공용 테스트 mock(`setup.ts`)에 `ConfigurationTarget`·`workspace.asRelativePath` 추가(additive) ([src/__tests__/deleteCustomType.test.ts](src/__tests__/deleteCustomType.test.ts), [src/__tests__/setup.ts](src/__tests__/setup.ts))
+
+### Notes
+- 회귀: 루트 vitest 44 파일 / 517 테스트 전부 통과(이전 510 + 신규 7). `tsc --noEmit`은 루트 통과, webview-section은 사전 베이스라인 에러 2건(`App.test.tsx`/`DateTimeField.tsx`, 이번 변경과 무관)만 잔존(이번 작업은 `webview-section` 미변경)
+- 비포함(범위 밖): 커스텀 타입의 JSON 데이터 파일/폴더 실제 삭제(데이터 보존 선택), 이슈 #30(Editor 모드 Ctrl+F)은 별도 작업
+
 ## [0.56.1] - 2026-06-02
 
 ### Fixed

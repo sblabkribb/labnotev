@@ -247,6 +247,26 @@ export class SectionEditorProvider implements vscode.CustomTextEditorProvider {
   }
 
   /**
+   * Push the current available types + colors to every live Section Editor
+   * webview after the `labnotev.customSampleTypes` setting changes from a
+   * TreeView command (e.g. delete custom type). Mirrors the single-panel
+   * `customTypesUpdated` message sent by the `addCustomType` handler.
+   */
+  public broadcastCustomTypesUpdated(): void {
+    if (this._allEditors.size === 0) return;
+    const meta = readSampleDisplayMeta();
+    for (const editor of this._allEditors) {
+      editor.webviewPanel.webview.postMessage({
+        type: 'customTypesUpdated',
+        data: {
+          availableTypes: meta.types,
+          sampleTypeColors: meta.colors,
+        },
+      });
+    }
+  }
+
+  /**
    * Build a Chat prompt that quotes the user's selection and attaches the
    * full source document via the `#file:` reference variable, then open the
    * Chat panel with the prompt prefilled. `isPartialQuery: true` keeps the

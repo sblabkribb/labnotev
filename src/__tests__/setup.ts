@@ -175,12 +175,20 @@ export const mockVscode = {
     })),
     findFiles: vi.fn((..._args: unknown[]) => Promise.resolve([])),
     openTextDocument: vi.fn((_uri: unknown) => Promise.resolve(undefined as unknown)),
+    asRelativePath: vi.fn((p: unknown) =>
+      typeof p === 'string' ? p : (p as { fsPath?: string })?.fsPath ?? String(p)
+    ),
     getConfiguration: vi.fn(() => ({
       get: vi.fn((key: string, defaultValue?: unknown) => defaultValue),
       has: vi.fn(() => false),
       inspect: vi.fn(),
       update: vi.fn(),
     })),
+  },
+  ConfigurationTarget: {
+    Global: 1,
+    Workspace: 2,
+    WorkspaceFolder: 3,
   },
   Uri: {
     file: vi.fn((path: string) => ({
