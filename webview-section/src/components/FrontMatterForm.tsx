@@ -41,6 +41,9 @@ export function FrontMatterForm({ data, fields, onChange }: FrontMatterFormProps
             value={String(value ?? '')}
             onChange={(e) => onChange(field.key, e.currentTarget.value)}
             readOnly={field.type === 'readonly'}
+            // Read-only fields (e.g. Experiment Type) are not editable, so
+            // exclude them from editor-mode find (#30).
+            {...(field.type === 'readonly' ? { 'data-find-skip': '' } : {})}
           />
         );
       })}

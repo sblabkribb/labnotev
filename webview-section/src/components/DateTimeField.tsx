@@ -148,6 +148,9 @@ export function DateTimeField({
           placeholder="HH:MM"
           style={{ width: 100 }}
           maxLength={5}
+          // Focus clears this field (handleTimeFocus), which find navigation
+          // would disrupt; exclude from editor-mode find (#30).
+          data-find-skip=""
         />
         <Tooltip label="Now" position="bottom" withArrow>
           <ActionIcon

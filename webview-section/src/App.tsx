@@ -25,6 +25,10 @@ import { postMessage } from './vscodeApi';
 import { resolveInsertPosition, type FocusTarget } from './lib/resolveInsertPosition';
 import { insertAttachmentLinkAt } from './lib/insertAttachmentLink';
 import { isFocusedOn, type AttachPayload } from './lib/isFocusedOn';
+import { FindBar } from './components/FindBar';
+import { SearchHighlightLayer } from './components/SearchHighlightLayer';
+import { collectMatches, type FindMatch } from './lib/findMatches';
+import { getTextareaCaretRect, scrollCaretIntoView } from './utils/caretPosition';
 
 const LABNOTE_FM_FIELDS = [
   { key: 'title', label: 'Title' },
@@ -71,6 +75,17 @@ export default function App() {
   const [colorScheme, setColorScheme] = useState<ColorScheme>(loadColorScheme);
   const [insertWarning, setInsertWarning] = useState<string | null>(null);
   const insertWarningTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // Editor-mode find (#30). Matches are collected from the live DOM
+  // (textareas/inputs) so collapsed UnitOps are expanded on open to make their
+  // content searchable. `findContainerRef` is the position:relative wrapper the
+  // highlight layer paints into.
+  const [findOpen, setFindOpen] = useState(false);
+  const [findQuery, setFindQuery] = useState('');
+  const [findCaseSensitive, setFindCaseSensitive] = useState(false);
+  const [findMatches, setFindMatches] = useState<FindMatch[]>([]);
+  const [activeMatchIndex, setActiveMatchIndex] = useState(-1);
+  const findContainerRef = useRef<HTMLDivElement>(null);
 
   const showInsertWarning = useCallback((message: string) => {
     setInsertWarning(message);
@@ -155,6 +170,80 @@ export default function App() {
   useEffect(() => { modeRef.current = mode; }, [mode]);
   useEffect(() => { labNoteRef.current = labNote; }, [labNote]);
   useEffect(() => { workflowRef.current = workflow; }, [workflow]);
+
+  // --- Editor-mode find (#30) ---------------------------------------------
+
+  // Ctrl/Cmd+F opens the find bar (capture phase so it wins over child
+  // handlers); opening expands every UnitOp so collapsed textareas mount and
+  // become searchable. Escape closes — left to bubble so modals still get it.
+  useEffect(() => {
+    const onKeyDown = (e: KeyboardEvent) => {
+      if ((e.ctrlKey || e.metaKey) && !e.altKey && (e.key === 'f' || e.key === 'F')) {
+        e.preventDefault();
+        e.stopPropagation();
+        setFindOpen(true);
+        const wf = workflowRef.current;
+        if (wf) setOpenedOpIds(wf.unitOperations.map((o) => o.id));
+      } else if (e.key === 'Escape') {
+        setFindOpen(false);
+      }
+    };
+    window.addEventListener('keydown', onKeyDown, true);
+    return () => window.removeEventListener('keydown', onKeyDown, true);
+  }, []);
+
+  // Recompute matches (debounced) whenever the query/options change, or the
+  // document content / opened panels change underneath an open find bar.
+  useEffect(() => {
+    if (!findOpen || findQuery.length === 0) {
+      setFindMatches([]);
+      setActiveMatchIndex(-1);
+      return;
+    }
+    const handle = setTimeout(() => {
+      const next = collectMatches(findQuery, findCaseSensitive);
+      setFindMatches(next);
+      setActiveMatchIndex(next.length > 0 ? 0 : -1);
+    }, 150);
+    return () => clearTimeout(handle);
+  }, [findOpen, findQuery, findCaseSensitive, labNote, workflow, linkedWorkflows, openedOpIds]);
+
+  const scrollToMatch = useCallback((match: FindMatch | undefined) => {
+    if (!match || !document.contains(match.el)) return;
+    if (match.el.tagName === 'TEXTAREA') {
+      const rect = getTextareaCaretRect(match.el as HTMLTextAreaElement, match.start);
+      if (rect) scrollCaretIntoView(rect, 'center');
+    } else {
+      match.el.scrollIntoView({ block: 'center' });
+    }
+  }, []);
+
+  // Scroll the active match into view. Focus is intentionally NOT moved here
+  // (it would steal focus from the find input while typing); the highlight
+  // layer's active box / native selection convey position instead.
+  useEffect(() => {
+    if (!findOpen || activeMatchIndex < 0 || activeMatchIndex >= findMatches.length) return;
+    scrollToMatch(findMatches[activeMatchIndex]);
+  }, [activeMatchIndex, findMatches, findOpen, scrollToMatch]);
+
+  const gotoNextMatch = useCallback(() => {
+    setActiveMatchIndex((i) => (findMatches.length === 0 ? -1 : ((i < 0 ? -1 : i) + 1) % findMatches.length));
+  }, [findMatches]);
+
+  const gotoPrevMatch = useCallback(() => {
+    setActiveMatchIndex((i) => (findMatches.length === 0 ? -1 : ((i < 0 ? 0 : i) - 1 + findMatches.length) % findMatches.length));
+  }, [findMatches]);
+
+  const closeFind = useCallback(() => {
+    setFindOpen(false);
+    // Hand editing focus to the active match so the user resumes where they
+    // searched.
+    const match = findMatches[activeMatchIndex];
+    if (match && document.contains(match.el)) {
+      match.el.focus({ preventScroll: true });
+      try { match.el.setSelectionRange(match.start, match.end); } catch { /* detached */ }
+    }
+  }, [findMatches, activeMatchIndex]);
 
   useEffect(() => {
     const handler = (event: MessageEvent<ExtensionToWebviewMessage>) => {
@@ -801,7 +890,28 @@ export default function App() {
 
   return (
     <MantineProvider forceColorScheme={colorScheme}>
-      <Stack p="md" gap="md">
+      {findOpen && (
+        <FindBar
+          query={findQuery}
+          onQueryChange={setFindQuery}
+          caseSensitive={findCaseSensitive}
+          onToggleCase={() => setFindCaseSensitive((v) => !v)}
+          count={findMatches.length}
+          activeIndex={activeMatchIndex}
+          onNext={gotoNextMatch}
+          onPrev={gotoPrevMatch}
+          onClose={closeFind}
+        />
+      )}
+      <div ref={findContainerRef} style={{ position: 'relative' }}>
+        {findOpen && (
+          <SearchHighlightLayer
+            matches={findMatches}
+            activeIndex={activeMatchIndex}
+            containerRef={findContainerRef}
+          />
+        )}
+        <Stack p="md" gap="md">
         <Group justify="space-between">
           <Group gap="sm">
             <Title order={2}>
@@ -1034,7 +1144,8 @@ export default function App() {
             <Button mt="sm" onClick={handleOpenAsText}>Open in text editor</Button>
           </Paper>
         )}
-      </Stack>
+        </Stack>
+      </div>
     </MantineProvider>
   );
 }
