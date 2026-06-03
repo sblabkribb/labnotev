@@ -1,6 +1,5 @@
 import {
   SAMPLE_TYPES,
-  SampleType,
   sampleTypeColors,
   generateSampleId,
   resetIdCounter,

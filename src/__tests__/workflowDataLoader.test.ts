@@ -3,7 +3,6 @@
  * Handles loading, saving, and copying workflow/unit operation JSON files
  */
 import * as fs from 'fs';
-import * as path from 'path';
 
 // Mock fs module
 vi.mock('fs', () => ({
@@ -288,7 +287,7 @@ describe('workflowDataLoader', () => {
 
   describe('addWorkflow', () => {
     it('should add a new workflow to the list', async () => {
-      const { loadWorkflows, addWorkflow, saveWorkflows } = await import('../lib/workflowDataLoader');
+      const { loadWorkflows, addWorkflow } = await import('../lib/workflowDataLoader');
       
       vi.mocked(fs.existsSync).mockReturnValue(true);
       vi.mocked(fs.readFileSync).mockReturnValue(JSON.stringify(mockWorkflowsJson));

@@ -6,7 +6,7 @@
 import * as vscode from 'vscode';
 import * as fs from 'fs';
 import * as path from 'path';
-import { SAMPLE_TYPES, SampleType, buildSampleDefSuffix } from '../lib/sampleUtils';
+import { SAMPLE_TYPES, buildSampleDefSuffix } from '../lib/sampleUtils';
 import { SampleRecord, loadSamplesByType, saveSamplesByType, moveSampleToGlobal as moveSampleToGlobalFn, moveSampleToLocal as moveSampleToLocalFn } from '../lib/sampleStorage';
 
 /**

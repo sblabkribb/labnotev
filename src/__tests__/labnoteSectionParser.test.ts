@@ -1,5 +1,4 @@
 import { parseLabNoteMd, serializeLabNoteMd } from '../lib/labnoteSectionParser';
-import type { LabNoteDocument } from '../lib/sectionTypes';
 
 const SAMPLE_README = `---
 title: Protein Folding Experiment

@@ -1,5 +1,3 @@
-import { mockVscode } from './setup';
-
 describe('Create Labnote Command', () => {
   beforeEach(() => {
     vi.clearAllMocks();

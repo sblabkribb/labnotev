@@ -8,7 +8,6 @@ import {
   getExperimenterForLabnoteFolder,
 } from '../lib/labnoteWorkflowContext';
 import {
-  isValidReadmePath,
   isValidWorkflowPath,
   getNextWorkflowNumber,
   createWorkflowContent,

@@ -1,4 +1,3 @@
-import { describe, it, expect } from 'vitest';
 import { buildSampleDefSuffix } from '../../lib/sampleUtils';
 
 describe('buildSampleDefSuffix', () => {

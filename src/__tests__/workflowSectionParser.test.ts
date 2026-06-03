@@ -1,5 +1,4 @@
 import { parseWorkflowMd, serializeWorkflowMd, validateWorkflowDocument } from '../lib/workflowSectionParser';
-import type { WorkflowDocument } from '../lib/sectionTypes';
 
 const SAMPLE_WORKFLOW = `---
 title: WD010 Sample Preparation

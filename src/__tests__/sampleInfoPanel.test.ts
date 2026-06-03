@@ -1,4 +1,3 @@
-import { mockVscode } from './setup';
 import type { SampleDisplayInfo } from '../views/SampleInfoPanel';
 
 describe('Sample Info Panel', () => {

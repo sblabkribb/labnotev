@@ -164,10 +164,6 @@ function getAvailableTypes(): string[] {
   return readSampleDisplayMeta().types;
 }
 
-function getSampleTypeColorMap(): Record<string, string> {
-  return readSampleDisplayMeta().colors;
-}
-
 export function buildUnitOperationBlock(
   opId: string,
   opName: string,

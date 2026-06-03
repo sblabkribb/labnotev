@@ -1,5 +1,3 @@
-import { mockVscode } from './setup';
-
 describe('Workflow Structure', () => {
   beforeEach(() => {
     vi.clearAllMocks();

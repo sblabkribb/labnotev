@@ -1,5 +1,3 @@
-import { mockVscode } from './setup';
-
 describe('Image Preview Panel', () => {
   beforeEach(() => {
     vi.clearAllMocks();

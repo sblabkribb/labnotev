@@ -1,4 +1,3 @@
-import { describe, it, expect } from 'vitest';
 import { replaceWholeSampleId } from '../../lib/sampleUtils';
 
 describe('replaceWholeSampleId', () => {

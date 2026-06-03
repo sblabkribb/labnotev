@@ -9,7 +9,6 @@ import * as fs from 'fs';
 import * as path from 'path';
 import { SAMPLE_TYPES, SampleType } from '../lib/dataLoader';
 import { getLabsamplesFolder, getGlobalLabsamplesFolder, loadSamplesByType, loadReferenceSamplesByType } from '../lib/sampleStorage';
-import { generateSampleId } from '../lib/sampleUtils';
 
 /**
  * Phase D-1: mtime-based in-memory cache for `loadSampleIdsAndRecords`.
@@ -237,8 +236,8 @@ export class SampleCompletionProvider implements vscode.CompletionItemProvider {
   provideCompletionItems(
     document: vscode.TextDocument,
     position: vscode.Position,
-    token: vscode.CancellationToken,
-    context: vscode.CompletionContext
+    _token: vscode.CancellationToken,
+    _context: vscode.CompletionContext
   ): vscode.ProviderResult<vscode.CompletionItem[] | vscode.CompletionList> {
     
     // Get the text from start of line to cursor position

@@ -8,7 +8,7 @@ import {
   updateAllDatesInLine,
   updateAllDateFields,
 } from '../lib/dateUtils';
-import { sampleDecorations, getDecoration } from '../lib/sampleDecorations';
+import { getDecoration } from '../lib/sampleDecorations';
 import { debounce } from '../lib/debounce';
 import { ImagePreviewPanel } from '../views/ImagePreviewPanel';
 import { ImageLinkProvider } from '../lib/imageLinkProvider';

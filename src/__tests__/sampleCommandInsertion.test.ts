@@ -65,7 +65,7 @@ describe('Sample Command Insertion - Prefix Duplication Fix', () => {
     };
 
     mockDocument = {
-      lineAt: vi.fn((line: number) => ({
+      lineAt: vi.fn((_line: number) => ({
         text: '@labware:',
         range: mockRange,
       })),

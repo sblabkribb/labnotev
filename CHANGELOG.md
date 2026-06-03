@@ -5,6 +5,14 @@
 형식은 [Keep a Changelog](https://keepachangelog.com/ko/1.1.0/)를 기반으로 하며,
 이 프로젝트는 [유의적 버전 관리](https://semver.org/lang/ko/)를 따릅니다.
 
+## [0.60.1] - 2026-06-03
+
+### Fixed
+- **신규 호스트 테스트 4종이 실행되지 않던 문제 수정**: `atomicWrite`·`buildSampleDefSuffix`·`replaceWholeSampleId`·`webviewMessage` 테스트가 `vitest`를 명시적으로 import해, vitest 4의 모듈 인스턴스 분리로 `No test suite found`로 미수집되던 문제 수정. `globals: true`에 의존하도록 명시 import를 제거해 21건이 실제로 수집·실행됨(호스트 테스트 525 → 546건). v0.58.0에서 웹뷰에 적용한 수정과 동일한 사안
+
+### Changed
+- **미사용 코드/임포트 정리(ESLint 경고 0건)**: 데드코드인 미사용 import(`isValidReadmePath`·`sampleDecorations`·`SampleType`·`generateSampleId`), 미사용 함수(`getSampleTypeColorMap`)·상수(`H3_PATTERN`)를 제거하고, 인터페이스 시그니처 인자(`token`/`context`)를 `_` 프리픽스로 변경. 테스트 파일의 미사용 import/변수도 정리해 ESLint 경고를 21 → 0으로 낮춤(런타임 동작 변화 없음)
+
 ## [0.60.0] - 2026-06-03
 
 ### Fixed

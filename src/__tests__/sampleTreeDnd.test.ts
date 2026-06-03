@@ -192,7 +192,7 @@ describe('SampleTreeDragAndDropController reordering (issue #18-1)', () => {
   });
 
   it('moves dragged samples to the end when dropped on a Type node', async () => {
-    const { controller, makeSampleItem, makeTypeItem, reorderCalls } = await makeController({
+    const { controller, makeTypeItem, reorderCalls } = await makeController({
       'local/DNA': ['DNA-1', 'DNA-2', 'DNA-3'],
     });
     const target = makeTypeItem('local', 'DNA');

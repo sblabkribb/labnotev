@@ -47,7 +47,6 @@ function serializeFrontMatter(fm: WorkflowFrontMatter): string {
 }
 
 const H2_PATTERN = /^##\s+/;
-const H3_PATTERN = /^###\s+/;
 const H4_PATTERN = /^####\s+/;
 const HR_PATTERN = /^---\s*$/;
 const UNIT_OP_HEADING_PATTERN = /^###\s+\[([A-Z]+\d+)\s+(.+?)\]\s*(.*)/;

@@ -101,7 +101,7 @@ describe('SampleTreeViewProvider', () => {
 
   describe('Collapsible State', () => {
     it('should have Root items expanded by default', async () => {
-      const { SampleTreeItem, SampleTreeItemType, getCollapsibleState } = await import('../views/SampleTreeViewProvider');
+      const { SampleTreeItemType, getCollapsibleState } = await import('../views/SampleTreeViewProvider');
       const vscode = await import('vscode');
       
       const state = getCollapsibleState(SampleTreeItemType.Root);

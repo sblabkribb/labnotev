@@ -19,7 +19,6 @@ import {
   UnitOperationItem,
 } from '../lib/workflowDataLoader';
 import {
-  isValidReadmePath,
   isValidWorkflowPath,
   getNextWorkflowNumber,
   createWorkflowContent,
