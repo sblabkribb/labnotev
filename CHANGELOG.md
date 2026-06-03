@@ -5,6 +5,21 @@
 형식은 [Keep a Changelog](https://keepachangelog.com/ko/1.1.0/)를 기반으로 하며,
 이 프로젝트는 [유의적 버전 관리](https://semver.org/lang/ko/)를 따릅니다.
 
+## [0.58.0] - 2026-06-03
+
+### Added
+- **이슈 #30 — Editor 모드 찾기(Ctrl+F) 기능**: Section Editor(웹뷰)에 자체 찾기 바를 추가. VS Code 네이티브 find 위젯은 렌더된 DOM 텍스트만 검색해 본문이 `<textarea>`의 `value`에 들어 있는 Section Editor에서는 동작하지 않으므로, 살아있는 DOM의 `textarea`/`input[type=text]`를 직접 평문 스캔하는 방식으로 구현(`enableFindWidget`은 비활성 유지) ([webview-section/src/App.tsx](webview-section/src/App.tsx), [webview-section/src/components/FindBar.tsx](webview-section/src/components/FindBar.tsx), [webview-section/src/lib/findMatches.ts](webview-section/src/lib/findMatches.ts))
+- **단축키·전체 매치 하이라이트·내비게이션**: `Ctrl/Cmd+F`로 찾기 바를 열고(모든 UnitOp 패널을 자동으로 펼쳐 접힌 textarea까지 검색 대상에 포함), `Esc`로 닫음. 전체 매치를 반투명 오버레이로 동시 하이라이트하고 활성 매치를 강조. `Enter`/`Shift+Enter`로 매치 간 이동, `n/m` 카운트(0건은 "No results"), 대소문자 토글 제공. 오버레이는 `<textarea>` 전용(미러 div + `mark.getClientRects()`로 멀티라인 매치까지 측정, `position:relative` 래퍼 기준 좌표라 스크롤 시 재계산 불필요)이며, 단일행 `<input>`은 검색·카운트·내비게이션에는 포함하되 활성 매치를 네이티브 선택으로 표시. readonly Experiment Type·시간 입력은 `data-find-skip`으로 제외 ([webview-section/src/components/SearchHighlightLayer.tsx](webview-section/src/components/SearchHighlightLayer.tsx), [webview-section/src/utils/caretPosition.ts](webview-section/src/utils/caretPosition.ts), [webview-section/src/components/FrontMatterForm.tsx](webview-section/src/components/FrontMatterForm.tsx), [webview-section/src/components/DateTimeField.tsx](webview-section/src/components/DateTimeField.tsx))
+- **신규 단위 테스트 3종 19건**: `findMatches.test.ts`(대소문자 옵션·다중 매치·DOM 순서·빈 쿼리·`data-find-skip` 제외·비텍스트 input 제외), `FindBar.test.tsx`(카운트/No results 표시, Enter/Shift+Enter, Esc, 버튼 배선, 매치 0건 시 비활성), `getElementMatchRects.test.ts`(빈 ranges 분기·ranges 병렬 반환·측정 미러 정리·범위 클램프) ([webview-section/src/__tests__/findMatches.test.ts](webview-section/src/__tests__/findMatches.test.ts), [webview-section/src/__tests__/FindBar.test.tsx](webview-section/src/__tests__/FindBar.test.tsx), [webview-section/src/__tests__/getElementMatchRects.test.ts](webview-section/src/__tests__/getElementMatchRects.test.ts))
+
+### Fixed
+- **webview-section 테스트 인프라 — vitest 4 모듈 인스턴스 분리로 깨져 있던 테스트 복구**: vitest 4는 externalize된 테스트 인프라의 `import ... from 'vitest'`를 러너의 전역 인스턴스와 다른 모듈 인스턴스로 로드한다. 이로 인해 (1) jest-dom 매처가 전역 `expect`에 등록되지 않아 `Invalid Chai property: toBeInTheDocument`가 발생하고(App/FrontMatterForm/SampleHighlighter 등), (2) `describe`를 명시 임포트한 `resolveInsertPosition.test.ts`가 `No test suite found`로 미수집되었다. setup.ts에서 jest-dom 매처를 전역 `expect`(`globalThis.expect`)에 직접 확장하고, `resolveInsertPosition.test.ts`의 명시적 `vitest` 임포트를 제거(`globals: true` 의존)해 해소 ([webview-section/src/__tests__/setup.ts](webview-section/src/__tests__/setup.ts), [webview-section/src/__tests__/resolveInsertPosition.test.ts](webview-section/src/__tests__/resolveInsertPosition.test.ts))
+
+### Notes
+- 회귀: `webview-section` vitest 24 파일 / 174 테스트 전부 통과(기존 13 failed + 미수집 8건 복구 포함). `tsc --noEmit`은 사전 베이스라인 에러 2건(`App.test.tsx`의 `tailContent`, `DateTimeField.tsx`의 `size`, 이번 변경과 무관)만 잔존. `vite build` 성공
+- 확장(extension) 측 코드 변경 없음 — 전부 `webview-section`에서 처리(`enableFindWidget` 비활성 유지)
+- 비포함(범위 밖): 찾기-바꾸기(Replace), 정규식 검색, `<input>` 오버레이 하이라이트(네이티브 선택으로 대체)
+
 ## [0.57.0] - 2026-06-02
 
 ### Added
