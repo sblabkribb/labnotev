@@ -1,4 +1,3 @@
-import { describe, it, expect } from 'vitest';
 import { resolveInsertPosition, type FocusTarget } from '../lib/resolveInsertPosition';
 
 describe('resolveInsertPosition', () => {

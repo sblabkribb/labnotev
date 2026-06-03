@@ -1,4 +1,12 @@
-import '@testing-library/jest-dom/vitest';
+import * as matchers from '@testing-library/jest-dom/matchers';
+
+// vitest 4 loads externalized setup files under a different module instance of
+// `vitest`, so jest-dom's own `import { expect } from 'vitest'; expect.extend()`
+// (via '@testing-library/jest-dom/vitest') registers matchers on an `expect`
+// that is NOT the runner's global `expect` used by tests — producing
+// "Invalid Chai property: toBeInTheDocument". Extend the global `expect`
+// directly so the matchers land on the instance the tests actually use.
+(globalThis as unknown as { expect: { extend: (m: unknown) => void } }).expect.extend(matchers);
 
 // Mock window.matchMedia (required by Mantine)
 Object.defineProperty(window, 'matchMedia', {
