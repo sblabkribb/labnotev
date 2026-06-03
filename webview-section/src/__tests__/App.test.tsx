@@ -29,6 +29,7 @@ const mockWorkflow: WorkflowDocument = {
   workflowHeader: '[WD010 Test]',
   workflowDescription: 'Test description',
   unitOperations: [],
+  tailContent: '',
 };
 
 function simulateMessage(data: any) {

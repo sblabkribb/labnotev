@@ -26,8 +26,8 @@ jobs:
         run: cd webview-section && npm ci
 
       # Mandatory gates: a red result here fails the build.
-      - name: Typecheck (host)
-        run: npm run typecheck
+      - name: Typecheck (host + webview)
+        run: npm run typecheck:all
 
       - name: Run tests (host + webview)
         run: npm run test:all
@@ -35,13 +35,8 @@ jobs:
       - name: Build extension
         run: npm run build
 
-      # Advisory checks: surfaced in logs but do not fail the build yet, since
-      # the webview typecheck and the lint baseline still have pre-existing
-      # violations to be addressed incrementally.
-      - name: Typecheck (webview, advisory)
-        run: npm run typecheck:webview
-        continue-on-error: true
-
-      - name: Lint (advisory)
+      # Mandatory gate: fails on ESLint errors. Warnings are still allowed
+      # (ESLint exits 0 on warnings) so the remaining advisory warnings do not
+      # block the build.
+      - name: Lint (host + webview)
         run: npm run lint:all
-        continue-on-error: true

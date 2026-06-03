@@ -1,6 +1,6 @@
 import * as vscode from 'vscode';
 import * as path from 'path';
-import { SampleType, SAMPLE_TYPES, findSamplePrefixRange, generateSampleId, buildSampleIdPattern } from '../lib/sampleUtils';
+import { SampleType, SAMPLE_TYPES, findSamplePrefixRange, generateSampleId, buildSampleIdPattern, buildSampleDefSuffix } from '../lib/sampleUtils';
 import {
   getSeoulDateString,
   getSeoulDateTimeString,
@@ -229,13 +229,7 @@ export function registerUtilityCommands(
         );
       }
 
-      let insertText = `@${sampleType.toLowerCase()};${newId}`;
-      if (alias) {
-        insertText += `;${alias}`;
-      }
-      if (description) {
-        insertText += `;${description}`;
-      }
+      const insertText = `@${sampleType.toLowerCase()};${newId}${buildSampleDefSuffix(alias, description)}`;
 
       // Check if @type; prefix already exists at cursor position
       const prefixRange = findSamplePrefixRange(
@@ -319,13 +313,7 @@ export function registerUtilityCommands(
         );
       }
 
-      let insertText = `@${sampleType.toLowerCase()};${sampleId}`;
-      if (alias) {
-        insertText += `;${alias}`;
-      }
-      if (description) {
-        insertText += `;${description}`;
-      }
+      const insertText = `@${sampleType.toLowerCase()};${sampleId}${buildSampleDefSuffix(alias, description)}`;
 
       // Check if @type; prefix already exists at cursor position
       const prefixRange = findSamplePrefixRange(

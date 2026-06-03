@@ -6,6 +6,8 @@ vi.mock('fs', () => ({
   readdirSync: vi.fn(),
   readFileSync: vi.fn(),
   writeFileSync: vi.fn(),
+  renameSync: vi.fn(),
+  unlinkSync: vi.fn(),
   mkdirSync: vi.fn(),
 }));
 
@@ -554,6 +556,26 @@ describe('SampleTreeViewProvider', () => {
       
       const text = getDefinitionText(item);
       expect(text).toBe('@rna;RNA-456;SampleB');
+    });
+
+    it('keeps an empty alias slot when description is present but alias is empty', async () => {
+      const { SampleTreeItem, SampleTreeItemType, getDefinitionText } = await import('../views/SampleTreeViewProvider');
+
+      const item = new SampleTreeItem(
+        'DNA-321',
+        SampleTreeItemType.Sample,
+        {
+          scope: 'local',
+          sampleType: 'DNA',
+          sampleId: 'DNA-321',
+          alias: null,
+          sampleDescription: '설명만 있음'
+        }
+      );
+
+      const text = getDefinitionText(item);
+      // The description must NOT slide into the alias slot.
+      expect(text).toBe('@dna;DNA-321;;설명만 있음');
     });
 
     it('should return @type:ID format when no alias or description', async () => {

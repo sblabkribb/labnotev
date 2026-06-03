@@ -5,6 +5,18 @@
 형식은 [Keep a Changelog](https://keepachangelog.com/ko/1.1.0/)를 기반으로 하며,
 이 프로젝트는 [유의적 버전 관리](https://semver.org/lang/ko/)를 따릅니다.
 
+## [0.60.0] - 2026-06-03
+
+### Fixed
+- **하이픈 다중파트 ID rename 손상**: `SampleInfoPanel`의 ID 변경/교체에서 기본 ID(`DNA-170`)를 rename하면 더 긴 충돌해소 ID(`DNA-170-3`)의 접두부까지 함께 치환되어 별개 ID가 손상되던 문제 수정. 전체 토큰만 매칭하는 `replaceWholeSampleId`로 통일
+- **샘플 정의 alias 슬롯 어긋남**: alias 없이 description만 입력하면 정의 문자열이 `@type;ID;설명`이 되어 설명이 alias 칸으로 밀려 들어가던 문제 수정. description이 있으면 빈 alias 슬롯(`;;설명`)을 유지하는 `buildSampleDefSuffix`를 정의 조립 4개 경로(`getDefinitionText`, 샘플 생성/입력 명령, Section Editor 모달)에 적용
+
+### Changed
+- **JSON 저장 원자성 강화**: 샘플·워크플로 JSON 저장을 임시파일 기록 후 rename으로 교체하는 원자적 쓰기(`writeFileAtomic`)로 전환해, 저장 중 중단 시 파일이 손상되지 않도록 보호
+- **이미지 미리보기 패널 CSP 적용**: 이미지 미리보기 웹뷰에 nonce 기반 Content-Security-Policy를 추가하고 inline 이벤트 핸들러를 제거(Section Editor와 동일한 보안 수준으로 통일)
+- **웹뷰 메시지 envelope 검증**: Section Editor가 웹뷰에서 받은 메시지를 처리 전에 구조(객체·문자열 `type`·객체 `data`) 검증하여 잘못된 메시지를 무시
+- **CI 게이트 강화**: 웹뷰 typecheck와 ESLint(error 기준)를 자문에서 강제 게이트로 승격. 릴리스 워크플로의 typecheck도 호스트+웹뷰 전체로 확장
+
 ## [0.59.0] - 2026-06-03
 
 ### Removed

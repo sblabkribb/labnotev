@@ -25,8 +25,8 @@ jobs:
       - name: Install webview dependencies
         run: cd webview-section && npm ci
       
-      - name: Typecheck (host)
-        run: npm run typecheck
+      - name: Typecheck (host + webview)
+        run: npm run typecheck:all
       
       - name: Run tests
         run: npm run test:all

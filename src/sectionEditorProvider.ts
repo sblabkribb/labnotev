@@ -5,7 +5,8 @@ import { parseLabNoteMd, serializeLabNoteMd } from './lib/labnoteSectionParser';
 import { parseWorkflowMd, serializeWorkflowMd } from './lib/workflowSectionParser';
 import type { UnitOperationBlock, WorkflowReference } from './lib/sectionTypes';
 import { getSeoulDateTimeString } from './lib/dateUtils';
-import { generateSampleId, getSampleDisplayMeta, type SampleDisplayMeta } from './lib/sampleUtils';
+import { isValidSectionEditorMessage } from './lib/webviewMessage';
+import { generateSampleId, getSampleDisplayMeta, buildSampleDefSuffix, type SampleDisplayMeta } from './lib/sampleUtils';
 import { findSampleDefinitionOnlyMatch } from './lib/sampleStorage';
 import { showProductPicker } from './lib/productPicker';
 import { parseWorkflowChecklistFromReadme, generateWorkflowChecklist, updateReadmeWorkflowSection } from './lib/workflowStructure';
@@ -409,6 +410,11 @@ export class SectionEditorProvider implements vscode.CustomTextEditorProvider {
     webviewPanel.webview.html = this.getHtmlForWebview(webviewPanel.webview);
 
     webviewPanel.webview.onDidReceiveMessage(async (message) => {
+      // Reject malformed envelopes up front: only act on a plain object with a
+      // non-empty string `type` and an object (or absent) `data` payload.
+      if (!isValidSectionEditorMessage(message)) {
+        return;
+      }
       switch (message.type) {
         case 'ready':
           await this.sendInitMessage(document, webviewPanel, mode);
@@ -473,9 +479,7 @@ export class SectionEditorProvider implements vscode.CustomTextEditorProvider {
           await this._sampleTreeProvider.addSample('local', reqType, newId, alias || null, description || null);
 
           const typeLower = reqType.toLowerCase();
-          let definitionText = `- @${typeLower};${newId}`;
-          if (alias) definitionText += `;${alias}`;
-          if (description) definitionText += `;${description}`;
+          const definitionText = `- @${typeLower};${newId}${buildSampleDefSuffix(alias, description)}`;
 
           webviewPanel.webview.postMessage({
             type: 'sampleDefinitionCreated',

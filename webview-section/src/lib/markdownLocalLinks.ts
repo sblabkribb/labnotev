@@ -1,5 +1,5 @@
 /** `[label](href)` but not `![...](...)` image syntax (negative lookbehind). */
-export const MARKDOWN_FILE_LINK_RE = /(?<!\!)\[([^\]]*)\]\(([^)]+)\)/g;
+export const MARKDOWN_FILE_LINK_RE = /(?<!!)\[([^\]]*)\]\(([^)]+)\)/g;
 
 export const IMAGE_PATH_EXT = /\.(png|jpg|jpeg|gif|webp|svg|bmp)$/i;
 

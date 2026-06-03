@@ -1,5 +1,5 @@
 import * as vscode from 'vscode';
-import { SAMPLE_TYPES, SampleType, sampleTypeColors, buildSampleIdPattern } from '../lib/sampleUtils';
+import { SAMPLE_TYPES, SampleType, sampleTypeColors, buildSampleIdPattern, replaceWholeSampleId } from '../lib/sampleUtils';
 import { extractSampleInfoFromText as extractFromStorage, SampleInfo, parseSampleTracking } from '../lib/sampleStorage';
 import { escapeRegExp } from '../lib/regexUtils';
 
@@ -263,7 +263,7 @@ export class SampleInfoPanel {
 
     const doc = await vscode.workspace.openTextDocument(this._currentDocUri);
     const text = doc.getText();
-    const newText = text.replace(new RegExp(`\\b${escapeRegExp(oldId)}\\b`, 'g'), newId);
+    const newText = replaceWholeSampleId(text, oldId, newId);
 
     const edit = new vscode.WorkspaceEdit();
     edit.replace(
@@ -303,7 +303,7 @@ export class SampleInfoPanel {
 
     if (!selectedId) return;
 
-    const newText = text.replace(new RegExp(`\\b${escapeRegExp(oldId)}\\b`, 'g'), selectedId);
+    const newText = replaceWholeSampleId(text, oldId, selectedId);
 
     const edit = new vscode.WorkspaceEdit();
     edit.replace(

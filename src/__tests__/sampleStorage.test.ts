@@ -398,7 +398,7 @@ Sample Tracking: YES
       
       const result = getGlobalLabsamplesFolder('/workspace/project');
       
-      expect(result).toMatch(/resources[\\\/]labsamples$/);
+      expect(result).toMatch(/resources[\\/]labsamples$/);
       expect(result).toContain('workspace');
     });
   });

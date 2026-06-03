@@ -5,6 +5,7 @@
 import * as fs from 'fs';
 import * as path from 'path';
 import * as vscode from 'vscode';
+import { writeFileAtomic } from './atomicWrite';
 
 // Import and re-export from sampleUtils.ts (single source of truth)
 import { SAMPLE_TYPES, SampleType } from './sampleUtils';
@@ -154,7 +155,7 @@ export function saveSampleToResources(
     }
   }
 
-  fs.writeFileSync(filePath, JSON.stringify(samples, null, 2), 'utf-8');
+  writeFileAtomic(filePath, JSON.stringify(samples, null, 2), 'utf-8');
 }
 
 /** Flat map sampleId -> { alias, description } for webview hover (local JSON overrides global per id). */

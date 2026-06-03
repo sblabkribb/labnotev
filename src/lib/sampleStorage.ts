@@ -6,6 +6,7 @@
 
 import * as fs from 'fs';
 import * as path from 'path';
+import { writeFileAtomic } from './atomicWrite';
 import { SAMPLE_TYPES, SampleType } from './sampleUtils';
 import { escapeRegExp } from './regexUtils';
 
@@ -359,7 +360,7 @@ export function saveSamplesByType(
     fs.mkdirSync(labsamplesFolder, { recursive: true });
   }
   
-  fs.writeFileSync(filePath, JSON.stringify(samples, null, 2), 'utf8');
+  writeFileAtomic(filePath, JSON.stringify(samples, null, 2), 'utf8');
 }
 
 /**

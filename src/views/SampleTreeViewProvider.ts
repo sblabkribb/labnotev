@@ -6,7 +6,7 @@
 import * as vscode from 'vscode';
 import * as fs from 'fs';
 import * as path from 'path';
-import { SAMPLE_TYPES, SampleType } from '../lib/sampleUtils';
+import { SAMPLE_TYPES, SampleType, buildSampleDefSuffix } from '../lib/sampleUtils';
 import { SampleRecord, loadSamplesByType, saveSamplesByType, moveSampleToGlobal as moveSampleToGlobalFn, moveSampleToLocal as moveSampleToLocalFn } from '../lib/sampleStorage';
 
 /**
@@ -82,25 +82,11 @@ export function getDefinitionText(item: SampleTreeItem): string {
   
   // Equip type: ID is omitted (uses existing DB/JSON IDs only)
   if (type === 'equip') {
-    let text = `@${type};`;
-    if (item.alias && item.alias.trim()) {
-      text += `;${item.alias}`;
-    }
-    if (item.sampleDescription && item.sampleDescription.trim()) {
-      text += `;${item.sampleDescription}`;
-    }
-    return text;
+    return `@${type};${buildSampleDefSuffix(item.alias, item.sampleDescription)}`;
   }
 
   // Regular sample types: include ID
-  let text = `@${type};${item.sampleId || ''}`;
-  if (item.alias && item.alias.trim()) {
-    text += `;${item.alias}`;
-  }
-  if (item.sampleDescription && item.sampleDescription.trim()) {
-    text += `;${item.sampleDescription}`;
-  }
-  return text;
+  return `@${type};${item.sampleId || ''}${buildSampleDefSuffix(item.alias, item.sampleDescription)}`;
 }
 
 /**

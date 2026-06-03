@@ -5,7 +5,7 @@ import '@mantine/core/styles.css';
 
 type ColorScheme = 'light' | 'dark';
 function loadColorScheme(): ColorScheme {
-  try { const v = localStorage.getItem('labnotev-color-scheme'); if (v === 'dark') return 'dark'; } catch {}
+  try { const v = localStorage.getItem('labnotev-color-scheme'); if (v === 'dark') return 'dark'; } catch { /* localStorage unavailable; fall back to default */ }
   return 'light';
 }
 import { FrontMatterForm } from './components/FrontMatterForm';
@@ -120,7 +120,7 @@ export default function App() {
   const toggleColorScheme = useCallback(() => {
     setColorScheme(prev => {
       const next = prev === 'light' ? 'dark' : 'light';
-      try { localStorage.setItem('labnotev-color-scheme', next); } catch {}
+      try { localStorage.setItem('labnotev-color-scheme', next); } catch { /* ignore persistence failure */ }
       return next;
     });
   }, []);

@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import { Group, ActionIcon, Text, TextInput, Tooltip } from '@mantine/core';
+import { Group, ActionIcon, Text, TextInput, Tooltip, type MantineSize } from '@mantine/core';
 import { DatePickerInput } from '@mantine/dates';
 import dayjs from 'dayjs';
 import customParseFormat from 'dayjs/plugin/customParseFormat';
@@ -11,7 +11,7 @@ interface DateTimeFieldProps {
   value: string;
   onChange: (value: string) => void;
   clearable?: boolean;
-  size?: string;
+  size?: MantineSize;
   placeholder?: string;
 }
 

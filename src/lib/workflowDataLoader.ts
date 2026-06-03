@@ -5,6 +5,7 @@
 
 import * as fs from 'fs';
 import * as path from 'path';
+import { writeFileAtomic } from './atomicWrite';
 
 // Type definitions
 export interface WorkflowItem {
@@ -185,7 +186,7 @@ export function saveWorkflows(workspaceRoot: string, data: WorkflowJson): void {
   // Update lastUpdated
   data.lastUpdated = new Date().toISOString().split('T')[0];
   
-  fs.writeFileSync(filePath, JSON.stringify(data, null, 2), 'utf-8');
+  writeFileAtomic(filePath, JSON.stringify(data, null, 2), 'utf-8');
 }
 
 /**
@@ -206,7 +207,7 @@ export function saveUnitOperations(
   // Update lastUpdated
   data.lastUpdated = new Date().toISOString().split('T')[0];
   
-  fs.writeFileSync(filePath, JSON.stringify(data, null, 2), 'utf-8');
+  writeFileAtomic(filePath, JSON.stringify(data, null, 2), 'utf-8');
 }
 
 /**

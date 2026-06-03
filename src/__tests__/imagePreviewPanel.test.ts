@@ -128,6 +128,31 @@ describe('Image Preview Panel', () => {
       // Should not contain raw script tag in alt position (title attribute)
       expect(html).not.toContain('title="<script>');
     });
+
+    it('should include a Content-Security-Policy meta scoped to the webview cspSource', async () => {
+      const { generateImagePreviewHtml } = await import('../views/ImagePreviewPanel');
+
+      const cspSource = 'vscode-webview://test-csp-source';
+      const html = generateImagePreviewHtml('image.png', 'Alt', cspSource);
+
+      expect(html).toContain('http-equiv="Content-Security-Policy"');
+      expect(html).toContain("default-src 'none'");
+      // Images are restricted to the webview source
+      expect(html).toContain(`img-src ${cspSource}`);
+      // Scripts are gated by a per-render nonce, used on the <script> tag too
+      const nonceMatch = html.match(/script-src 'nonce-([A-Za-z0-9]+)'/);
+      expect(nonceMatch).not.toBeNull();
+      expect(html).toContain(`<script nonce="${nonceMatch![1]}">`);
+    });
+
+    it('should not rely on inline event handler attributes (CSP-incompatible)', async () => {
+      const { generateImagePreviewHtml } = await import('../views/ImagePreviewPanel');
+
+      const html = generateImagePreviewHtml('image.png', 'Alt', 'vscode-webview://s');
+
+      expect(html).not.toMatch(/onclick=/);
+      expect(html).not.toMatch(/onerror=/);
+    });
   });
 
   describe('Multiple panels', () => {

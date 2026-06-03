@@ -60,13 +60,34 @@ function escapeHtml(str: string): string {
 /**
  * Generate HTML for image preview panel
  */
-export function generateImagePreviewHtml(imageUri: string, altText: string): string {
+function getNonce(): string {
+  const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
+  let nonce = '';
+  for (let i = 0; i < 32; i++) {
+    nonce += chars.charAt(Math.floor(Math.random() * chars.length));
+  }
+  return nonce;
+}
+
+export function generateImagePreviewHtml(
+  imageUri: string,
+  altText: string,
+  cspSource = ''
+): string {
   const escapedAlt = escapeHtml(altText || 'Image');
+  const nonce = getNonce();
+  const csp = [
+    `default-src 'none'`,
+    `img-src ${cspSource} data:`,
+    `style-src 'unsafe-inline'`,
+    `script-src 'nonce-${nonce}'`,
+  ].join('; ');
   
   return `<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8">
+  <meta http-equiv="Content-Security-Policy" content="${csp}">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>${escapedAlt}</title>
   <style>
@@ -181,11 +202,11 @@ export function generateImagePreviewHtml(imageUri: string, altText: string): str
   <div class="toolbar">
     <span class="title" title="${escapedAlt}">${escapedAlt}</span>
     <div class="zoom-controls">
-      <button class="zoom-btn" onclick="zoomOut()">−</button>
+      <button class="zoom-btn" id="zoomOutBtn">−</button>
       <span class="zoom-level" id="zoomLevel">100%</span>
-      <button class="zoom-btn" onclick="zoomIn()">+</button>
-      <button class="zoom-btn" onclick="resetZoom()">Reset</button>
-      <button class="close-btn" onclick="closePanel()">Close</button>
+      <button class="zoom-btn" id="zoomInBtn">+</button>
+      <button class="zoom-btn" id="resetBtn">Reset</button>
+      <button class="close-btn" id="closeBtn">Close</button>
     </div>
   </div>
   <div class="image-container" id="imageContainer">
@@ -194,11 +215,10 @@ export function generateImagePreviewHtml(imageUri: string, altText: string): str
       alt="${escapedAlt}" 
       class="preview-image" 
       id="previewImage"
-      onerror="handleImageError()"
     />
   </div>
   
-  <script>
+  <script nonce="${nonce}">
     const vscode = acquireVsCodeApi();
     const image = document.getElementById('previewImage');
     let currentZoom = 100;
@@ -235,6 +255,13 @@ export function generateImagePreviewHtml(imageUri: string, altText: string): str
       document.getElementById('imageContainer').innerHTML = 
         '<div class="error-message"><p>Failed to load the image.</p></div>';
     }
+
+    // Wire up controls without inline handlers (CSP-compatible)
+    image.addEventListener('error', handleImageError);
+    document.getElementById('zoomOutBtn').addEventListener('click', zoomOut);
+    document.getElementById('zoomInBtn').addEventListener('click', zoomIn);
+    document.getElementById('resetBtn').addEventListener('click', resetZoom);
+    document.getElementById('closeBtn').addEventListener('click', closePanel);
     
     // Keyboard shortcuts
     document.addEventListener('keydown', (e) => {
@@ -280,7 +307,11 @@ export class ImagePreviewPanel {
     const webviewUri = panel.webview.asWebviewUri(imageUri);
     
     // Set HTML content
-    this._panel.webview.html = generateImagePreviewHtml(webviewUri.toString(), altText);
+    this._panel.webview.html = generateImagePreviewHtml(
+      webviewUri.toString(),
+      altText,
+      panel.webview.cspSource
+    );
 
     // Handle panel disposal
     this._panel.onDidDispose(() => this.dispose(), null, this._disposables);

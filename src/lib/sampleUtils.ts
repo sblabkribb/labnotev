@@ -26,6 +26,41 @@ export function buildSampleIdPattern(type: string): RegExp {
 }
 
 /**
+ * Replace every whole-token occurrence of `oldId` with `newId` in `text`.
+ *
+ * A plain `\boldId\b` replace is unsafe for sample IDs: because `-` is a word
+ * boundary, renaming a base id like `DNA-170` would also rewrite the prefix of
+ * a distinct collision-resolved multipart id such as `DNA-170-3`, corrupting it
+ * into `DNA-999-3`. The trailing `(?!-\d)` lookahead rejects that case, while
+ * the closing `\b` already prevents matching a longer-digit id (`DNA-1700`).
+ */
+export function replaceWholeSampleId(text: string, oldId: string, newId: string): string {
+  const re = new RegExp(`\\b${escapeRegExp(oldId)}\\b(?!-\\d)`, 'g');
+  return text.replace(re, newId);
+}
+
+/**
+ * Build the `;alias;description` suffix of a sample definition string while
+ * keeping field positions stable.
+ *
+ * A sample definition is `@type;ID;alias;description`. Appending a plain
+ * `;${description}` whenever the alias is empty would slide the description into
+ * the alias slot (`@type;ID;description`). To prevent that, when a description
+ * is present the alias slot is always emitted — empty if there is no alias
+ * (`;;description`). Whitespace-only values are treated as absent.
+ */
+export function buildSampleDefSuffix(
+  alias?: string | null,
+  description?: string | null
+): string {
+  const a = alias && alias.trim() ? alias : '';
+  const d = description && description.trim() ? description : '';
+  if (!a && !d) return '';
+  if (!d) return `;${a}`;
+  return `;${a};${d}`;
+}
+
+/**
  * Colors for each sample type (used in highlighting and UI)
  */
 export const sampleTypeColors: Record<SampleType, string> = {

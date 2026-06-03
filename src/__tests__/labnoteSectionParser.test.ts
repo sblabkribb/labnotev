@@ -19,8 +19,8 @@ This experiment tests protein folding under different pH conditions.
 
 > Enter the list of related workflow files between the markers below.
 
-[ ] [001 WD010 Sample Prep](.\/001_WD010_Sample_Prep.labnote.md)
-[x] [002 WD020 Analysis](.\/002_WD020_Analysis.labnote.md)
+[ ] [001 WD010 Sample Prep](./001_WD010_Sample_Prep.labnote.md)
+[x] [002 WD020 Analysis](./002_WD020_Analysis.labnote.md)
 
 
 ## 📊 Results & Discussion
