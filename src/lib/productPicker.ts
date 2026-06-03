@@ -1,10 +1,10 @@
 /**
- * Product picker for Reagent/Labware: load candidates from reference DB and MongoDB,
- * show QuickPick for user to select. Used when creating new Reagent/Labware sample ID.
+ * Product picker for Reagent/Labware/Equip: load candidates from the reference DB
+ * (resources/labsamples/{type}_*.json) and show a QuickPick for the user to select.
+ * Used when creating a new Reagent/Labware/Equip sample ID.
  */
 
 import * as vscode from 'vscode';
-import { ensureRemoteDataLoaded, getMongoIds, getMongoRecord, MONGO_BACKED_TYPES } from './dataLoader';
 import { getLabsamplesFolder, getGlobalLabsamplesFolder, loadReferenceSamplesByType } from './sampleStorage';
 
 export interface ProductCandidate {
@@ -16,7 +16,7 @@ export interface ProductCandidate {
 const REFERENCE_DB_TYPES = ['Reagent', 'Labware', 'Equip'];
 
 /**
- * Get all product candidates for a type (reference DB + MongoDB for Labware).
+ * Get all product candidates for a type from the reference DB (local + global).
  */
 export function getProductCandidates(
   type: string,
@@ -60,24 +60,6 @@ export function getProductCandidates(
     }
   }
 
-  if (type === 'Labware' && (MONGO_BACKED_TYPES as readonly string[]).includes(type)) {
-    // Phase 1: ensure Mongo data is being loaded for subsequent invocations.
-    void ensureRemoteDataLoaded();
-    const mongoIds = getMongoIds(type);
-    for (const id of mongoIds) {
-      if (!seenIds.has(id)) {
-        seenIds.add(id);
-        const mongoRecord = getMongoRecord(type, id);
-        const name = mongoRecord?.['물품명'] ?? mongoRecord?.name ?? id;
-        result.push({
-          id,
-          alias: typeof name === 'string' ? name : null,
-          description: null,
-        });
-      }
-    }
-  }
-
   return result;
 }
 
@@ -91,18 +73,11 @@ export async function showProductPicker(
   const candidates = getProductCandidates(type, documentUri);
   if (candidates.length === 0) {
     // Issue #22 Q2: surface the empty-catalog state so the Search product
-    // button never looks like a silent no-op. Reagent has no MongoDB source,
-    // so the hint mentions MongoDB only for the type that actually consults it.
-    const message =
-      type === 'Labware'
-        ? vscode.l10n.t(
-            'No {0} products found. Add a catalog at resources/labsamples/{0}_*.json, or enable MongoDB in settings (labnotev.enableMongo).',
-            type
-          )
-        : vscode.l10n.t(
-            'No {0} products found. Add a catalog at resources/labsamples/{0}_*.json.',
-            type
-          );
+    // button never looks like a silent no-op.
+    const message = vscode.l10n.t(
+      'No {0} products found. Add a catalog at resources/labsamples/{0}_*.json.',
+      type
+    );
     void vscode.window.showInformationMessage(message);
     return null;
   }

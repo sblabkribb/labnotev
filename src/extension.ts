@@ -3,7 +3,6 @@ import * as path from 'path';
 import { SampleTreeViewProvider, SampleTreeDragAndDropController } from './views/SampleTreeViewProvider';
 import { WorkflowTreeViewProvider } from './views/WorkflowTreeViewProvider';
 import { createSampleCompletionProvider } from './providers/SampleCompletionProvider';
-import { disposeRemoteData, onRemoteDataLoaded, reloadRemoteData } from './lib/dataLoader';
 import {
   registerSampleCommands,
   registerWorkflowCommands,
@@ -51,11 +50,6 @@ export async function activate(context: vscode.ExtensionContext) {
   console.log(`[labnotev] step=beforeActivate elapsed=${(activateStart - moduleLoadedAt).toFixed(1)}ms`);
   console.log('Lab Note Editor is now active');
 
-  // Phase 1: MongoDB connection is now lazy. We no longer await it here so
-  // activation stays responsive even when the Mongo server is unreachable.
-  // `ensureRemoteDataLoaded` is invoked on-demand from completion/product
-  // picker code paths.
-
   // Register Sample Completion Provider for @ based auto-completion
   context.subscriptions.push(createSampleCompletionProvider());
   logStep('registerCompletionProvider');
@@ -87,15 +81,6 @@ export async function activate(context: vscode.ExtensionContext) {
         const newValue = vscode.workspace.getConfiguration('labnotev').get<boolean>('sampleTracking', true);
         vscode.commands.executeCommand('setContext', 'labnotev.sampleTrackingEnabled', newValue);
       }
-      // Re-evaluate MongoDB state when the toggle or URL changes so users can
-      // opt in/out at runtime without restarting VS Code.
-      if (
-        e.affectsConfiguration('labnotev.enableMongo') ||
-        e.affectsConfiguration('labnotev.mongoUrl') ||
-        e.affectsConfiguration('labnotev.mongoDbName')
-      ) {
-        void reloadRemoteData();
-      }
     })
   );
 
@@ -109,14 +94,6 @@ export async function activate(context: vscode.ExtensionContext) {
   });
   context.subscriptions.push(treeView);
   logStep('createSampleTreeView');
-
-  // Phase 1: refresh the sample tree when MongoDB-backed data finishes
-  // loading so Equip/Labware counts and ids appear without manual refresh.
-  context.subscriptions.push(
-    onRemoteDataLoaded(() => {
-      sampleTreeProvider.refresh();
-    })
-  );
 
   // Track last active .labnote.md URI (for Preview → Section Editor fallback)
   let lastLabnoteUri: vscode.Uri | undefined;
@@ -237,22 +214,12 @@ export async function activate(context: vscode.ExtensionContext) {
       if (uri) {
         vscode.commands.executeCommand('markdown.showPreview', uri);
       }
-    }),
-    // Phase 1: manual MongoDB reload for users who configure/change the URL
-    // after activation.
-    vscode.commands.registerCommand('labnotev.reloadRemoteData', async () => {
-      await reloadRemoteData();
     })
   );
   logStep('registerCommands');
   logStep('activateEnd');
 }
 
-export async function deactivate() {
-  // Dispose MongoDB connection
-  try {
-    await disposeRemoteData();
-  } catch (error) {
-    console.error('[LabNoteV] Failed to dispose MongoDB connection:', error);
-  }
+export function deactivate() {
+  // No resources require explicit teardown beyond context.subscriptions.
 }

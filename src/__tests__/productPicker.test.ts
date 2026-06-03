@@ -1,28 +1,20 @@
 /**
- * Issue #22 Q2 regression: when the Reagent/Labware product catalog is empty
- * (no reference DB files and no MongoDB results), the Search product button
- * used to silently fall through, leaving the user unsure whether the feature
- * was broken or just missing data. `showProductPicker` must now surface a
- * single information toast explaining the source paths and MongoDB toggle,
- * while still returning `null` so callers (the SampleCreateModal autofill,
- * `createSampleWithPrompt`, etc.) keep their existing no-op behaviour.
+ * Issue #22 Q2 regression: when the product catalog is empty (no reference DB
+ * files), the Search product button used to silently fall through, leaving the
+ * user unsure whether the feature was broken or just missing data.
+ * `showProductPicker` must now surface a single information toast explaining the
+ * source paths, while still returning `null` so callers (the SampleCreateModal
+ * autofill, `createSampleWithPrompt`, etc.) keep their existing no-op behaviour.
  */
 import { mockVscode } from './setup';
 
 vi.mock('vscode', () => mockVscode);
 
-// Force getProductCandidates to return [] by stubbing both data sources.
+// Force getProductCandidates to return [] by stubbing the data source.
 vi.mock('../lib/sampleStorage', () => ({
   getLabsamplesFolder: vi.fn(() => '/test/local/resources/labsamples'),
   getGlobalLabsamplesFolder: vi.fn(() => '/test/global/resources/labsamples'),
   loadReferenceSamplesByType: vi.fn(() => ({})),
-}));
-
-vi.mock('../lib/dataLoader', () => ({
-  ensureRemoteDataLoaded: vi.fn(() => Promise.resolve()),
-  getMongoIds: vi.fn(() => [] as string[]),
-  getMongoRecord: vi.fn(() => undefined),
-  MONGO_BACKED_TYPES: ['Equip', 'Labware'] as const,
 }));
 
 describe('showProductPicker — empty candidate guard (issue #22 Q2)', () => {
@@ -58,10 +50,9 @@ describe('showProductPicker — empty candidate guard (issue #22 Q2)', () => {
     expect(mockVscode.window.showInformationMessage).toHaveBeenCalledWith(
       expect.stringContaining('Labware')
     );
-    // Labware-specific hint: mention the MongoDB toggle so users know the
-    // remote catalog source is opt-in.
+    // The empty-catalog hint points at the JSON reference DB path.
     expect(mockVscode.window.showInformationMessage).toHaveBeenCalledWith(
-      expect.stringMatching(/labnotev\.enableMongo/)
+      expect.stringMatching(/resources[\\/]labsamples/)
     );
   });
 });
@@ -69,8 +60,8 @@ describe('showProductPicker — empty candidate guard (issue #22 Q2)', () => {
 /**
  * Issue #28: Equip was excluded from `REFERENCE_DB_TYPES`, so the Search
  * product button (and `getProductCandidates`) treated Equip as unsearchable
- * and returned []. Equip must now be searched against its reference JSON
- * (local + global Equip_*.json), without ever consulting MongoDB.
+ * and returned []. Equip must be searched against its reference JSON
+ * (local + global Equip_*.json).
  */
 describe('getProductCandidates — Equip reference DB (issue #28)', () => {
   beforeEach(() => {
@@ -79,9 +70,8 @@ describe('getProductCandidates — Equip reference DB (issue #28)', () => {
 
   const documentUri = { fsPath: '/test/workspace/exp/foo.labnote.md' } as any;
 
-  it('returns Equip candidates from the reference DB and does not consult MongoDB', async () => {
+  it('returns Equip candidates from the reference DB', async () => {
     const { loadReferenceSamplesByType } = await import('../lib/sampleStorage');
-    const { getMongoIds } = await import('../lib/dataLoader');
 
     // Local folder returns one Equip record; global folder is empty.
     vi.mocked(loadReferenceSamplesByType).mockImplementation(
@@ -101,7 +91,5 @@ describe('getProductCandidates — Equip reference DB (issue #28)', () => {
     expect(candidates).toEqual([
       { id: 'Equip-001', alias: 'Centrifuge', description: '5424 R' },
     ]);
-    // Equip uses reference JSON only — the MongoDB path is Labware-specific.
-    expect(getMongoIds).not.toHaveBeenCalled();
   });
 });

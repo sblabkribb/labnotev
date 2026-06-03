@@ -71,10 +71,6 @@ vi.mock('vscode', () => ({
 
 vi.mock('../lib/dataLoader', () => ({
   SAMPLE_TYPES: ['DNA', 'RNA', 'Plasmid', 'Reagent', 'Primer', 'Protein', 'Equip', 'Labware'],
-  MONGO_BACKED_TYPES: ['Equip', 'Labware'],
-  getMongoIds: vi.fn(() => []),
-  getMongoRecord: vi.fn(() => undefined),
-  ensureRemoteDataLoaded: vi.fn(() => Promise.resolve()),
 }));
 
 vi.mock('../lib/sampleStorage', () => ({

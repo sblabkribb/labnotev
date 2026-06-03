@@ -1,6 +1,6 @@
 # Labnote Assistant (LabnoteV)
 
-**v0.58.0** · [한국어 → README.ko.md](README.ko.md)
+**v0.59.0** · [한국어 → README.ko.md](README.ko.md)
 
 A VS Code extension that helps you write experiment notes in Markdown. It opens `.labnote.md` files in a webview-based Section Editor, providing a UI optimized for lab note keeping — Front Matter forms, workflow checklists, unit operation accordions, sample definition buttons, clipboard image paste/thumbnails, and more.
 
@@ -85,7 +85,7 @@ When you open a `.labnote.md` file, the Section Editor is shown automatically. I
   - Other sections (Input, Output, Method, etc.) are free-form textareas.
   - Unit operation IDs inserted from the catalog follow the **`UHW…` (hardware) / `USW…` (software)** prefix scheme. The Section Editor's HW/SW indicator and Meta `Equipment` / `Software` fields are aligned to that prefix (the recognition is stable even after editing the body via a text editor).
   - The `+Sample` button opens the sample creation modal: choose a type (8 built-ins + custom), enter an alias, enter a description, all in one place.
-  - For Reagent/Labware, the "Search product" button opens a QuickPick over the local reference catalog at `resources/labsamples/{Reagent|Labware}_*.json` (plus the workspace-level catalog and, for Labware only, the SBLIMS MongoDB `Item_Catalog` when `labnotev.enableMongo` is on). If no candidates are found, an information toast explains what to add or which setting to enable.
+  - For Reagent/Labware, the "Search product" button opens a QuickPick over the local + workspace-level reference catalog at `resources/labsamples/{Reagent|Labware}_*.json`. If no candidates are found, an information toast explains what to add.
   - "Add new type" lets you define a custom sample type (stored in workspace settings).
 - **Conclusions and Discussion**: textarea for the overall workflow summary and discussion. When saving, the Markdown always includes a `## Conclusions and Discussion` section, kept in sync between the Section Editor UI and the body so they don't duplicate.
 
@@ -124,7 +124,7 @@ Sample IDs are **defined** in the form `@type;ID;alias;description` and **refere
 #### Sample management in the Section Editor
 
 - **Sample creation modal**: click the `+Sample` button next to any section heading inside a unit operation. The modal lets you pick a type (8 built-ins + custom), enter an alias, and enter a multi-line description, then inserts `- @type;ID;alias;description`.
-  - For Reagent/Labware, the "Search product" button searches the local + workspace `resources/labsamples/{type}_*.json` catalogs, plus the SBLIMS MongoDB `Item_Catalog` for Labware when `labnotev.enableMongo` is enabled. If the catalog is empty, a toast points you to the file path or the MongoDB setting so the button is never a silent no-op.
+  - For Reagent/Labware, the "Search product" button searches the local + workspace `resources/labsamples/{type}_*.json` catalogs. If the catalog is empty, a toast points you to the file path so the button is never a silent no-op.
   - "Add new type" defines a custom type usable for highlighting and extraction/storage.
 - **Highlighting**: sample IDs in textareas are color-coded by type.
 - **Navigation**: clicking a highlighted sample ID jumps to its definition.
@@ -135,7 +135,7 @@ When a regular `.md` file is opened in the text editor:
 
 - `@dna:`, `@rna:`, `@plasmid:`, `@reagent:`, `@primer:`, `@labware:` — type-specific sample search.
 - `@sample:` — search across all types.
-- `@equip:` — equipment search (MongoDB / local).
+- `@equip:` — equipment search (local reference DB / JSON).
 - Typing the colon (`:`) opens the autocomplete list; further typing filters it.
 - The list includes "Generate new ID" and "Enter info" actions.
 
@@ -233,30 +233,6 @@ When a regular `.md` file is opened in the text editor:
   - `Ctrl+Shift+D` / `Cmd+Shift+D`: insert date/time.
   - `Ctrl+Shift+U` / `Cmd+Shift+U`: update date fields.
 
-### MongoDB integration (optional, disabled by default)
-
-Equip and Labware samples can be loaded from the SBLIMS MongoDB. Since v0.48.0, this is **off by default** — you must enable it explicitly before any connection is attempted.
-
-#### Configuration
-1. Open VS Code settings (`Ctrl+,`).
-2. Search for "Lab Note Editor".
-3. Configure:
-   - `Enable Mongo`: enable SBLIMS MongoDB integration (default: `false`).
-   - `Mongo Url`: MongoDB connection URL.
-   - `Mongo Db Name`: database name (default: SBLIMS).
-
-#### Connection URL format
-
-```
-mongodb://username:password@host:port/?authMechanism=SCRAM-SHA-256&authSource=SBLIMS
-```
-
-#### Lazy loading and opt-in behavior
-
-- When `labnotev.enableMongo` is `false`, the extension does not load the MongoDB driver at all, and Equip/Labware autocomplete/pickers source data only from local/global JSON. This eliminates the 5–10 second blocking caused by unreachable servers.
-- When `labnotev.enableMongo` is `true`, the MongoDB connection is established lazily — not at activation time, but on the first call to an Equip/Labware-related feature (autocomplete, sample tree Equip type, Labware product picker, etc.) — and only once.
-- Changing any of `labnotev.enableMongo` / `labnotev.mongoUrl` / `labnotev.mongoDbName` triggers an automatic reload without restarting VS Code. To retry immediately, run `Labnote: Reload Remote Data (MongoDB)` from the command palette. The sample tree's Equip/Labware list is refreshed automatically when the reload finishes.
-
 ### Localization
 
 - The extension's UI strings and command labels are English by default. When VS Code's display language is set to Korean (`ko`), command palette entries (`%key%` references) and runtime messages (`vscode.l10n.t()`) are automatically rendered in Korean.
@@ -289,7 +265,6 @@ mongodb://username:password@host:port/?authMechanism=SCRAM-SHA-256&authSource=SB
 | `Labnote: Insert Current Date` | Insert the current date (text editor) |
 | `Labnote: Insert Current Date and Time` | Insert the current date and time (text editor) |
 | `Labnote: Manage Templates` | Edit workflow/unit operation JSON catalogs |
-| `Labnote: Reload Remote Data (MongoDB)` | Manually reload the MongoDB Equip/Labware cache |
 | `Labnote: Open with Section Editor` | Open the current Markdown file in the Section Editor |
 | `Labnote: Open as Markdown Editor` | Open the current file in the text editor |
 | `Labnote: Open Preview` | Open the Markdown preview for the current file |
@@ -330,11 +305,6 @@ Normally, installing the extension automatically registers the Section Editor as
 - Make sure the `.md` file is open in the text editor (you can switch from the Section Editor via "Open in text editor").
 - Autocomplete is triggered after prefixes like `@dna:`, `@rna:`, `@sample:`.
 - If the sample tree in the Activity Bar looks stale, click the refresh icon to re-read it.
-
-### When MongoDB is not used
-
-- Since v0.48.0, MongoDB integration is disabled by default (`labnotev.enableMongo` = `false`), so you can use all local/global JSON-based sample management, workflows, and unit operations without any additional setup.
-- Only turn on `labnotev.enableMongo` and configure the connection URL if you want to load external lists like Equip/Labware.
 
 ## File format
 

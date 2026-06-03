@@ -1,6 +1,5 @@
 /**
- * Data Loader - Load sample data from Local JSON, Global JSON, and MongoDB
- * Based on labsample project's dataLoader.ts
+ * Data Loader - Load sample data from Local JSON and Global JSON resource files.
  */
 
 import * as fs from 'fs';
@@ -10,9 +9,6 @@ import * as vscode from 'vscode';
 // Import and re-export from sampleUtils.ts (single source of truth)
 import { SAMPLE_TYPES, SampleType } from './sampleUtils';
 export { SAMPLE_TYPES, SampleType };
-
-// MongoDB-backed types (loaded from remote database)
-export const MONGO_BACKED_TYPES: readonly SampleType[] = ['Equip', 'Labware'];
 
 /**
  * Sample record stored in JSON resource files (distinct from sampleStorage.JsonSampleRecord which represents extracted data)
@@ -24,280 +20,25 @@ export interface JsonSampleRecord {
   sources?: string[];
 }
 
-// MongoDB client (lazy loaded to avoid import errors when mongodb is not installed)
-let MongoClient: any = null;
-let mongoClient: any = null;
-let mongoDb: any = null;
-
-// MongoDB ID cache
-const mongoIdCache: Partial<Record<SampleType, string[]>> = {};
-const mongoDocCache: Partial<Record<SampleType, Record<string, any>>> = {};
-
-// Phase 1: ensureRemoteDataLoaded guard + completion event.
-// These let the extension skip Mongo work during `activate()` and only pay
-// the connection cost the first time Equip/Labware data is actually needed.
-let loadingPromise: Promise<void> | null = null;
-let loaded = false;
-let warnedNoMongoUrl = false;
-let warnedDisabled = false;
-const remoteDataLoadedEmitter = new vscode.EventEmitter<void>();
-export const onRemoteDataLoaded: vscode.Event<void> = remoteDataLoadedEmitter.event;
-
-/**
- * Get MongoDB configuration from VS Code settings
- */
-function getMongoConfig(): { enableMongo: boolean; mongoUrl: string; dbName: string } {
-  const config = vscode.workspace.getConfiguration('labnotev');
-
-  const enableMongo = config.get<boolean>('enableMongo', false);
-  let mongoUrl = config.get<string>('mongoUrl', '');
-  let dbName = config.get<string>('mongoDbName', 'SBLIMS');
-
-  // Environment variable fallback (for development)
-  if (!mongoUrl && process.env.SBLIMS_MONGO_URL) {
-    mongoUrl = process.env.SBLIMS_MONGO_URL;
-    console.log('[labnotev] Using SBLIMS_MONGO_URL from environment');
-  }
-
-  if (!dbName && process.env.SBLIMS_MONGO_DB_NAME) {
-    dbName = process.env.SBLIMS_MONGO_DB_NAME;
-  }
-
-  return { enableMongo, mongoUrl, dbName };
-}
-
-/**
- * Initialize MongoDB connection and load remote data
- */
-export async function initRemoteData(): Promise<void> {
-  if (mongoClient) return;
-
-  const config = getMongoConfig();
-
-  if (!config.enableMongo) {
-    if (!warnedDisabled) {
-      console.log('[labnotev] MongoDB integration is disabled (set labnotev.enableMongo=true to enable).');
-      warnedDisabled = true;
-    }
-    return;
-  }
-
-  if (!config.mongoUrl) {
-    console.warn('[labnotev] MongoDB URL is not configured.');
-    console.warn('[labnotev] Equip/Labware auto-completion will be disabled.');
-    console.warn('[labnotev] Configure in: Settings → Lab Note Editor → Mongo Url');
-    return;
-  }
-
-  try {
-    // Lazy load mongodb module
-    if (!MongoClient) {
-      const mongodb = await import('mongodb');
-      MongoClient = mongodb.MongoClient;
-    }
-
-    console.log('[labnotev] Connecting to MongoDB...');
-    mongoClient = new MongoClient(config.mongoUrl, {
-      serverSelectionTimeoutMS: 5000,
-      connectTimeoutMS: 10000,
-    });
-    await mongoClient.connect();
-    mongoDb = mongoClient.db(config.dbName);
-    console.log('[labnotev] MongoDB connected successfully!');
-
-    // Load Equip data
-    // Phase 4: projection-limit to the fields actually consumed downstream
-    // (id build + completion alias/description). Reduces wire/deserialization
-    // cost on large collections.
-    const equipDocs = await mongoDb
-      .collection('equip_list')
-      .find(
-        { status: { $ne: 0 } },
-        { projection: { _id: 0, equip: 1, equip_num: 1, subname: 1 } }
-      )
-      .toArray();
-
-    const equipIds: string[] = [];
-    const equipRecords: Record<string, any> = {};
-
-    for (const doc of equipDocs) {
-      const equip = String(doc.equip ?? '').trim();
-      const equipNumRaw = doc.equip_num !== undefined && doc.equip_num !== null
-        ? String(doc.equip_num).trim()
-        : '';
-      const subname = String(doc.subname ?? '').trim();
-      const equipNum = equipNumRaw ? equipNumRaw.padStart(3, '0') : '';
-      const parts = [equip, equipNum, subname].filter(s => s.length > 0);
-      if (parts.length === 0) continue;
-      const id = parts.join('-');
-      equipIds.push(id);
-      equipRecords[id] = doc;
-    }
-    mongoIdCache['Equip'] = equipIds;
-    mongoDocCache['Equip'] = equipRecords;
-
-    // Load Labware/Item data
-    // Phase 4: projection-limit. productPicker uses `물품명` (falls back to
-    // `name`), and the id is built from CID + 물품명.
-    const itemDocs = await mongoDb
-      .collection('Item_Catalog')
-      .find(
-        { status: { $ne: 0 } },
-        { projection: { _id: 0, CID: 1, '물품명': 1, name: 1 } }
-      )
-      .toArray();
-
-    type ItemTmp = { doc: any; cidRaw: string; name: string };
-    const tmp: ItemTmp[] = [];
-    let maxCidLength = 0;
-
-    for (const doc of itemDocs) {
-      const cidRaw = String(doc.CID ?? '').trim();
-      const name = String(doc['물품명'] ?? '').trim();
-      if (!cidRaw || !name) continue;
-      tmp.push({ doc, cidRaw, name });
-      if (cidRaw.length > maxCidLength) {
-        maxCidLength = cidRaw.length;
-      }
-    }
-
-    const itemIds: string[] = [];
-    const itemRecords: Record<string, any> = {};
-
-    for (const rec of tmp) {
-      const paddedCid = rec.cidRaw.padStart(maxCidLength, '0');
-      const id = `${paddedCid}-${rec.name}`;
-      itemIds.push(id);
-      itemRecords[id] = rec.doc;
-    }
-
-    mongoIdCache['Labware'] = itemIds;
-    mongoDocCache['Labware'] = itemRecords;
-
-  } catch (error) {
-    console.error('[labnotev] MongoDB connection failed:', error);
-    mongoClient = null;
-    mongoDb = null;
-  }
-}
-
-/**
- * Dispose MongoDB connection
- */
-export async function disposeRemoteData(): Promise<void> {
-  if (mongoClient) {
-    await mongoClient.close();
-    mongoClient = null;
-    mongoDb = null;
-  }
-  loaded = false;
-  loadingPromise = null;
-  warnedNoMongoUrl = false;
-  warnedDisabled = false;
-}
-
-/**
- * Phase 1: Lazy/idempotent entry point for MongoDB initialization.
- *
- * - Returns immediately when `labnotev.mongoUrl` is unset (log once).
- * - Returns the in-flight promise if a load is already running.
- * - Returns immediately if a previous load has completed successfully.
- * - On success, fires the `onRemoteDataLoaded` event so that listeners
- *   (e.g. the sample TreeView) can refresh to include Equip/Labware ids.
- *
- * Callers should invoke this fire-and-forget (`void ensureRemoteDataLoaded()`);
- * the current caller's request is served from the existing empty cache and
- * subsequent calls will see the populated cache.
- */
-export function ensureRemoteDataLoaded(): Promise<void> {
-  if (loaded) return Promise.resolve();
-  if (loadingPromise) return loadingPromise;
-
-  const { enableMongo, mongoUrl } = getMongoConfig();
-  if (!enableMongo) {
-    if (!warnedDisabled) {
-      console.log('[labnotev] MongoDB integration is disabled (set labnotev.enableMongo=true to enable).');
-      warnedDisabled = true;
-    }
-    return Promise.resolve();
-  }
-  if (!mongoUrl) {
-    if (!warnedNoMongoUrl) {
-      console.warn('[labnotev] MongoDB URL is not configured; Equip/Labware auto-completion is disabled.');
-      warnedNoMongoUrl = true;
-    }
-    return Promise.resolve();
-  }
-
-  loadingPromise = (async () => {
-    try {
-      await initRemoteData();
-      // Mark as loaded even when the connection failed: we don't want the
-      // completion provider to re-attempt (and re-wait the 5–10s timeout) on
-      // every keystroke. Users can call `labnotev.reloadRemoteData` to retry.
-      if (mongoClient) {
-        try {
-          remoteDataLoadedEmitter.fire();
-        } catch (err) {
-          console.error('[labnotev] onRemoteDataLoaded listener threw:', err);
-        }
-      }
-    } finally {
-      loaded = true;
-      loadingPromise = null;
-    }
-  })();
-
-  return loadingPromise;
-}
-
-/**
- * Phase 1: force a reload of the MongoDB-backed cache. Used by the
- * `labnotev.reloadRemoteData` command so users can re-pull ids after the
- * server becomes reachable without restarting VS Code.
- */
-export async function reloadRemoteData(): Promise<void> {
-  await disposeRemoteData();
-  await ensureRemoteDataLoaded();
-}
-
-/**
- * Get MongoDB record by type and ID
- */
-export function getMongoRecord(type: string, id: string): any | undefined {
-  const byId = mongoDocCache[type as SampleType];
-  if (!byId) return undefined;
-  if (!MONGO_BACKED_TYPES.includes(type as SampleType)) return;
-  return byId[id];
-}
-
-/**
- * Get MongoDB IDs by type
- */
-export function getMongoIds(type: string): string[] {
-  const key = type as SampleType;
-  return mongoIdCache[key] ?? [];
-}
-
 /**
  * Find resources/labsamples folder from document path
  */
 export function findResourcesFolder(documentUri: vscode.Uri): string | null {
   const docPath = documentUri.fsPath;
   const docDir = path.dirname(docPath);
-  
+
   // Check current folder
   const localPath = path.join(docDir, 'resources', 'labsamples');
   if (fs.existsSync(localPath)) {
     return localPath;
   }
-  
+
   // Check parent folder (for workflow files)
   const parentPath = path.join(path.dirname(docDir), 'resources', 'labsamples');
   if (fs.existsSync(parentPath)) {
     return parentPath;
   }
-  
+
   return null;
 }
 
@@ -358,59 +99,6 @@ export function loadSamplesByTypeFromGlobalResources(type: string, workspaceRoot
 }
 
 /**
- * Load IDs by sample type
- */
-export function loadIdsByType(type: string, documentUri?: vscode.Uri): string[] {
-  const resultIds: string[] = [];
-  const seenIds = new Set<string>();
-
-  // 1. Load from local resources/labsamples/{TYPE}.json (same path as sampleStorage/Sample TreeView)
-  if (documentUri) {
-    let resourcesPath = findResourcesFolder(documentUri);
-    // Fallback: try document dir directly (folder may exist but findResourcesFolder missed it, e.g. path normalization)
-    if (!resourcesPath) {
-      const docDir = path.dirname(documentUri.fsPath);
-      const candidatePath = path.join(docDir, 'resources', 'labsamples');
-      if (fs.existsSync(candidatePath)) {
-        resourcesPath = candidatePath;
-      }
-    }
-    if (resourcesPath) {
-      const samples = loadSamplesByTypeFromResources(type, resourcesPath);
-      for (const id of Object.keys(samples)) {
-        resultIds.push(id);
-        seenIds.add(id);
-      }
-    }
-  }
-
-  // 2. Load from global resources/labsamples/{TYPE}.json
-  const workspaceRoot = getWorkspaceRoot(documentUri);
-  if (workspaceRoot) {
-    const globalSamples = loadSamplesByTypeFromGlobalResources(type, workspaceRoot);
-    for (const id of Object.keys(globalSamples)) {
-      if (!seenIds.has(id)) {
-        resultIds.push(id);
-        seenIds.add(id);
-      }
-    }
-  }
-
-  // 3. Load from MongoDB cache for Equip/Labware types
-  if ((MONGO_BACKED_TYPES as readonly string[]).includes(type)) {
-    const mongoIds = mongoIdCache[type as SampleType] ?? [];
-    for (const id of mongoIds) {
-      if (!seenIds.has(id)) {
-        resultIds.push(id);
-        seenIds.add(id);
-      }
-    }
-  }
-
-  return resultIds;
-}
-
-/**
  * Ensure resources folder exists
  */
 export function ensureResourcesFolder(resourcesPath: string): void {
@@ -431,10 +119,10 @@ export function saveSampleToResources(
   sourceFile: string
 ): void {
   ensureResourcesFolder(resourcesPath);
-  
+
   const filePath = path.join(resourcesPath, `${type}.json`);
   let samples: Record<string, JsonSampleRecord> = {};
-  
+
   if (fs.existsSync(filePath)) {
     try {
       const content = fs.readFileSync(filePath, 'utf-8');
@@ -443,7 +131,7 @@ export function saveSampleToResources(
       samples = {};
     }
   }
-  
+
   if (!samples[id]) {
     samples[id] = {
       type,
@@ -465,35 +153,8 @@ export function saveSampleToResources(
       samples[id].sources.push(sourceFile);
     }
   }
-  
+
   fs.writeFileSync(filePath, JSON.stringify(samples, null, 2), 'utf-8');
-}
-
-/**
- * Get sample info by type and ID
- */
-export function getJsonSampleRecord(type: string, id: string, documentUri?: vscode.Uri): JsonSampleRecord | null {
-  // Check local resources first
-  if (documentUri) {
-    const resourcesPath = findResourcesFolder(documentUri);
-    if (resourcesPath) {
-      const samples = loadSamplesByTypeFromResources(type, resourcesPath);
-      if (samples[id]) {
-        return samples[id];
-      }
-    }
-  }
-
-  // Check global resources
-  const workspaceRoot = getWorkspaceRoot(documentUri);
-  if (workspaceRoot) {
-    const globalSamples = loadSamplesByTypeFromGlobalResources(type, workspaceRoot);
-    if (globalSamples[id]) {
-      return globalSamples[id];
-    }
-  }
-
-  return null;
 }
 
 /** Flat map sampleId -> { alias, description } for webview hover (local JSON overrides global per id). */

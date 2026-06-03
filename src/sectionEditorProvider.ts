@@ -10,7 +10,7 @@ import { findSampleDefinitionOnlyMatch } from './lib/sampleStorage';
 import { showProductPicker } from './lib/productPicker';
 import { parseWorkflowChecklistFromReadme, generateWorkflowChecklist, updateReadmeWorkflowSection } from './lib/workflowStructure';
 import type { SampleTreeViewProvider } from './views/SampleTreeViewProvider';
-import { isPathInsideDir } from './lib/isPathInsideDir';
+import { isPathInsideDir, resolveContainedPath } from './lib/isPathInsideDir';
 import { buildInDocDirAttachmentMarkdownLink } from './lib/attachmentMarkdownLink';
 import { buildSampleDefMap } from './lib/dataLoader';
 import { openFileInOsDefaultApp } from './lib/openInOs';
@@ -426,11 +426,13 @@ export class SectionEditorProvider implements vscode.CustomTextEditorProvider {
         case 'openImagePreview':
           if (message.data?.imagePath) {
             const dir = path.dirname(document.uri.fsPath);
-            const imagePath = path.resolve(dir, message.data.imagePath);
-            await vscode.commands.executeCommand(
-              'labnotev.openImagePreview',
-              vscode.Uri.file(imagePath)
-            );
+            const imagePath = resolveContainedPath(dir, message.data.imagePath);
+            if (imagePath) {
+              await vscode.commands.executeCommand(
+                'labnotev.openImagePreview',
+                vscode.Uri.file(imagePath)
+              );
+            }
           }
           break;
 
@@ -524,8 +526,8 @@ export class SectionEditorProvider implements vscode.CustomTextEditorProvider {
           const { link } = message.data || {};
           if (!link) break;
           const docDir = path.dirname(document.uri.fsPath);
-          const wfPath = path.resolve(docDir, link);
-          if (fs.existsSync(wfPath)) {
+          const wfPath = resolveContainedPath(docDir, link);
+          if (wfPath && fs.existsSync(wfPath)) {
             await vscode.commands.executeCommand('vscode.open', vscode.Uri.file(wfPath));
           } else {
             vscode.window.showWarningMessage(
@@ -830,14 +832,7 @@ export class SectionEditorProvider implements vscode.CustomTextEditorProvider {
         await document.save();
 
         if (data.changedWorkflows) {
-          const dir = path.dirname(document.uri.fsPath);
-          for (const cw of data.changedWorkflows) {
-            if (cw.link && cw.workflow) {
-              const wfPath = path.resolve(dir, cw.link);
-              const wfContent = serializeWorkflowMd(cw.workflow);
-              fs.writeFileSync(wfPath, wfContent, 'utf8');
-            }
-          }
+          this.writeChangedWorkflows(document, data.changedWorkflows);
         }
       } else if (mode === 'workflow' && data.workflow) {
         data.workflow.frontMatter.last_updated_date = new Date().toISOString().split('T')[0];
@@ -855,6 +850,29 @@ export class SectionEditorProvider implements vscode.CustomTextEditorProvider {
       }
     } finally {
       this._suppressDocChange = false;
+    }
+  }
+
+  /**
+   * Persist edited linked-workflow files referenced from a README save. Each
+   * `link` is a webview-supplied relative path, so it is constrained to the
+   * document folder via `resolveContainedPath` before writing — a crafted
+   * `link` (`../`, absolute path) is skipped rather than written.
+   */
+  writeChangedWorkflows(
+    document: vscode.TextDocument,
+    changedWorkflows: Array<{ link?: string; workflow?: unknown }>
+  ): void {
+    const dir = path.dirname(document.uri.fsPath);
+    for (const cw of changedWorkflows) {
+      if (!cw.link || !cw.workflow) continue;
+      const wfPath = resolveContainedPath(dir, cw.link);
+      if (!wfPath) {
+        console.warn(`[labnotev] Skipped workflow write outside document folder: ${cw.link}`);
+        continue;
+      }
+      const wfContent = serializeWorkflowMd(cw.workflow as Parameters<typeof serializeWorkflowMd>[0]);
+      fs.writeFileSync(wfPath, wfContent, 'utf8');
     }
   }
 

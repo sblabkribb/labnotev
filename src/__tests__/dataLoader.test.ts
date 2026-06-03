@@ -1,10 +1,7 @@
 /**
  * Tests for dataLoader module
  */
-import {
-  SAMPLE_TYPES,
-  MONGO_BACKED_TYPES,
-} from '../lib/dataLoader';
+import { SAMPLE_TYPES } from '../lib/dataLoader';
 import type { JsonSampleRecord } from '../lib/dataLoader';
 
 // Mock vscode
@@ -17,11 +14,6 @@ vi.mock('vscode', () => ({
   },
   Uri: {
     file: (path: string) => ({ fsPath: path }),
-  },
-  EventEmitter: class {
-    event = vi.fn();
-    fire = vi.fn();
-    dispose = vi.fn();
   },
 }));
 
@@ -39,23 +31,6 @@ describe('dataLoader', () => {
 
     it('should have 8 sample types', () => {
       expect(SAMPLE_TYPES.length).toBe(8);
-    });
-  });
-
-  describe('MONGO_BACKED_TYPES', () => {
-    it('should include Equip and Labware', () => {
-      expect(MONGO_BACKED_TYPES).toContain('Equip');
-      expect(MONGO_BACKED_TYPES).toContain('Labware');
-    });
-
-    it('should have 2 MongoDB-backed types', () => {
-      expect(MONGO_BACKED_TYPES.length).toBe(2);
-    });
-
-    it('should not include DNA or other local types', () => {
-      expect(MONGO_BACKED_TYPES).not.toContain('DNA');
-      expect(MONGO_BACKED_TYPES).not.toContain('RNA');
-      expect(MONGO_BACKED_TYPES).not.toContain('Plasmid');
     });
   });
 
@@ -78,11 +53,6 @@ describe('dataLoader', () => {
     it('should export SAMPLE_TYPES as readonly array', () => {
       expect(Array.isArray(SAMPLE_TYPES)).toBe(true);
       expect(SAMPLE_TYPES).toEqual(['DNA', 'RNA', 'Plasmid', 'Reagent', 'Primer', 'Protein', 'Equip', 'Labware']);
-    });
-
-    it('should export MONGO_BACKED_TYPES as readonly array', () => {
-      expect(Array.isArray(MONGO_BACKED_TYPES)).toBe(true);
-      expect(MONGO_BACKED_TYPES).toEqual(['Equip', 'Labware']);
     });
   });
 });

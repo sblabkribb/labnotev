@@ -70,10 +70,6 @@ vi.mock('vscode', () => ({
 // Mock dataLoader
 vi.mock('../lib/dataLoader', () => ({
   SAMPLE_TYPES: ['DNA', 'RNA', 'Plasmid', 'Reagent', 'Primer', 'Protein', 'Equip', 'Labware'],
-  MONGO_BACKED_TYPES: ['Equip', 'Labware'],
-  getMongoIds: vi.fn(() => []),
-  getMongoRecord: vi.fn(() => undefined),
-  ensureRemoteDataLoaded: vi.fn(() => Promise.resolve()),
 }));
 
 // Mock sampleStorage (completion uses same paths as Sample TreeView)
@@ -153,7 +149,7 @@ describe('SampleCompletionProvider', () => {
         {} as any
       );
 
-      // Should return completion items (even if empty array due to mocked loadIdsByType)
+      // Should return completion items (even if empty array due to mocked loadSamplesByType)
       expect(result).toBeDefined();
       expect(Array.isArray(result)).toBe(true);
     });

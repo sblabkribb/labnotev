@@ -1,6 +1,6 @@
 # Labnote Assistant (LabnoteV)
 
-**v0.58.0** · [English → README.md](README.md)
+**v0.59.0** · [English → README.md](README.md)
 
 VS Code에서 실험 노트를 마크다운으로 작성할 수 있도록 돕는 확장입니다. `.labnote.md` 파일을 Section Editor(웹뷰 기반 구조화 편집기)로 열어 Front Matter 폼, 워크플로 체크리스트, 유닛 오퍼레이션 아코디언, 샘플 정의 버튼, 이미지 붙여넣기/썸네일 등 실험 기록에 최적화된 UI를 제공합니다.
 
@@ -85,7 +85,7 @@ VS Code에서 실험 노트를 마크다운으로 작성할 수 있도록 돕는
   - 일반 섹션(Input, Output, Method 등): textarea로 자유롭게 편집
   - 카탈로그에서 삽입한 유닛 오퍼레이션 ID는 **`UHW…`(하드웨어)·`USW…`(소프트웨어)** 형식이며, Section Editor의 HW/SW 표시와 Meta의 Equipment/Software 필드가 이 접두어를 기준으로 맞춰짐(텍스트 에디터로 본문을 고친 뒤 다시 열어도 동일하게 인식)
   - `+Sample` 버튼으로 샘플 생성 모달 열기: 타입 선택(기본 8종 + 커스텀), 별칭, 설명을 한 번에 입력
-  - Reagent/Labware 선택 시 "제품 검색(Search product)" 버튼으로 QuickPick 표시. 후보 출처는 로컬 + 워크스페이스의 `resources/labsamples/{Reagent|Labware}_*.json` 카탈로그이며, Labware의 경우 `labnotev.enableMongo`가 켜져 있을 때만 SBLIMS MongoDB `Item_Catalog`도 함께 검색됨. 후보가 없으면 어떤 파일을 추가하거나 어떤 설정을 켜야 하는지 안내 토스트가 표시됨.
+  - Reagent/Labware 선택 시 "제품 검색(Search product)" 버튼으로 QuickPick 표시. 후보 출처는 로컬 + 워크스페이스의 `resources/labsamples/{Reagent|Labware}_*.json` 카탈로그임. 후보가 없으면 어떤 파일을 추가해야 하는지 안내 토스트가 표시됨.
   - "새 타입 추가"로 커스텀 샘플 타입 정의 가능 (워크스페이스 설정에 저장)
 - **Conclusions and Discussion**: 워크플로 전체 요약 및 논의 작성 영역(저장 시 마크다운에 `## Conclusions and Discussion`이 항상 포함되며, Section Editor UI와 본문이 중복되지 않도록 동기화)
 
@@ -125,7 +125,7 @@ VS Code에서 실험 노트를 마크다운으로 작성할 수 있도록 돕는
 
 - **샘플 생성 모달**: 유닛 오퍼레이션의 각 섹션 제목 옆 `+Sample` 버튼 클릭 시 모달 표시
   - 타입 드롭다운(기본 8종 + 커스텀), 별칭, 설명(여러 줄 입력 가능)을 한 번에 입력하여 `- @type;ID;별칭;설명` 형식으로 삽입
-  - Reagent/Labware는 "제품 검색" 버튼이 로컬 + 워크스페이스의 `resources/labsamples/{type}_*.json` 카탈로그를 검색하며, Labware는 `labnotev.enableMongo`가 켜진 경우 SBLIMS MongoDB `Item_Catalog`도 함께 검색합니다. 카탈로그가 비어 있으면 어떤 파일을 추가하거나 어떤 설정을 켜야 하는지 토스트로 안내하여 버튼이 무반응처럼 보이지 않도록 했습니다.
+  - Reagent/Labware는 "제품 검색" 버튼이 로컬 + 워크스페이스의 `resources/labsamples/{type}_*.json` 카탈로그를 검색합니다. 카탈로그가 비어 있으면 어떤 파일을 추가해야 하는지 토스트로 안내하여 버튼이 무반응처럼 보이지 않도록 했습니다.
   - "새 타입 추가"로 커스텀 샘플 타입을 정의하면 본문에서 하이라이팅 및 추출/저장 가능
 - **하이라이팅**: textarea 내 샘플 ID가 타입별 색상으로 강조
 - **네비게이션**: 하이라이팅된 샘플 ID 클릭 시 정의 위치로 이동
@@ -136,7 +136,7 @@ VS Code에서 실험 노트를 마크다운으로 작성할 수 있도록 돕는
 
 - `@dna:`, `@rna:`, `@plasmid:`, `@reagent:`, `@primer:`, `@labware:` - 타입별 샘플 검색
 - `@sample:` - 모든 타입 샘플 검색
-- `@equip:` - 장비 검색 (MongoDB/로컬)
+- `@equip:` - 장비 검색 (로컬 레퍼런스 DB/JSON)
 - 콜론(`:`) 입력 시 자동완성 리스트 표시, 이후 입력으로 필터링
 - "Generate new ID", "Enter info" 옵션 제공
 
@@ -234,30 +234,6 @@ VS Code에서 실험 노트를 마크다운으로 작성할 수 있도록 돕는
   - `Ctrl+Shift+D` / `Cmd+Shift+D`: 날짜/시간 삽입
   - `Ctrl+Shift+U` / `Cmd+Shift+U`: 날짜 필드 업데이트
 
-### MongoDB 연동 (선택, 기본 비활성)
-
-Equip, Labware 타입의 샘플은 SBLIMS MongoDB 데이터베이스에서 자동으로 로드됩니다. v0.48.0부터 **기본값은 비활성**이며, 명시적으로 켜야 연결을 시도합니다.
-
-#### 설정 방법
-1. VS Code 설정 열기 (`Ctrl+,`)
-2. "Lab Note Editor" 검색
-3. 다음 설정 입력:
-   - `Enable Mongo`: SBLIMS MongoDB 연동 활성화 (기본값: `false`)
-   - `Mongo Url`: MongoDB 연결 URL
-   - `Mongo Db Name`: 데이터베이스 이름 (기본값: SBLIMS)
-
-#### 연결 URL 형식
-
-```
-mongodb://username:password@host:port/?authMechanism=SCRAM-SHA-256&authSource=SBLIMS
-```
-
-#### 지연 로드 및 opt-in 동작
-
-- `labnotev.enableMongo`가 `false`이면 확장은 MongoDB 드라이버를 전혀 로드하지 않고 Equip/Labware 자동완성·피커는 로컬/글로벌 JSON에서만 데이터를 얻습니다. 서버 도달 불가로 인한 5–10초 블로킹을 원천적으로 제거하기 위함입니다.
-- `labnotev.enableMongo`를 `true`로 켜면, MongoDB 연결은 확장 활성화 시점이 아니라 Equip/Labware 관련 기능(자동완성, 샘플 트리 Equip 타입, Labware 후보 피커 등)이 처음 호출될 때 한 번만 비동기로 수행됩니다.
-- `labnotev.enableMongo` / `labnotev.mongoUrl` / `labnotev.mongoDbName` 중 하나라도 바꾸면 VS Code 재시작 없이 자동으로 재로드됩니다. 수동으로 즉시 다시 시도하려면 명령 팔레트에서 `Labnote: Reload Remote Data (MongoDB)`를 실행하세요. 재로드가 끝나면 샘플 트리의 Equip/Labware 목록이 자동으로 갱신됩니다.
-
 ### 다국어 지원 (Localization)
 
 - 확장의 UI 메시지와 명령 라벨은 영문이 기본이고, VS Code 표시 언어가 한국어(`ko`)이면 명령 팔레트(`%key%` 참조)와 안내 메시지(`vscode.l10n.t()` 호출)가 자동으로 한국어로 표시됩니다.
@@ -290,7 +266,6 @@ mongodb://username:password@host:port/?authMechanism=SCRAM-SHA-256&authSource=SB
 | `Labnote: Insert Current Date` | 현재 날짜 삽입 (텍스트 에디터) |
 | `Labnote: Insert Current Date and Time` | 현재 날짜/시간 삽입 (텍스트 에디터) |
 | `Labnote: Manage Templates` | 워크플로/유닛 오퍼레이션 JSON 카탈로그 편집 |
-| `Labnote: Reload Remote Data (MongoDB)` | MongoDB Equip/Labware 캐시를 수동으로 재로드 |
 | `Labnote: Open with Section Editor` | 현재 마크다운 파일을 Section Editor로 열기 |
 | `Labnote: Open as Markdown Editor` | 현재 파일을 텍스트 에디터로 열기 |
 | `Labnote: Open Preview` | 현재 파일의 마크다운 미리보기 열기 |
@@ -331,11 +306,6 @@ VS Code `settings.json`에 다음을 추가합니다:
 - `.md` 파일이 텍스트 에디터로 열려 있는지 확인하세요 (Section Editor의 "Open in text editor" 버튼으로 전환 가능).
 - `@dna:`, `@rna:`, `@sample:` 같은 접두어 뒤에서 자동완성이 동작합니다.
 - Activity Bar의 샘플 트리가 오래된 내용으로 보이면 새로고침 아이콘을 눌러 다시 읽을 수 있습니다.
-
-### MongoDB를 쓰지 않는 경우
-
-- v0.48.0부터 MongoDB 연동은 기본 비활성(`labnotev.enableMongo` = `false`)이므로 별도 작업 없이 로컬/글로벌 JSON 기반의 샘플 관리, 워크플로, 유닛 오퍼레이션 기능을 그대로 사용할 수 있습니다.
-- MongoDB 연동은 Equip/Labware 같은 외부 목록을 불러오고 싶을 때만 선택적으로 `labnotev.enableMongo`를 켜고 연결 URL을 설정하면 됩니다.
 
 ## 파일 저장 형식
 

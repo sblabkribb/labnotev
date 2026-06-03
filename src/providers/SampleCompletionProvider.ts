@@ -7,14 +7,7 @@
 import * as vscode from 'vscode';
 import * as fs from 'fs';
 import * as path from 'path';
-import {
-  SAMPLE_TYPES,
-  SampleType,
-  getMongoIds,
-  getMongoRecord,
-  MONGO_BACKED_TYPES,
-  ensureRemoteDataLoaded,
-} from '../lib/dataLoader';
+import { SAMPLE_TYPES, SampleType } from '../lib/dataLoader';
 import { getLabsamplesFolder, getGlobalLabsamplesFolder, loadSamplesByType, loadReferenceSamplesByType } from '../lib/sampleStorage';
 import { generateSampleId } from '../lib/sampleUtils';
 
@@ -56,18 +49,14 @@ function sampleRecordsFilesFor(
   globalFolder: string,
   type: string
 ): string[] {
-  const lower = type.toLowerCase();
-  const files = [
-    path.join(localFolder, `${lower}.json`),
-    path.join(globalFolder, `${lower}.json`),
+  // Must mirror the exact paths `loadSampleIdsAndRecords` reads via
+  // `loadSamplesByType` (which uses `${type}.json`, e.g. `DNA.json`). Using a
+  // different casing here makes the tracked files non-existent on
+  // case-sensitive filesystems, so the cache never invalidates.
+  return [
+    path.join(localFolder, `${type}.json`),
+    path.join(globalFolder, `${type}.json`),
   ];
-  if (type === 'Equip') {
-    // Reference DB files are globbed at read time, but the common pattern is
-    // `Equip_*.json`. We don't enumerate them for invalidation (the read path
-    // is authoritative); mtime on the primary `equip.json` is enough for the
-    // hot path, and MongoDB ids are always re-fetched outside the cache.
-  }
-  return files;
 }
 
 /** Load sample IDs and record info (alias, description) from same paths as Sample TreeView (sampleStorage) */
@@ -86,27 +75,14 @@ function loadSampleIdsAndRecords(
   const globalFolderForKey = workspaceRootEarly ? getGlobalLabsamplesFolder(workspaceRootEarly) : '';
 
   // Phase D-1: return the cached list if the underlying JSON mtimes haven't
-  // moved. `MONGO_BACKED_TYPES` still hits the live dataLoader map on the way
-  // out, so mongo updates propagate without cache flushing.
+  // moved. Return a shallow copy so callers mutating the result array don't
+  // poison the cache.
   const cacheKey = cacheKeyFor(localFolder, globalFolderForKey, type);
   const cached = sampleRecordsCache.get(cacheKey);
   if (cached) {
     const stillFresh = cached.files.every(f => fileMtime(f.path) === f.mtimeMs);
     if (stillFresh) {
-      // Still need to merge in Mongo ids below; callers deduplicate via
-      // `seenIds`. We return a shallow copy so mutating the result array
-      // doesn't poison the cache.
-      const withMongo = [...cached.value];
-      if ((MONGO_BACKED_TYPES as readonly string[]).includes(type)) {
-        const seen = new Set(withMongo.map(r => r.id));
-        for (const id of getMongoIds(type)) {
-          if (!seen.has(id)) {
-            seen.add(id);
-            withMongo.push({ id, alias: null, description: null });
-          }
-        }
-      }
-      return withMongo;
+      return [...cached.value];
     }
   }
 
@@ -174,25 +150,13 @@ function loadSampleIdsAndRecords(
     }
   }
 
-  // Phase D-1: snapshot everything from disk into the cache before merging
-  // MongoDB ids, which are volatile and cheap to query each time.
+  // Phase D-1: snapshot everything from disk into the cache.
   const cacheFiles = sampleRecordsFilesFor(localFolder, globalFolderForKey, type)
     .map(p => ({ path: p, mtimeMs: fileMtime(p) ?? 0 }));
   sampleRecordsCache.set(cacheKey, {
     files: cacheFiles,
     value: result.map(r => ({ ...r })),
   });
-
-  // 4. Equip/Labware: add MongoDB IDs
-  if ((MONGO_BACKED_TYPES as readonly string[]).includes(type)) {
-    const mongoIds = getMongoIds(type);
-    for (const id of mongoIds) {
-      if (!seenIds.has(id)) {
-        seenIds.add(id);
-        result.push({ id, alias: null, description: null });
-      }
-    }
-  }
 
   return result;
 }
@@ -313,14 +277,6 @@ export class SampleCompletionProvider implements vscode.CompletionItemProvider {
     const specificType = matchSampleType(fullPrefix);
     const typesToSearch = isSamplePrefix(fullPrefix) ? [...SAMPLE_TYPES] : (specificType ? [specificType] : []);
 
-    // Phase 1: kick off MongoDB load the first time a Mongo-backed type is
-    // referenced. We intentionally don't await — the current completion
-    // request uses whatever cache is available now, and the tree view will
-    // refresh on `onRemoteDataLoaded` once ids are populated.
-    if (typesToSearch.some(t => (MONGO_BACKED_TYPES as readonly string[]).includes(t))) {
-      void ensureRemoteDataLoaded();
-    }
-
     // Range to replace: from @ to cursor (match.index so it works with or without colon in document)
     const replaceRange = new vscode.Range(
       position.line,
@@ -336,25 +292,8 @@ export class SampleCompletionProvider implements vscode.CompletionItemProvider {
         logCompletionDebug(`${fullPrefix} type=${type} loadSampleIdsAndRecords returned 0 (doc=${documentUri.fsPath})`);
       }
       for (const { id, alias: recAlias, description: recDesc } of records) {
-        // For Equip from MongoDB, alias/description may be null; try to get from getMongoRecord
-        let alias = recAlias;
-        let description = recDesc;
-        if (type === 'Equip' && (!alias || !description)) {
-          const mongoRecord = getMongoRecord(type, id);
-          if (mongoRecord) {
-            if (!alias) {
-              const parts = [
-                String(mongoRecord.equip ?? '').trim(),
-                mongoRecord.equip_num != null ? String(mongoRecord.equip_num).trim().padStart(3, '0') : '',
-                String(mongoRecord.subname ?? '').trim(),
-              ].filter(s => s.length > 0);
-              alias = parts.join(' ') || id;
-            }
-            if (!description && mongoRecord.subname) {
-              description = String(mongoRecord.subname).trim();
-            }
-          }
-        }
+        const alias = recAlias;
+        const description = recDesc;
         // Build label: "ID (Alias) - Description" or "ID - Description" or just "ID"
         let label = id;
         if (alias) {
@@ -382,17 +321,7 @@ export class SampleCompletionProvider implements vscode.CompletionItemProvider {
         item.sortText = `1_${id}`; // After "Generate new X ID" (0_new)
         // So VS Code filter (typed prefix e.g. "@dna:") matches and sample items are shown
         item.filterText = `${fullPrefix}${label}`;
-        
-        // Add MongoDB details for Equip/Labware
-        if (MONGO_BACKED_TYPES.includes(type)) {
-          const mongoRecord = getMongoRecord(type, id);
-          if (mongoRecord) {
-            item.documentation = new vscode.MarkdownString(
-              `**MongoDB Record**\n\n\`\`\`json\n${JSON.stringify(mongoRecord, null, 2)}\n\`\`\``
-            );
-          }
-        }
-        
+
         completionItems.push(item);
       }
     }
@@ -416,7 +345,7 @@ export class SampleCompletionProvider implements vscode.CompletionItemProvider {
       completionItems.push(newIdItem);
     }
     
-    // Add "Manual Input" option (for all types including Equip - so @equip: works when no MongoDB/local IDs)
+    // Add "Manual Input" option (for all types including Equip - so @equip: works when no local IDs)
     if (specificType && !isSamplePrefix(fullPrefix)) {
       const manualItem = new vscode.CompletionItem(
         vscode.l10n.t('Enter info'),

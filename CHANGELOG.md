@@ -5,6 +5,25 @@
 형식은 [Keep a Changelog](https://keepachangelog.com/ko/1.1.0/)를 기반으로 하며,
 이 프로젝트는 [유의적 버전 관리](https://semver.org/lang/ko/)를 따릅니다.
 
+## [0.59.0] - 2026-06-03
+
+### Removed
+- **MongoDB(SBLIMS) 연동 완전 제거**: 사용하지 않는 MongoDB 연동을 코드·의존성·설정·문서에서 모두 제거. `labnotev.enableMongo`/`labnotev.mongoUrl`/`labnotev.mongoDbName` 설정, `Labnote: Reload Remote Data (MongoDB)` 명령, `mongodb` 의존성을 삭제하고 `dataLoader`를 순수 로컬/글로벌 JSON 로더로 단순화. Equip/Labware 자동완성·제품 검색은 기존 `resources/labsamples/*.json`(local + workspace) 카탈로그만 사용하며 기능은 동일하게 동작 (MongoDB는 v0.48.0부터 기본 비활성·JSON 폴백으로 완전 대체되어 있었음)
+
+### Fixed
+- **경로 탈출(Path Traversal) 취약점 차단**: Section Editor가 웹뷰에서 전달받은 상대 경로로 파일을 쓰거나 여는 세 경로(README 저장 시 연결 워크플로 쓰기, 이미지 미리보기, 워크플로 열기)에 문서 폴더 내부로 한정하는 가드(`resolveContainedPath`)를 적용. `../`·절대경로 등 폴더를 벗어나는 경로는 무시
+- **크로스플랫폼 캐시 케이싱 버그**: 자동완성 캐시 무효화 파일 목록이 실제 로드 파일과 다른 대소문자(`dna.json` vs `DNA.json`)를 가리켜, 대소문자 구분 파일시스템(Linux 등)에서 캐시가 매 입력마다 무효화되던 문제 수정
+
+### Changed
+- **샘플 ID 하이라이트 성능 개선**: 키 입력마다 전체 문서를 스캔하던 하이라이트 재계산에 디바운스(150ms)를 적용(에디터 전환은 즉시 유지)하고, 타입별 정규식을 라인 루프 밖에서 1회만 생성하도록 변경
+
+### Added
+- **개발 인프라 — typecheck/lint 스크립트 및 CI**: 루트/웹뷰 `typecheck`·`lint` npm 스크립트와 ESLint(flat config, 웹뷰는 react-hooks 규칙 포함)를 도입. PR/push용 CI 워크플로(`ci.yml`)에서 typecheck·test·build를 강제 게이트로, lint·웹뷰 typecheck는 자문(비강제)으로 실행하고, 릴리스 워크플로에는 패키징 전 typecheck+test 게이트를 추가
+
+### Notes
+- 회귀: 호스트 522건 + 웹뷰 174건 테스트 전부 통과, 루트 typecheck 통과, `npm run build` 성공
+- 신규 단위 테스트(TDD): 경로 가드(`resolveContainedPath`/`writeChangedWorkflows`), 케이싱 캐시 무효화, 디바운스 헬퍼
+
 ## [0.58.0] - 2026-06-03
 
 ### Added

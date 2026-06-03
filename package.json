@@ -2,7 +2,7 @@
   "name": "labnotev",
   "displayName": "Labnote Assistant",
   "description": "Markdown-based lab notebook with sample tracking, workflow checklists, and a structured Section Editor for biology and bioinformatics experiments.",
-  "version": "0.58.0",
+  "version": "0.59.0",
   "license": "MIT",
   "publisher": "korea-biofoundry",
   "icon": "resources/icons/labnotev-128.png",
@@ -231,10 +231,6 @@
         "command": "labnotev.openPreview",
         "title": "%labnotev.cmd.openPreview.title%",
         "icon": "$(open-preview)"
-      },
-      {
-        "command": "labnotev.reloadRemoteData",
-        "title": "Labnote: Reload Remote Data (MongoDB)"
       }
     ],
     "menus": {
@@ -357,27 +353,11 @@
         },
         "labnotev.customSampleTypes": {
           "type": "array",
-          "items": { "type": "string" },
+          "items": {
+            "type": "string"
+          },
           "default": [],
           "description": "Custom sample types in addition to built-in types (DNA, RNA, Plasmid, etc.)"
-        },
-        "labnotev.enableMongo": {
-          "type": "boolean",
-          "default": false,
-          "description": "Enable SBLIMS MongoDB integration for Equip/Labware auto-completion. Disabled by default to keep startup fast and avoid 5–10s timeouts when the server is unreachable. Requires labnotev.mongoUrl.",
-          "order": 9
-        },
-        "labnotev.mongoUrl": {
-          "type": "string",
-          "default": "",
-          "description": "MongoDB connection URL for SBLIMS (format: mongodb://username:password@host:port/?authMechanism=SCRAM-SHA-256&authSource=SBLIMS)",
-          "order": 10
-        },
-        "labnotev.mongoDbName": {
-          "type": "string",
-          "default": "SBLIMS",
-          "description": "MongoDB database name",
-          "order": 11
         }
       }
     },
@@ -412,19 +392,27 @@
     "install:all": "npm install && cd webview-section && npm install",
     "test": "vitest run",
     "test:watch": "vitest",
-    "test:all": "npm test && cd webview-section && npm test"
+    "test:all": "npm test && cd webview-section && npm test",
+    "typecheck": "tsc --noEmit -p tsconfig.json",
+    "typecheck:webview": "cd webview-section && npm run typecheck",
+    "typecheck:all": "npm run typecheck && npm run typecheck:webview",
+    "lint": "eslint .",
+    "lint:webview": "cd webview-section && npm run lint",
+    "lint:all": "npm run lint && npm run lint:webview"
   },
   "devDependencies": {
+    "@eslint/js": "^10.0.1",
     "@types/js-yaml": "^4.0.9",
     "@types/node": "^20.10.0",
     "@types/vscode": "^1.85.0",
     "concurrently": "^8.2.2",
     "esbuild": "^0.27.2",
+    "eslint": "^10.4.1",
     "typescript": "^5.3.2",
+    "typescript-eslint": "^8.60.1",
     "vitest": "^4.0.18"
   },
   "dependencies": {
-    "js-yaml": "^4.1.1",
-    "mongodb": "^7.0.0"
+    "js-yaml": "^4.1.1"
   }
 }

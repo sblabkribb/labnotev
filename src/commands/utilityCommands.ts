@@ -9,6 +9,7 @@ import {
   updateAllDateFields,
 } from '../lib/dateUtils';
 import { sampleDecorations, getDecoration } from '../lib/sampleDecorations';
+import { debounce } from '../lib/debounce';
 import { ImagePreviewPanel } from '../views/ImagePreviewPanel';
 import { ImageLinkProvider } from '../lib/imageLinkProvider';
 import {
@@ -366,17 +367,19 @@ export function registerUtilityCommands(
     const allTypes: string[] = [...SAMPLE_TYPES, ...customTypes.filter(t => !(SAMPLE_TYPES as readonly string[]).includes(t))];
     const decorationsByType: Record<string, vscode.DecorationOptions[]> = {};
 
-    for (const type of allTypes) {
+    // Compile one RegExp per type once, not per (line × type). Each pattern is
+    // `/g` and reused across lines: after `exec` returns null its `lastIndex`
+    // resets to 0, so per-line scans stay independent.
+    const compiled = allTypes.map(type => {
       decorationsByType[type] = [];
-    }
+      return { type, pattern: buildSampleIdPattern(type) };
+    });
 
     for (let lineNum = 0; lineNum < document.lineCount; lineNum++) {
       const line = document.lineAt(lineNum);
 
-      for (const type of allTypes) {
-        const pattern = buildSampleIdPattern(type);
+      for (const { type, pattern } of compiled) {
         let match;
-
         while ((match = pattern.exec(line.text)) !== null) {
           const startPos = new vscode.Position(lineNum, match.index);
           const endPos = new vscode.Position(lineNum, match.index + match[0].length);
@@ -391,6 +394,15 @@ export function registerUtilityCommands(
     }
   }
 
+  // Debounce highlight recompute on edits so bursty typing triggers at most one
+  // full-document scan per quiescent window. Editor switches stay immediate.
+  const debouncedHighlightActiveEditor = debounce(() => {
+    const editor = vscode.window.activeTextEditor;
+    if (editor && editor.document.languageId === 'markdown') {
+      applySampleIdHighlights(editor);
+    }
+  }, 150);
+
   // Register highlight handlers
   context.subscriptions.push(
     vscode.window.onDidChangeActiveTextEditor(editor => {
@@ -401,7 +413,7 @@ export function registerUtilityCommands(
     vscode.workspace.onDidChangeTextDocument(event => {
       const editor = vscode.window.activeTextEditor;
       if (editor && event.document === editor.document && editor.document.languageId === 'markdown') {
-        applySampleIdHighlights(editor);
+        debouncedHighlightActiveEditor();
       }
     })
   );
