@@ -412,7 +412,7 @@ Sample Tracking: YES
       }
     });
 
-    it('keeps DNA in local dna.json after two saves when workspace root equals document parent (same labsamples path)', async () => {
+    it('keeps DNA in local DNA.json after two saves when workspace root equals document parent (same labsamples path)', async () => {
       const { saveSamplesFromDocument, getGlobalLabsamplesFolder } = await import('../lib/sampleStorage');
       tmpRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'lnv-same-labsamples-'));
       const workspaceRoot = tmpRoot;
@@ -424,7 +424,7 @@ Sample Tracking: YES
       saveSamplesFromDocument(docPath, text, globalFolder);
       saveSamplesFromDocument(docPath, text, globalFolder);
 
-      const dnaPath = path.join(globalFolder, 'dna.json');
+      const dnaPath = path.join(globalFolder, 'DNA.json');
       expect(fs.existsSync(dnaPath)).toBe(true);
       const data = JSON.parse(fs.readFileSync(dnaPath, 'utf8')) as Record<string, { alias?: string | null }>;
       expect(data['DNA-1']).toBeDefined();
@@ -451,7 +451,7 @@ Sample Tracking: YES
       saveSamplesFromDocument(docPath, '@dna;DNA-1;first', globalFolderLower);
       saveSamplesFromDocument(docPath, '@dna;DNA-1;second', globalFolderUpper);
 
-      const dnaPath = path.join(globalFolderLower, 'dna.json');
+      const dnaPath = path.join(globalFolderLower, 'DNA.json');
       expect(fs.existsSync(dnaPath)).toBe(true);
       const data = JSON.parse(fs.readFileSync(dnaPath, 'utf8')) as Record<string, { alias?: string | null }>;
       expect(data['DNA-1']).toBeDefined();
@@ -460,7 +460,7 @@ Sample Tracking: YES
       expect(data['DNA-1'].alias).toBe('second');
     });
 
-    it('does not write to local dna.json when sample id already exists in a distinct global labsamples folder', async () => {
+    it('does not write to local DNA.json when sample id already exists in a distinct global labsamples folder', async () => {
       const { saveSamplesFromDocument, getGlobalLabsamplesFolder } = await import('../lib/sampleStorage');
       tmpRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'lnv-distinct-labsamples-'));
       const workspaceRoot = tmpRoot;
@@ -469,7 +469,7 @@ Sample Tracking: YES
       const globalFolder = getGlobalLabsamplesFolder(workspaceRoot);
       fs.mkdirSync(globalFolder, { recursive: true });
       fs.writeFileSync(
-        path.join(globalFolder, 'dna.json'),
+        path.join(globalFolder, 'DNA.json'),
         JSON.stringify({
           'DNA-1': {
             type: 'DNA',
@@ -483,7 +483,7 @@ Sample Tracking: YES
 
       saveSamplesFromDocument(docPath, '@dna;DNA-1;localAlias', globalFolder);
 
-      const localDnaPath = path.join(tmpRoot, 'exp', 'resources', 'labsamples', 'dna.json');
+      const localDnaPath = path.join(tmpRoot, 'exp', 'resources', 'labsamples', 'DNA.json');
       expect(fs.existsSync(localDnaPath)).toBe(true);
       const localData = JSON.parse(fs.readFileSync(localDnaPath, 'utf8')) as Record<string, unknown>;
       expect(localData['DNA-1']).toBeUndefined();

@@ -22,6 +22,13 @@ vi.mock('../lib/dataLoader', async (importOriginal) => {
     saveSampleToResources: vi.fn(),
   };
 });
+// Reagent/Labware generateSampleId consults the product picker, which would
+// otherwise reach the real filesystem (getLabsamplesFolder -> mkdirSync) and
+// fail on case-sensitive/locked-down CI runners. Stub it to "no selection",
+// matching the empty-catalog behaviour the test already relies on.
+vi.mock('../lib/productPicker', () => ({
+  showProductPicker: vi.fn(() => Promise.resolve(null)),
+}));
 vi.mock('path', async (importOriginal) => {
   const actual = await importOriginal<typeof import('path')>();
   return {
