@@ -841,6 +841,50 @@ export default function App() {
     handleAttachFile({ area: 'unitOp', opIndex: opI, secIndex: secI });
   }, [handleAttachFile]);
 
+  // Stable per-concern handlers for labnote SectionEditors (mirrors the
+  // workflow path's handleUnitOps* callbacks). Passing one stable handler that
+  // takes `index`, instead of a fresh inline closure per section, is what keeps
+  // each memoized SectionEditor from re-rendering on every keystroke in another
+  // section. The functional setLabNote update keeps `labNote` out of the deps.
+  const handleLabNoteSectionChange = useCallback((index: number, content: string) => {
+    setLabNote(prev => {
+      if (!prev) return prev;
+      const cur = prev.sections[index];
+      // Only content-bearing sections (objective/results/freeform) reach a
+      // SectionEditor; guard the `heading`/`workflows` variants that have no
+      // `content` field so the narrowed spread stays a valid LabNoteSection.
+      if (!cur || !('content' in cur)) return prev;
+      const sections = [...prev.sections];
+      sections[index] = { ...cur, content };
+      return { ...prev, sections };
+    });
+    markDirty();
+  }, [markDirty]);
+
+  const handleLabNoteSectionFocus = useCallback((index: number) => {
+    activeSectionRef.current = { area: 'labnoteSection', sectionIndex: index };
+  }, []);
+
+  const handleLabNoteSectionAttachFile = useCallback((index: number) => {
+    handleAttachFile({ area: 'labnoteSection', sectionIndex: index });
+  }, [handleAttachFile]);
+
+  // Workflow mode reuses SectionEditor for the single `tailContent` block.
+  // It has no sections-array index, so these dedicated handlers ignore the
+  // bound index argument (a placeholder index={0} is passed at the call site).
+  const handleTailContentChange = useCallback((_index: number, content: string) => {
+    setWorkflow(prev => (prev ? { ...prev, tailContent: content } : prev));
+    markDirty();
+  }, [markDirty]);
+
+  const handleTailContentFocus = useCallback(() => {
+    activeSectionRef.current = { area: 'tailContent' };
+  }, []);
+
+  const handleTailContentAttachFile = useCallback(() => {
+    handleAttachFile({ area: 'tailContent' });
+  }, [handleAttachFile]);
+
   const handleQueryClipboardOnMenuOpen = useCallback(() => {
     postMessage({ type: 'queryClipboardState' });
   }, []);
@@ -963,17 +1007,18 @@ export default function App() {
                   return (
                     <SectionEditor
                       key={`sec-${index}`}
+                      index={index}
                       heading="🎯 Experiment Objective"
                       content={section.content}
-                      onChange={(c) => updateLabNoteSection(index, { ...section, content: c })}
-                      onFocus={() => { activeSectionRef.current = { area: 'labnoteSection', sectionIndex: index }; }}
+                      onChange={handleLabNoteSectionChange}
+                      onFocus={handleLabNoteSectionFocus}
                       onCursorActivity={updateCursorPos}
                       docBaseUri={docBaseUri}
                       requestFocusAt={getCursorForArea('labnoteSection', { sectionIndex: index })}
                       availableTypes={availableTypes}
                       sampleTypeColors={sampleTypeColors}
                       sampleDefs={sampleDefs}
-                      onAttachFile={() => handleAttachFile({ area: 'labnoteSection', sectionIndex: index })}
+                      onAttachFile={handleLabNoteSectionAttachFile}
                     />
                   );
                 case 'workflows':
@@ -988,34 +1033,36 @@ export default function App() {
                   return (
                     <SectionEditor
                       key={`sec-${index}`}
+                      index={index}
                       heading="📊 Results & Discussion"
                       content={section.content}
-                      onChange={(c) => updateLabNoteSection(index, { ...section, content: c })}
-                      onFocus={() => { activeSectionRef.current = { area: 'labnoteSection', sectionIndex: index }; }}
+                      onChange={handleLabNoteSectionChange}
+                      onFocus={handleLabNoteSectionFocus}
                       onCursorActivity={updateCursorPos}
                       docBaseUri={docBaseUri}
                       requestFocusAt={getCursorForArea('labnoteSection', { sectionIndex: index })}
                       availableTypes={availableTypes}
                       sampleTypeColors={sampleTypeColors}
                       sampleDefs={sampleDefs}
-                      onAttachFile={() => handleAttachFile({ area: 'labnoteSection', sectionIndex: index })}
+                      onAttachFile={handleLabNoteSectionAttachFile}
                     />
                   );
                 case 'freeform':
                   return (
                     <SectionEditor
                       key={`sec-${index}`}
+                      index={index}
                       heading={section.heading}
                       content={section.content}
-                      onChange={(c) => updateLabNoteSection(index, { ...section, content: c })}
-                      onFocus={() => { activeSectionRef.current = { area: 'labnoteSection', sectionIndex: index }; }}
+                      onChange={handleLabNoteSectionChange}
+                      onFocus={handleLabNoteSectionFocus}
                       onCursorActivity={updateCursorPos}
                       docBaseUri={docBaseUri}
                       requestFocusAt={getCursorForArea('labnoteSection', { sectionIndex: index })}
                       availableTypes={availableTypes}
                       sampleTypeColors={sampleTypeColors}
                       sampleDefs={sampleDefs}
-                      onAttachFile={() => handleAttachFile({ area: 'labnoteSection', sectionIndex: index })}
+                      onAttachFile={handleLabNoteSectionAttachFile}
                     />
                   );
                 default:
@@ -1117,13 +1164,11 @@ export default function App() {
 
             {workflow.tailContent !== undefined && (
               <SectionEditor
+                index={0}
                 heading="📝 Conclusions and Discussion"
                 content={workflow.tailContent}
-                onChange={(c) => {
-                  setWorkflow({ ...workflow, tailContent: c });
-                  markDirty();
-                }}
-                onFocus={() => { activeSectionRef.current = { area: 'tailContent' }; }}
+                onChange={handleTailContentChange}
+                onFocus={handleTailContentFocus}
                 onCursorActivity={updateCursorPos}
                 headingLevel="h2"
                 minRows={3}
@@ -1132,7 +1177,7 @@ export default function App() {
                 availableTypes={availableTypes}
                 sampleTypeColors={sampleTypeColors}
                 sampleDefs={sampleDefs}
-                onAttachFile={() => handleAttachFile({ area: 'tailContent' })}
+                onAttachFile={handleTailContentAttachFile}
               />
             )}
           </>

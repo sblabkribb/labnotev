@@ -1,4 +1,4 @@
-import { useRef, useState } from 'react';
+import { memo, useCallback, useRef, useState } from 'react';
 import { Title, Paper, Stack, Group, ActionIcon, Tooltip } from '@mantine/core';
 import { HighlightedTextarea } from './HighlightedTextarea';
 import { ImageThumbnails } from './ImageThumbnails';
@@ -8,10 +8,18 @@ import { useTableEditing } from '../hooks/useTableEditing';
 import type { SampleDefMap } from '../types';
 
 interface SectionEditorProps {
+  /**
+   * Index of this section within `labNote.sections`. Bundled back into the
+   * `onChange`/`onFocus`/`onAttachFile` callbacks so the parent can supply a
+   * single stable handler per concern instead of a per-section inline closure.
+   * Keeping these props referentially stable is what lets `React.memo` below
+   * skip re-rendering untouched sections on every keystroke.
+   */
+  index: number;
   heading: string;
   content: string;
-  onChange: (content: string) => void;
-  onFocus?: () => void;
+  onChange: (index: number, content: string) => void;
+  onFocus?: (index: number) => void;
   onCursorActivity?: (pos: number) => void;
   headingLevel?: 'h2' | 'h3' | 'h4';
   minRows?: number;
@@ -20,10 +28,11 @@ interface SectionEditorProps {
   availableTypes?: string[];
   sampleTypeColors?: Record<string, string>;
   sampleDefs?: SampleDefMap;
-  onAttachFile?: () => void;
+  onAttachFile?: (index: number) => void;
 }
 
-export function SectionEditor({
+export const SectionEditor = memo(function SectionEditor({
+  index,
   heading,
   content,
   onChange,
@@ -42,11 +51,19 @@ export function SectionEditor({
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const [tableModalOpen, setTableModalOpen] = useState(false);
 
-  const reportCursor = () => {
+  // Index-bound stable handlers (mirrors UnitOpSectionTextarea). These keep a
+  // constant identity while `index` and the parent callbacks are unchanged, so
+  // the memoized HighlightedTextarea / this component stay put between
+  // keystrokes in other sections.
+  const handleChange = useCallback((c: string) => onChange(index, c), [onChange, index]);
+  const handleFocus = useCallback(() => onFocus?.(index), [onFocus, index]);
+  const handleAttachFile = useCallback(() => onAttachFile?.(index), [onAttachFile, index]);
+
+  const reportCursor = useCallback(() => {
     if (textareaRef.current && onCursorActivity) {
       onCursorActivity(textareaRef.current.selectionStart);
     }
-  };
+  }, [onCursorActivity]);
 
   const {
     handleTableInsert,
@@ -54,7 +71,7 @@ export function SectionEditor({
     handleKeyDown,
     handlePaste,
     cursorInTable,
-  } = useTableEditing(textareaRef, content, onChange, reportCursor);
+  } = useTableEditing(textareaRef, content, handleChange, reportCursor);
 
   return (
     <Paper p="sm" withBorder>
@@ -64,7 +81,7 @@ export function SectionEditor({
           <Group gap={4}>
             {onAttachFile && (
               <Tooltip label="Attach file" position="bottom" withArrow>
-                <ActionIcon variant="subtle" size="sm" onClick={onAttachFile} aria-label="Attach file">
+                <ActionIcon variant="subtle" size="sm" onClick={handleAttachFile} aria-label="Attach file">
                   <AttachIcon />
                 </ActionIcon>
               </Tooltip>
@@ -96,8 +113,8 @@ export function SectionEditor({
         <HighlightedTextarea
           ref={textareaRef}
           value={content}
-          onChange={onChange}
-          onFocus={onFocus}
+          onChange={handleChange}
+          onFocus={handleFocus}
           onCursorChange={onCursorActivity}
           onKeyDown={handleKeyDown}
           onPaste={handlePaste}
@@ -119,7 +136,7 @@ export function SectionEditor({
       />
     </Paper>
   );
-}
+});
 
 function AttachIcon() {
   return (

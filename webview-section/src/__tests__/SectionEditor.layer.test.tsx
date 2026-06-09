@@ -49,6 +49,7 @@ describe('Layer z-index regression (SectionEditor overlay must sit above textare
   it('SectionEditor: overlay z-index > textarea z-index and overlay stays pointer-events:none', () => {
     const { container } = renderWithMantine(
       <SectionEditor
+        index={0}
         heading="Test"
         content="샘플 DNA-001 사용"
         onChange={() => {}}
