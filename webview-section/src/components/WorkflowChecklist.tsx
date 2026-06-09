@@ -1,3 +1,4 @@
+import { memo } from 'react';
 import { Checkbox, Stack, Group, Text, Paper, Title, Anchor } from '@mantine/core';
 import type { WorkflowReference } from '../types';
 import { postMessage } from '../vscodeApi';
@@ -7,7 +8,7 @@ interface WorkflowChecklistProps {
   onChange: (items: WorkflowReference[]) => void;
 }
 
-export function WorkflowChecklist({ items, onChange }: WorkflowChecklistProps) {
+export const WorkflowChecklist = memo(function WorkflowChecklist({ items, onChange }: WorkflowChecklistProps) {
   const toggleItem = (index: number) => {
     const updated = items.map((item, i) =>
       i === index ? { ...item, checked: !item.checked } : item
@@ -45,4 +46,4 @@ export function WorkflowChecklist({ items, onChange }: WorkflowChecklistProps) {
       </Stack>
     </Paper>
   );
-}
+});

@@ -15,7 +15,6 @@ import { UnitOpAccordion } from './components/UnitOpAccordion';
 import type {
   LabNoteDocument,
   WorkflowDocument,
-  LabNoteSection,
   WorkflowReference,
   UnitOperationBlock,
   ExtensionToWebviewMessage,
@@ -889,6 +888,47 @@ export default function App() {
     postMessage({ type: 'queryClipboardState' });
   }, []);
 
+  // Front Matter / workflows-section handlers. Stable identities (functional
+  // setState, deps [markDirty]) so the memoized FrontMatterForm /
+  // WorkflowChecklist skip re-rendering while the user types in a section.
+  // These must stay above the early return below to satisfy rules-of-hooks.
+  const updateLabNoteFm = useCallback((key: string, value: unknown) => {
+    setLabNote(prev => (prev ? { ...prev, frontMatter: { ...prev.frontMatter, [key]: value } } : prev));
+    markDirty();
+  }, [markDirty]);
+
+  const handleLabNoteWorkflowsChange = useCallback((items: WorkflowReference[]) => {
+    setLabNote(prev => {
+      if (!prev) return prev;
+      const idx = prev.sections.findIndex(s => s.type === 'workflows');
+      const cur = idx >= 0 ? prev.sections[idx] : undefined;
+      if (!cur || cur.type !== 'workflows') return prev;
+      const sections = [...prev.sections];
+      sections[idx] = { ...cur, items };
+      return { ...prev, sections };
+    });
+    markDirty();
+  }, [markDirty]);
+
+  const updateWorkflowFm = useCallback((key: string, value: unknown) => {
+    setWorkflow(prev => {
+      if (!prev) return prev;
+      if (key === 'title' && typeof value === 'string') {
+        const idx = value.indexOf(' - ');
+        const idName = (idx >= 0 ? value.slice(0, idx) : value).trim();
+        const desc = idx >= 0 ? value.slice(idx + 3).trim() : '';
+        const newHeader = desc ? `[${idName}] ${desc}` : `[${idName}]`;
+        return {
+          ...prev,
+          frontMatter: { ...prev.frontMatter, title: value },
+          workflowHeader: newHeader,
+        };
+      }
+      return { ...prev, frontMatter: { ...prev.frontMatter, [key]: value } };
+    });
+    markDirty();
+  }, [markDirty]);
+
   if (!mode) {
     return (
       <MantineProvider forceColorScheme={colorScheme}>
@@ -898,39 +938,6 @@ export default function App() {
       </MantineProvider>
     );
   }
-
-  const updateLabNoteFm = (key: string, value: unknown) => {
-    if (!labNote) return;
-    setLabNote({ ...labNote, frontMatter: { ...labNote.frontMatter, [key]: value } });
-    markDirty();
-  };
-
-  const updateLabNoteSection = (index: number, updated: LabNoteSection) => {
-    if (!labNote) return;
-    const sections = [...labNote.sections];
-    sections[index] = updated;
-    setLabNote({ ...labNote, sections });
-    markDirty();
-  };
-
-  const updateWorkflowFm = (key: string, value: unknown) => {
-    if (!workflow) return;
-    if (key === 'title' && typeof value === 'string') {
-      const idx = value.indexOf(' - ');
-      const idName = (idx >= 0 ? value.slice(0, idx) : value).trim();
-      const desc = idx >= 0 ? value.slice(idx + 3).trim() : '';
-      const newHeader = desc ? `[${idName}] ${desc}` : `[${idName}]`;
-      setWorkflow({
-        ...workflow,
-        frontMatter: { ...workflow.frontMatter, title: value },
-        workflowHeader: newHeader,
-      });
-      markDirty();
-      return;
-    }
-    setWorkflow({ ...workflow, frontMatter: { ...workflow.frontMatter, [key]: value } });
-    markDirty();
-  };
 
   return (
     <MantineProvider forceColorScheme={colorScheme}>
@@ -1026,7 +1033,7 @@ export default function App() {
                     <WorkflowChecklist
                       key={`sec-${index}`}
                       items={section.items}
-                      onChange={(items) => updateLabNoteSection(index, { ...section, items })}
+                      onChange={handleLabNoteWorkflowsChange}
                     />
                   );
                 case 'results':

@@ -5,6 +5,11 @@
 형식은 [Keep a Changelog](https://keepachangelog.com/ko/1.1.0/)를 기반으로 하며,
 이 프로젝트는 [유의적 버전 관리](https://semver.org/lang/ko/)를 따릅니다.
 
+## [0.60.3] - 2026-06-10
+
+### Changed
+- **Section Editor 입력 반응성 추가 개선**: 키 입력 시 프론트매터 폼·워크플로 체크리스트 등 형제 컴포넌트가 함께 다시 렌더링되던 비용을 제거(콜백 안정화 + `React.memo`). 또한 썸네일·첨부 링크 목록의 정규식 파싱을 입력과 분리(300ms 디바운스)하여 타이핑 핫패스의 작업량을 줄임. labnote/workflow 두 편집 경로에 동일하게 적용
+
 ## [0.60.2] - 2026-06-10
 
 ### Changed

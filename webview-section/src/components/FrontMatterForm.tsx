@@ -1,3 +1,4 @@
+import { memo } from 'react';
 import { TextInput, Switch, Group, Stack } from '@mantine/core';
 import { DateTimeField } from './DateTimeField';
 import '@mantine/dates/styles.css';
@@ -8,7 +9,7 @@ interface FrontMatterFormProps {
   onChange: (key: string, value: unknown) => void;
 }
 
-export function FrontMatterForm({ data, fields, onChange }: FrontMatterFormProps) {
+export const FrontMatterForm = memo(function FrontMatterForm({ data, fields, onChange }: FrontMatterFormProps) {
   return (
     <Stack gap="xs">
       {fields.map((field) => {
@@ -49,4 +50,4 @@ export function FrontMatterForm({ data, fields, onChange }: FrontMatterFormProps
       })}
     </Stack>
   );
-}
+});

@@ -1,5 +1,6 @@
 import { memo, useCallback, useRef, useState } from 'react';
 import { Title, Paper, Stack, Group, ActionIcon, Tooltip } from '@mantine/core';
+import { useDebouncedValue } from '@mantine/hooks';
 import { HighlightedTextarea } from './HighlightedTextarea';
 import { ImageThumbnails } from './ImageThumbnails';
 import { AttachmentLinks } from './AttachmentLinks';
@@ -50,6 +51,11 @@ export const SectionEditor = memo(function SectionEditor({
   const order = headingLevel === 'h2' ? 2 : headingLevel === 'h3' ? 3 : 4;
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const [tableModalOpen, setTableModalOpen] = useState(false);
+  // Thumbnails / attachment links are display-only and need not re-parse the
+  // full content on every keystroke. Feed them a debounced copy so the typing
+  // hot path skips their regex scans; the textarea/overlay still use live
+  // `content` to keep the caret and sample highlight in sync.
+  const [debouncedContent] = useDebouncedValue(content, 300);
 
   // Index-bound stable handlers (mirrors UnitOpSectionTextarea). These keep a
   // constant identity while `index` and the parent callbacks are unchanged, so
@@ -125,8 +131,8 @@ export const SectionEditor = memo(function SectionEditor({
           requestFocusAt={requestFocusAt}
           chatContextSectionHeading={heading}
         />
-        {docBaseUri && <ImageThumbnails content={content} docBaseUri={docBaseUri} />}
-        <AttachmentLinks content={content} />
+        {docBaseUri && <ImageThumbnails content={debouncedContent} docBaseUri={docBaseUri} />}
+        <AttachmentLinks content={debouncedContent} />
       </Stack>
 
       <TableInsertModal

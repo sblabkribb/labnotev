@@ -1,5 +1,6 @@
 import { memo, useCallback, useEffect, useRef, useState } from 'react';
 import { Accordion, Badge, Group, Text, Stack, TextInput, Textarea, Title, Paper, ActionIcon, Tooltip, Menu, Modal, Button } from '@mantine/core';
+import { useDebouncedValue } from '@mantine/hooks';
 import { DndContext, closestCenter, KeyboardSensor, PointerSensor, useSensor, useSensors, type DragEndEvent } from '@dnd-kit/core';
 import { SortableContext, verticalListSortingStrategy, useSortable, arrayMove } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
@@ -115,6 +116,9 @@ const UnitOpSectionTextarea = memo(function UnitOpSectionTextarea({
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const [tableModalOpen, setTableModalOpen] = useState(false);
   const [sampleModalOpen, setSampleModalOpen] = useState(false);
+  // Display-only thumbnails/attachment links use a debounced copy of content so
+  // their regex parsing stays out of the typing hot path (see SectionEditor).
+  const [debouncedContent] = useDebouncedValue(content, 300);
 
   const reportCursor = useCallback(() => {
     if (textareaRef.current && onCursorActivity) {
@@ -211,8 +215,8 @@ const UnitOpSectionTextarea = memo(function UnitOpSectionTextarea({
         chatContextOpId={op.opId}
         chatContextSectionHeading={rawHeading}
       />
-      {docBaseUri && <ImageThumbnails content={content} docBaseUri={docBaseUri} />}
-      <AttachmentLinks content={content} />
+      {docBaseUri && <ImageThumbnails content={debouncedContent} docBaseUri={docBaseUri} />}
+      <AttachmentLinks content={debouncedContent} />
       <TableInsertModal
         opened={tableModalOpen}
         onClose={() => setTableModalOpen(false)}
