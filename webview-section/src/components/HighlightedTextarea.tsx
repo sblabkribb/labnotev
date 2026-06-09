@@ -1,4 +1,4 @@
-import { forwardRef, memo, useCallback, useEffect, useImperativeHandle, useRef, useState } from 'react';
+import { forwardRef, memo, useCallback, useEffect, useImperativeHandle, useMemo, useRef, useState } from 'react';
 import { ActionIcon } from '@mantine/core';
 import { SampleHighlighter, highlightSampleIds } from './SampleHighlighter';
 import type { SampleDefMap } from '../types';
@@ -131,7 +131,13 @@ export const HighlightedTextarea = memo(forwardRef<HTMLTextAreaElement, Highligh
   ) {
     const textareaRef = useRef<HTMLTextAreaElement>(null);
     const overlayRef = useRef<HTMLDivElement>(null);
-    const [hasSamples, setHasSamples] = useState(false);
+    // Derived synchronously so the overlay/transparent-text styles are correct
+    // on the very first render (no flash of opaque text) and we avoid the extra
+    // render an effect-driven state would cause on every value change.
+    const hasSamples = useMemo(
+      () => highlightSampleIds(value, availableTypes),
+      [value, availableTypes]
+    );
     const [selectionAnchor, setSelectionAnchor] = useState<{ top: number } | null>(null);
     // Pending clear timer for the post-blur grace window so the floating
     // button has time to receive its click before being unmounted.
@@ -144,10 +150,6 @@ export const HighlightedTextarea = memo(forwardRef<HTMLTextAreaElement, Highligh
     const isApplyingFocusRef = useRef(false);
 
     useImperativeHandle(forwardedRef, () => textareaRef.current as HTMLTextAreaElement, []);
-
-    useEffect(() => {
-      setHasSamples(highlightSampleIds(value, availableTypes));
-    }, [value, availableTypes]);
 
     useEffect(() => {
       const ta = textareaRef.current;

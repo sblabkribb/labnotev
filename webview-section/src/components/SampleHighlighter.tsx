@@ -1,4 +1,4 @@
-import React, { memo, useMemo } from 'react';
+import React, { memo, useMemo, useState } from 'react';
 import { HoverCard, Stack, Text, Button } from '@mantine/core';
 import type { SampleDefMap } from '../types';
 import { postMessage } from '../vscodeApi';
@@ -111,6 +111,91 @@ function SampleHoverDropdown({
   );
 }
 
+/**
+ * A single highlighted sample token.
+ *
+ * Performance: in `interactive` mode we used to wrap every token in a Mantine
+ * `HoverCard` up-front, so each keystroke re-created the Popover target
+ * machinery for *all* tokens in the active section. Instead we render a bare
+ * `<span>` and only mount the `HoverCard` once the token is first hovered
+ * (`armed`). Tokens the user never hovers stay as cheap spans.
+ *
+ * `armed` is intentionally sticky (never reset to false): once a token has a
+ * HoverCard, keeping it avoids unmount/remount flicker while the pointer is
+ * still over it. Only hovered tokens ever pay the HoverCard cost.
+ *
+ * Props are kept primitive so the surrounding `React.memo` stays effective:
+ * tokens before an edit point keep stable props and skip re-render.
+ */
+const SampleToken = memo(function SampleToken({
+  fullMatch,
+  sampleType,
+  sampleId,
+  color,
+  interactive,
+  sampleDefs,
+  onSampleClick,
+}: {
+  fullMatch: string;
+  sampleType: string;
+  sampleId: string;
+  color: string;
+  interactive: boolean;
+  sampleDefs?: SampleDefMap;
+  onSampleClick?: (event: React.MouseEvent<HTMLSpanElement>) => void;
+}) {
+  const [armed, setArmed] = useState(false);
+
+  // Keep this style byte-for-byte identical to the previous inline style: no
+  // horizontal padding (the overlay must match the textarea's character grid),
+  // color + fontWeight + a slightly stronger background alpha for emphasis.
+  const spanStyle = useMemo<React.CSSProperties>(
+    () => ({
+      color,
+      fontWeight: 600,
+      backgroundColor: `${color}22`,
+      borderRadius: '2px',
+      ...(interactive ? { pointerEvents: 'auto' as const } : {}),
+    }),
+    [color, interactive]
+  );
+
+  const span = (
+    <span
+      style={spanStyle}
+      onMouseDown={onSampleClick}
+      onMouseEnter={interactive ? () => setArmed(true) : undefined}
+    >
+      {fullMatch}
+    </span>
+  );
+
+  if (!interactive || !armed) {
+    return span;
+  }
+
+  return (
+    <HoverCard
+      width={300}
+      shadow="md"
+      withArrow
+      openDelay={HOVER_OPEN_DELAY}
+      closeDelay={HOVER_CLOSE_DELAY}
+      withinPortal
+      // The mouseEnter that armed this token fired on the bare span *before*
+      // the HoverCard mounted, so there is no second mouseEnter to open it.
+      // `initiallyOpened` shows the dropdown for the pointer that is already
+      // hovering; subsequent open/close is driven by Mantine's hover handlers.
+      initiallyOpened
+    >
+      <HoverCard.Target>{span}</HoverCard.Target>
+      <HoverCard.Dropdown>
+        <SampleHoverDropdown sampleType={sampleType} sampleId={sampleId} sampleDefs={sampleDefs} />
+      </HoverCard.Dropdown>
+    </HoverCard>
+  );
+});
+
 export const SampleHighlighter = memo(function SampleHighlighter({
   text,
   interactive = false,
@@ -141,49 +226,18 @@ export const SampleHighlighter = memo(function SampleHighlighter({
       const sampleId = fullMatch.split(/[;|]/)[0];
       const color = sampleTypeColors?.[sampleType] || DEFAULT_CUSTOM_COLOR;
 
-      // No horizontal padding: any extra inline width on these spans would
-      // diverge from the underlying textarea's character grid and shift wrap
-      // positions, making the caret appear one visual line off. The slightly
-      // stronger background alpha (22 vs 15) keeps the token visually
-      // recognisable without claiming any extra layout width.
-      const spanStyle: React.CSSProperties = {
-        color,
-        fontWeight: 600,
-        backgroundColor: `${color}22`,
-        borderRadius: '2px',
-        ...(interactive ? { pointerEvents: 'auto' as const } : {}),
-      };
-
-      const span = (
-        <span
+      result.push(
+        <SampleToken
           key={match.index}
-          style={spanStyle}
-          onMouseDown={onSampleClick}
-        >
-          {fullMatch}
-        </span>
+          fullMatch={fullMatch}
+          sampleType={sampleType}
+          sampleId={sampleId}
+          color={color}
+          interactive={interactive}
+          sampleDefs={sampleDefs}
+          onSampleClick={onSampleClick}
+        />
       );
-
-      if (interactive) {
-        result.push(
-          <HoverCard
-            key={`hc-${match.index}`}
-            width={300}
-            shadow="md"
-            withArrow
-            openDelay={HOVER_OPEN_DELAY}
-            closeDelay={HOVER_CLOSE_DELAY}
-            withinPortal
-          >
-            <HoverCard.Target>{span}</HoverCard.Target>
-            <HoverCard.Dropdown>
-              <SampleHoverDropdown sampleType={sampleType} sampleId={sampleId} sampleDefs={sampleDefs} />
-            </HoverCard.Dropdown>
-          </HoverCard>
-        );
-      } else {
-        result.push(span);
-      }
 
       lastIndex = pattern.lastIndex;
     }
