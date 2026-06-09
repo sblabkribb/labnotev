@@ -191,14 +191,23 @@ export default function App() {
     return () => window.removeEventListener('keydown', onKeyDown, true);
   }, []);
 
-  // Recompute matches (debounced) whenever the query/options change, or the
-  // document content / opened panels change underneath an open find bar.
+  // Clear matches when the find bar closes or the query empties. This effect
+  // intentionally does NOT depend on document state, so typing under a closed
+  // find bar never re-runs it. The functional updaters preserve the existing
+  // reference when already cleared, so closing twice is a no-op.
   useEffect(() => {
     if (!findOpen || findQuery.length === 0) {
-      setFindMatches([]);
-      setActiveMatchIndex(-1);
-      return;
+      setFindMatches(prev => (prev.length === 0 ? prev : []));
+      setActiveMatchIndex(prev => (prev === -1 ? prev : -1));
     }
+  }, [findOpen, findQuery]);
+
+  // Recompute matches (debounced) whenever the query/options change, or the
+  // document content / opened panels change underneath an open find bar. The
+  // closed path returns without any setState, so a keystroke while find is
+  // closed does not schedule an extra App render pass.
+  useEffect(() => {
+    if (!findOpen || findQuery.length === 0) return;
     const handle = setTimeout(() => {
       const next = collectMatches(findQuery, findCaseSensitive);
       setFindMatches(next);
@@ -809,9 +818,13 @@ export default function App() {
   const handleUnitOpsChange = useCallback((ops: UnitOperationBlock[]) => {
     setWorkflow(prev => {
       if (!prev) return prev;
-      const newIds = new Set(ops.map(o => o.id));
-      const hasRemoval = prev.unitOperations.some(o => !newIds.has(o.id));
+      // Only a removal can reduce the op count (edits/alias/description/reorder
+      // preserve ids and length; additions arrive via the extension message
+      // path, not here). Gate the O(N) id-set cleanup on a length decrease so
+      // the per-keystroke edit path skips the Set/scan entirely.
+      const hasRemoval = ops.length < prev.unitOperations.length;
       if (hasRemoval) {
+        const newIds = new Set(ops.map(o => o.id));
         setOpenedOpIds(prevIds => prevIds.filter(id => newIds.has(id)));
         const a = activeSectionRef.current;
         if (a?.area === 'unitOp') {

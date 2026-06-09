@@ -151,19 +151,36 @@ export const HighlightedTextarea = memo(forwardRef<HTMLTextAreaElement, Highligh
 
     useImperativeHandle(forwardedRef, () => textareaRef.current as HTMLTextAreaElement, []);
 
+    // Coalesce resize triggers (value changes + ResizeObserver callbacks) into
+    // a single rAF so multiple triggers within one frame cause at most one
+    // synchronous reflow. `resizeToContent` itself stays synchronous (and
+    // keeps the scroll-anchor restore from Issue #21); only the scheduling is
+    // batched.
+    const resizeRafRef = useRef<number | null>(null);
+    const scheduleResize = useCallback(() => {
+      if (resizeRafRef.current != null) return;
+      resizeRafRef.current = requestAnimationFrame(() => {
+        resizeRafRef.current = null;
+        const ta = textareaRef.current;
+        if (ta) resizeToContent(ta);
+      });
+    }, []);
+
+    useEffect(() => () => {
+      if (resizeRafRef.current != null) cancelAnimationFrame(resizeRafRef.current);
+    }, []);
+
     useEffect(() => {
-      const ta = textareaRef.current;
-      if (!ta) return;
-      resizeToContent(ta);
-    }, [value]);
+      scheduleResize();
+    }, [value, scheduleResize]);
 
     useEffect(() => {
       const ta = textareaRef.current;
       if (!ta) return;
-      const observer = new ResizeObserver(() => resizeToContent(ta));
+      const observer = new ResizeObserver(() => scheduleResize());
       observer.observe(ta);
       return () => observer.disconnect();
-    }, []);
+    }, [scheduleResize]);
 
     // Issue #18-2 hotfix: in some webview environments React's synthetic
     // onKeyDown preventDefault is not enough to stop the textarea's native
