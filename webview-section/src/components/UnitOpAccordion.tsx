@@ -1,4 +1,4 @@
-import { memo, useCallback, useEffect, useRef, useState } from 'react';
+import { memo, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Accordion, Badge, Group, Text, Stack, TextInput, Textarea, Title, Paper, ActionIcon, Tooltip, Menu, Modal, Button } from '@mantine/core';
 import { useDebouncedValue } from '@mantine/hooks';
 import { DndContext, closestCenter, KeyboardSensor, PointerSensor, useSensor, useSensors, type DragEndEvent } from '@dnd-kit/core';
@@ -13,6 +13,14 @@ import { TableInsertModal } from './TableInsertModal';
 import { SampleCreateModal } from './SampleCreateModal';
 import { useTableEditing } from '../hooks/useTableEditing';
 import { normalizeUnitOpSectionHeading, unitOpSectionAllowsSampleButton, getSectionTypeLock } from '../utils/unitOpSectionHeading';
+
+// Stable sensor options object. `useSensor(sensor, options)` memoizes its
+// descriptor on `[sensor, options]`, so a fresh options literal per render
+// (e.g. `{ activationConstraint: { distance: 8 } }`) yields a new descriptor ->
+// `useSensors` returns a new array -> dnd-kit's `activators` (and thus its
+// InternalContext) churn every keystroke -> every memoized SortableUnitOp
+// re-renders. Hoisting the whole options object keeps the descriptor stable.
+const POINTER_SENSOR_OPTIONS = { activationConstraint: { distance: 8 } } as const;
 
 function parseMetaContent(content: string): Record<string, string> {
   const result: Record<string, string> = {};
@@ -592,9 +600,19 @@ const SortableUnitOp = memo(function SortableUnitOp({ op, opIndex, onUpdateSecti
 
 export function UnitOpAccordion({ unitOperations, onChange, onSectionFocus, onCursorActivity, onCreateSample, onSearchProducts, productSearchResult, availableTypes, sampleTypeColors, sampleDefs, onAddCustomType, docBaseUri, getCursorForSection, onAttachFile, openedOpIds, onOpenedChange, onCopy, onPasteBelow, clipboardHasUnitOp, onMenuOpen }: UnitOpAccordionProps) {
   const sensors = useSensors(
-    useSensor(PointerSensor, { activationConstraint: { distance: 8 } }),
+    useSensor(PointerSensor, POINTER_SENSOR_OPTIONS),
     useSensor(KeyboardSensor)
   );
+
+  // Stabilize the SortableContext `items` by id-set identity. `unitOperations`
+  // is a fresh array on every keystroke (only the edited op is a new object),
+  // so `unitOperations.map(o => o.id)` would be a new reference each render and
+  // change SortableContext's context value -> every memoized SortableUnitOp
+  // re-renders (O(N) chrome reconciliation). The id list only changes on
+  // add/remove/reorder, so derive a stable array from the joined id key.
+  // (NUL join is a safe round-trip: op ids never contain '\u0000'.)
+  const idsKey = unitOperations.map((o) => o.id).join('\u0000');
+  const itemIds = useMemo(() => (idsKey ? idsKey.split('\u0000') : []), [idsKey]);
 
   // Latest-ref pattern: keep `onChange` / `unitOperations` / opened-state
   // reachable from callbacks without listing them in `useCallback` deps.
@@ -699,7 +717,7 @@ export function UnitOpAccordion({ unitOperations, onChange, onSectionFocus, onCu
 
   return (
     <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
-      <SortableContext items={unitOperations.map(op => op.id)} strategy={verticalListSortingStrategy}>
+      <SortableContext items={itemIds} strategy={verticalListSortingStrategy}>
         <Accordion
           multiple
           variant="separated"
