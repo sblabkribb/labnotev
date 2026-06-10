@@ -2,15 +2,16 @@ import { render, screen, act, fireEvent } from '@testing-library/react';
 import App from '../App';
 import type { LabNoteDocument } from '../types';
 
-// This test asserts App does NOT render its body twice per keystroke. The find
-// effect runs on every keystroke (labNote/workflow are in its deps); if it
-// unconditionally calls `setFindMatches([])` (a fresh array), it schedules a
-// second App render pass even while the find bar is closed.
+// This test asserts that typing in a section does NOT re-render App at all
+// while the find bar is closed. Section content now lives in a per-section
+// local draft (useDraftValue): keystrokes update the draft subtree only, and
+// the parent App is committed on a trailing debounce (or blur). So a keystroke
+// triggers 0 App render passes; the commit (after the debounce) triggers 1.
 //
 // We count App render passes with a NON-memoized mock child: a non-memoized
 // child re-renders once per parent (App) render, so its render count equals
 // the number of App render passes. HighlightedTextarea is mocked to a plain
-// controlled textarea so typing flows through the real setLabNote path.
+// controlled textarea so typing flows through the real draft -> setLabNote path.
 const counts = vi.hoisted(() => ({ fm: 0 }));
 
 vi.mock('../components/HighlightedTextarea', async () => {
@@ -60,16 +61,21 @@ const mockLabNote: LabNoteDocument = {
 
 const OBJECTIVE_HEADING = '🎯 Experiment Objective';
 
-describe('App find effect does not double-render per keystroke', () => {
+describe('App is not re-rendered by section keystrokes (local draft)', () => {
   beforeEach(() => {
     counts.fm = 0;
     vi.clearAllMocks();
+    vi.useFakeTimers();
   });
 
-  it('renders App exactly once per keystroke while the find bar is closed', async () => {
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
+  it('renders App 0 times per keystroke while the find bar is closed, 1 on commit', () => {
     render(<App />);
 
-    await act(async () => {
+    act(() => {
       window.dispatchEvent(
         new MessageEvent('message', {
           data: { type: 'init', data: { mode: 'labnote', labNote: mockLabNote } },
@@ -79,19 +85,26 @@ describe('App find effect does not double-render per keystroke', () => {
 
     const textarea = screen.getByLabelText(OBJECTIVE_HEADING) as HTMLTextAreaElement;
 
-    // Warm-up keystroke: flips saveStatus to 'unsaved' so the measured
-    // keystroke below does not incur that one-time extra render.
-    await act(async () => {
+    // Warm-up: type then flush so saveStatus is already 'unsaved' and the
+    // measured commit below does not incur that one-time extra render.
+    act(() => {
       fireEvent.change(textarea, { target: { value: 'Test objective.' } });
     });
-
-    counts.fm = 0;
-    await act(async () => {
-      fireEvent.change(textarea, { target: { value: 'Test objective..' } });
+    act(() => {
+      vi.advanceTimersByTime(300);
     });
 
-    // One keystroke => one App render pass. Before the fix, the find effect
-    // schedules a second pass via setFindMatches([]).
+    // Measured keystroke: updates only the section draft -> App must not render.
+    counts.fm = 0;
+    act(() => {
+      fireEvent.change(textarea, { target: { value: 'Test objective..' } });
+    });
+    expect(counts.fm).toBe(0);
+
+    // After the draft debounce flushes, App commits exactly once.
+    act(() => {
+      vi.advanceTimersByTime(300);
+    });
     expect(counts.fm).toBe(1);
   });
 });

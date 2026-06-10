@@ -12,6 +12,7 @@ import { DateTimeField } from './DateTimeField';
 import { TableInsertModal } from './TableInsertModal';
 import { SampleCreateModal } from './SampleCreateModal';
 import { useTableEditing } from '../hooks/useTableEditing';
+import { useDraftValue } from '../hooks/useDraftValue';
 import { normalizeUnitOpSectionHeading, unitOpSectionAllowsSampleButton, getSectionTypeLock } from '../utils/unitOpSectionHeading';
 
 // Stable sensor options object. `useSensor(sensor, options)` memoizes its
@@ -124,19 +125,25 @@ const UnitOpSectionTextarea = memo(function UnitOpSectionTextarea({
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const [tableModalOpen, setTableModalOpen] = useState(false);
   const [sampleModalOpen, setSampleModalOpen] = useState(false);
-  // Display-only thumbnails/attachment links use a debounced copy of content so
-  // their regex parsing stays out of the typing hot path (see SectionEditor).
-  const [debouncedContent] = useDebouncedValue(content, 300);
+
+  const handleChange = useCallback((c: string) => {
+    onUpdateSection(opIndex, secIndex, c);
+  }, [onUpdateSection, opIndex, secIndex]);
+
+  // Decouple typing from App's workflow state: keystrokes update `draft`
+  // locally and the parent commit (an O(N) unitOperations map + setWorkflow) is
+  // debounced / flushed on blur, which matters most when many UOs are open.
+  const [draft, setDraft, flushDraft] = useDraftValue(content, handleChange);
+
+  // Display-only thumbnails/attachment links use a debounced copy of the draft
+  // so their regex parsing stays out of the typing hot path (see SectionEditor).
+  const [debouncedContent] = useDebouncedValue(draft, 300);
 
   const reportCursor = useCallback(() => {
     if (textareaRef.current && onCursorActivity) {
       onCursorActivity(textareaRef.current.selectionStart);
     }
   }, [onCursorActivity]);
-
-  const handleChange = useCallback((c: string) => {
-    onUpdateSection(opIndex, secIndex, c);
-  }, [onUpdateSection, opIndex, secIndex]);
 
   const handleFocus = useCallback(() => {
     onSectionFocus?.(opIndex, secIndex, op.opId, rawHeading);
@@ -156,10 +163,10 @@ const UnitOpSectionTextarea = memo(function UnitOpSectionTextarea({
     handleKeyDown,
     handlePaste,
     cursorInTable,
-  } = useTableEditing(textareaRef, content, handleChange, reportCursor);
+  } = useTableEditing(textareaRef, draft, setDraft, reportCursor);
 
   return (
-    <div>
+    <div onBlur={flushDraft}>
       <Group gap="xs" mb={4} justify="space-between">
         <Title order={5}>{heading}</Title>
         <Group gap={4}>
@@ -209,8 +216,8 @@ const UnitOpSectionTextarea = memo(function UnitOpSectionTextarea({
       </Group>
       <HighlightedTextarea
         ref={textareaRef}
-        value={content}
-        onChange={handleChange}
+        value={draft}
+        onChange={setDraft}
         onFocus={handleFocus}
         onCursorChange={onCursorActivity}
         onKeyDown={handleKeyDown}

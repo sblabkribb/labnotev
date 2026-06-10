@@ -6,6 +6,7 @@ import { ImageThumbnails } from './ImageThumbnails';
 import { AttachmentLinks } from './AttachmentLinks';
 import { TableInsertModal } from './TableInsertModal';
 import { useTableEditing } from '../hooks/useTableEditing';
+import { useDraftValue } from '../hooks/useDraftValue';
 import type { SampleDefMap } from '../types';
 
 interface SectionEditorProps {
@@ -51,17 +52,24 @@ export const SectionEditor = memo(function SectionEditor({
   const order = headingLevel === 'h2' ? 2 : headingLevel === 'h3' ? 3 : 4;
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const [tableModalOpen, setTableModalOpen] = useState(false);
-  // Thumbnails / attachment links are display-only and need not re-parse the
-  // full content on every keystroke. Feed them a debounced copy so the typing
-  // hot path skips their regex scans; the textarea/overlay still use live
-  // `content` to keep the caret and sample highlight in sync.
-  const [debouncedContent] = useDebouncedValue(content, 300);
 
-  // Index-bound stable handlers (mirrors UnitOpSectionTextarea). These keep a
-  // constant identity while `index` and the parent callbacks are unchanged, so
+  // Index-bound stable handler (mirrors UnitOpSectionTextarea). Keeps a
+  // constant identity while `index` and the parent callback are unchanged, so
   // the memoized HighlightedTextarea / this component stay put between
   // keystrokes in other sections.
   const handleChange = useCallback((c: string) => onChange(index, c), [onChange, index]);
+
+  // Decouple typing from App's document state: keystrokes update `draft`
+  // locally (re-rendering only this subtree) and the parent commit is debounced
+  // / flushed on blur, so App no longer re-runs its O(N) render per keystroke.
+  const [draft, setDraft, flushDraft] = useDraftValue(content, handleChange);
+
+  // Thumbnails / attachment links are display-only and need not re-parse the
+  // full content on every keystroke. Feed them a debounced copy of the live
+  // draft; the textarea/overlay still use `draft` to keep caret and sample
+  // highlight in sync.
+  const [debouncedContent] = useDebouncedValue(draft, 300);
+
   const handleFocus = useCallback(() => onFocus?.(index), [onFocus, index]);
   const handleAttachFile = useCallback(() => onAttachFile?.(index), [onAttachFile, index]);
 
@@ -77,10 +85,10 @@ export const SectionEditor = memo(function SectionEditor({
     handleKeyDown,
     handlePaste,
     cursorInTable,
-  } = useTableEditing(textareaRef, content, handleChange, reportCursor);
+  } = useTableEditing(textareaRef, draft, setDraft, reportCursor);
 
   return (
-    <Paper p="sm" withBorder>
+    <Paper p="sm" withBorder onBlur={flushDraft}>
       <Stack gap="xs">
         <Group justify="space-between" align="center">
           <Title order={order}>{heading}</Title>
@@ -118,8 +126,8 @@ export const SectionEditor = memo(function SectionEditor({
 
         <HighlightedTextarea
           ref={textareaRef}
-          value={content}
-          onChange={handleChange}
+          value={draft}
+          onChange={setDraft}
           onFocus={handleFocus}
           onCursorChange={onCursorActivity}
           onKeyDown={handleKeyDown}
