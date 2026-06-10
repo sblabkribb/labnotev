@@ -11,7 +11,7 @@ function renderWithMantine(ui: ReactNode) {
 const TYPES = ['DNA'];
 const COLORS: Record<string, string> = { DNA: '#FFB6C1' };
 
-describe('SampleHighlighter lazy HoverCard mounting (Phase A)', () => {
+describe('SampleHighlighter lazy Popover mounting (Phase A)', () => {
   beforeEach(() => {
     vi.spyOn(vscodeApi, 'postMessage').mockImplementation(() => {});
   });
@@ -19,7 +19,7 @@ describe('SampleHighlighter lazy HoverCard mounting (Phase A)', () => {
     vi.restoreAllMocks();
   });
 
-  it('does not mount the HoverCard target before the token is hovered', () => {
+  it('does not mount the Popover target before the token is clicked', () => {
     const { container } = renderWithMantine(
       <SampleHighlighter
         text="DNA-001"
@@ -32,12 +32,12 @@ describe('SampleHighlighter lazy HoverCard mounting (Phase A)', () => {
 
     // The token text is still present as a bare span.
     expect(screen.getByText('DNA-001')).toBeInTheDocument();
-    // But the Mantine HoverCard/Popover target machinery (which adds
+    // But the Mantine Popover target machinery (which adds
     // aria-haspopup="dialog" to the target element) must NOT be mounted yet.
     expect(container.querySelector('[aria-haspopup]')).toBeNull();
   });
 
-  it('mounts the HoverCard and shows the dropdown on first hover', async () => {
+  it('mounts the Popover and shows the dropdown on first click', async () => {
     const { container } = renderWithMantine(
       <SampleHighlighter
         text="DNA-001"
@@ -48,7 +48,7 @@ describe('SampleHighlighter lazy HoverCard mounting (Phase A)', () => {
       />
     );
 
-    fireEvent.mouseEnter(screen.getByText('DNA-001'));
+    fireEvent.click(screen.getByText('DNA-001'));
 
     await waitFor(() => {
       expect(screen.getByText('GeneA')).toBeInTheDocument();
@@ -56,7 +56,7 @@ describe('SampleHighlighter lazy HoverCard mounting (Phase A)', () => {
     expect(container.querySelector('[aria-haspopup]')).not.toBeNull();
   });
 
-  it('still forwards mouseDown to onSampleClick on a token that was never hovered', () => {
+  it('still forwards mouseDown to onSampleClick on a token that was never clicked', () => {
     const onSampleClick = vi.fn();
     renderWithMantine(
       <SampleHighlighter

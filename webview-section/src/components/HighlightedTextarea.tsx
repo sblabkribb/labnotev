@@ -105,9 +105,9 @@ function SendToChatIcon() {
  *
  * Layer invariant (must not regress):
  * - Overlay `z-index` is strictly greater than the transparent textarea's
- *   `z-index` so sample spans in the overlay can receive hover events
- *   (HoverCard). The overlay itself stays `pointer-events: none`, so clicks
- *   on non-sample regions still reach the textarea for caret positioning.
+ *   `z-index` so sample spans in the overlay can receive click events
+ *   (definition Popover). The overlay itself stays `pointer-events: none`, so
+ *   clicks on non-sample regions still reach the textarea for caret positioning.
  */
 export const HighlightedTextarea = memo(forwardRef<HTMLTextAreaElement, HighlightedTextareaProps>(
   function HighlightedTextarea(
@@ -330,7 +330,7 @@ export const HighlightedTextarea = memo(forwardRef<HTMLTextAreaElement, Highligh
     /**
      * Phase B-2: Forward clicks on interactive sample spans to the textarea
      * so the caret lands at the clicked position instead of being trapped by
-     * the HoverCard target. The overlay mirrors the textarea (same font,
+     * the Popover target. The overlay mirrors the textarea (same font,
      * padding, line-height), so the character offset inside the overlay's
      * text nodes maps 1:1 to the textarea value.
      */

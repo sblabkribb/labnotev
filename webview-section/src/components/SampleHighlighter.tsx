@@ -1,5 +1,5 @@
 import React, { memo, useMemo, useState } from 'react';
-import { HoverCard, Stack, Text, Button } from '@mantine/core';
+import { Popover, CloseButton, Group, Stack, Text, Button } from '@mantine/core';
 import type { SampleDefMap } from '../types';
 import { postMessage } from '../vscodeApi';
 
@@ -10,10 +10,6 @@ import { postMessage } from '../vscodeApi';
 // document decoration and webview overlay cannot drift out of sync.
 
 const DEFAULT_CUSTOM_COLOR = '#607D8B';
-
-/** Open the HoverCard immediately in Vitest (compatible with fake timers). */
-const HOVER_OPEN_DELAY = import.meta.env.MODE === 'test' ? 0 : 250;
-const HOVER_CLOSE_DELAY = import.meta.env.MODE === 'test' ? 0 : 150;
 
 function escapeRegExpForType(t: string): string {
   return t.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
@@ -35,17 +31,18 @@ function buildSamplePattern(availableTypes?: string[]): RegExp | null {
 
 interface SampleHighlighterProps {
   text: string;
-  /** When true, hover shows definition HoverCard (overlay mode). */
+  /** When true, clicking a token opens its definition Popover (overlay mode). */
   interactive?: boolean;
   availableTypes?: string[];
   /** Injected via init message; keys match SAMPLE_TYPES + customSampleTypes. */
   sampleTypeColors?: Record<string, string>;
   sampleDefs?: SampleDefMap;
   /**
-   * Phase B-2: Clicks on sample tokens should still move the caret in the
-   * underlying textarea instead of being swallowed by the HoverCard target.
-   * The parent (HighlightedTextarea) supplies this callback and translates
-   * mouse coordinates into a character offset inside the textarea value.
+   * Phase B-2: mousedown on a sample token should still move the caret in the
+   * underlying textarea (so the token stays editable) in addition to opening
+   * the Popover on click. The parent (HighlightedTextarea) supplies this
+   * callback and translates mouse coordinates into a character offset inside
+   * the textarea value.
    */
   onSampleClick?: (event: React.MouseEvent<HTMLSpanElement>) => void;
 }
@@ -54,14 +51,16 @@ export function navigateSampleToDefinition(sampleId: string, sampleType: string)
   postMessage({ type: 'navigateToSample', data: { sampleId, sampleType } });
 }
 
-function SampleHoverDropdown({
+function SampleInfoDropdown({
   sampleType,
   sampleId,
   sampleDefs,
+  onClose,
 }: {
   sampleType: string;
   sampleId: string;
   sampleDefs?: SampleDefMap;
+  onClose: () => void;
 }) {
   const def = sampleDefs?.[sampleId];
   const hasMeta = Boolean(def?.alias || def?.description);
@@ -77,9 +76,12 @@ function SampleHoverDropdown({
 
   return (
     <Stack gap="xs">
-      <Text size="sm" fw={600}>
-        {sampleType} {sampleId}
-      </Text>
+      <Group justify="space-between" wrap="nowrap" align="flex-start" gap="xs">
+        <Text size="sm" fw={600}>
+          {sampleType} {sampleId}
+        </Text>
+        <CloseButton size="sm" aria-label="Close" onClick={onClose} />
+      </Group>
       {def === undefined ? (
         <Text size="sm" c="dimmed">
           No definition info
@@ -115,14 +117,19 @@ function SampleHoverDropdown({
  * A single highlighted sample token.
  *
  * Performance: in `interactive` mode we used to wrap every token in a Mantine
- * `HoverCard` up-front, so each keystroke re-created the Popover target
- * machinery for *all* tokens in the active section. Instead we render a bare
- * `<span>` and only mount the `HoverCard` once the token is first hovered
- * (`armed`). Tokens the user never hovers stay as cheap spans.
+ * popover up-front, so each keystroke re-created the popover target machinery
+ * for *all* tokens in the active section. Instead we render a bare `<span>`
+ * and only mount the `Popover` once the token is first clicked (`mounted`).
+ * Tokens the user never clicks stay as cheap spans.
  *
- * `armed` is intentionally sticky (never reset to false): once a token has a
- * HoverCard, keeping it avoids unmount/remount flicker while the pointer is
- * still over it. Only hovered tokens ever pay the HoverCard cost.
+ * `mounted` is intentionally sticky (never reset to false): once a token has a
+ * Popover, keeping it avoids unmount/remount churn on reopen. Only clicked
+ * tokens ever pay the Popover cost.
+ *
+ * Interaction: `onMouseDown` forwards to `onSampleClick` so the caret still
+ * lands in the textarea (Phase B-2); `onClick` opens the Popover. mousedown's
+ * `preventDefault` (in the parent handler) does not suppress the click event,
+ * so a single click both moves the caret and opens the definition popup.
  *
  * Props are kept primitive so the surrounding `React.memo` stays effective:
  * tokens before an edit point keep stable props and skip re-render.
@@ -144,7 +151,8 @@ const SampleToken = memo(function SampleToken({
   sampleDefs?: SampleDefMap;
   onSampleClick?: (event: React.MouseEvent<HTMLSpanElement>) => void;
 }) {
-  const [armed, setArmed] = useState(false);
+  const [mounted, setMounted] = useState(false);
+  const [opened, setOpened] = useState(false);
 
   // Keep this style byte-for-byte identical to the previous inline style: no
   // horizontal padding (the overlay must match the textarea's character grid),
@@ -164,35 +172,45 @@ const SampleToken = memo(function SampleToken({
     <span
       style={spanStyle}
       onMouseDown={onSampleClick}
-      onMouseEnter={interactive ? () => setArmed(true) : undefined}
+      onClick={
+        interactive
+          ? () => {
+              setMounted(true);
+              setOpened(true);
+            }
+          : undefined
+      }
     >
       {fullMatch}
     </span>
   );
 
-  if (!interactive || !armed) {
+  if (!interactive || !mounted) {
     return span;
   }
 
   return (
-    <HoverCard
+    <Popover
       width={300}
       shadow="md"
       withArrow
-      openDelay={HOVER_OPEN_DELAY}
-      closeDelay={HOVER_CLOSE_DELAY}
       withinPortal
-      // The mouseEnter that armed this token fired on the bare span *before*
-      // the HoverCard mounted, so there is no second mouseEnter to open it.
-      // `initiallyOpened` shows the dropdown for the pointer that is already
-      // hovering; subsequent open/close is driven by Mantine's hover handlers.
-      initiallyOpened
+      opened={opened}
+      // Reflect Mantine-driven closes (click-outside, Escape) back into state.
+      onChange={setOpened}
+      // Keep focus in the textarea so editing continues uninterrupted.
+      trapFocus={false}
     >
-      <HoverCard.Target>{span}</HoverCard.Target>
-      <HoverCard.Dropdown>
-        <SampleHoverDropdown sampleType={sampleType} sampleId={sampleId} sampleDefs={sampleDefs} />
-      </HoverCard.Dropdown>
-    </HoverCard>
+      <Popover.Target>{span}</Popover.Target>
+      <Popover.Dropdown>
+        <SampleInfoDropdown
+          sampleType={sampleType}
+          sampleId={sampleId}
+          sampleDefs={sampleDefs}
+          onClose={() => setOpened(false)}
+        />
+      </Popover.Dropdown>
+    </Popover>
   );
 });
 

@@ -1,6 +1,6 @@
 # Labnote Assistant (LabnoteV)
 
-**v0.61.0** · [English → README.md](README.md)
+**v0.62.0** · [English → README.md](README.md)
 
 VS Code에서 실험 노트를 마크다운으로 작성할 수 있도록 돕는 확장입니다. `.labnote.md` 파일을 Section Editor(웹뷰 기반 구조화 편집기)로 열어 Front Matter 폼, 워크플로 체크리스트, 유닛 오퍼레이션 아코디언, 샘플 정의 버튼, 이미지 붙여넣기/썸네일 등 실험 기록에 최적화된 UI를 제공합니다.
 
@@ -102,7 +102,7 @@ VS Code에서 실험 노트를 마크다운으로 작성할 수 있도록 돕는
   - 이미지 확장자 첨부는 붙여넣기와 같이 **썸네일**로만 표시되고, PDF·스프레드시트 등 비이미지는 종이클립 링크 줄에만 표시됨
 - **textarea 자동 높이 조절**: 모든 SectionEditor의 textarea가 내용에 따라 자동 확장 (스크롤바 없음)
 - **샘플 ID 하이라이팅**: textarea 내 샘플 ID를 타입별 색상으로 강조 표시 (커스텀 타입 포함)
-  - 하이라이팅된 샘플 ID 클릭 시 해당 정의 위치로 이동
+  - 하이라이팅된 샘플 ID 클릭 시 정의 팝업이 열림(별칭·설명과 "Go to definition" 버튼 제공). 팝업은 오른쪽 위 x 버튼, 바깥 클릭, Esc로 닫음
 - **마크다운 테이블 편집 지원**: 모든 textarea(SectionEditor, UnitOp 섹션 포함)에서 마크다운 테이블을 쉽게 작성할 수 있는 보조 기능
   - 섹션 제목 옆 테이블 아이콘 클릭 → 행/열 수 지정 → 테이블 템플릿 삽입
   - 테이블 내에서 Tab으로 다음 셀, Shift+Tab으로 이전 셀 이동 (마지막 셀에서 Tab → 새 행 추가)

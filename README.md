@@ -1,6 +1,6 @@
 # Labnote Assistant (LabnoteV)
 
-**v0.61.0** · [한국어 → README.ko.md](README.ko.md)
+**v0.62.0** · [한국어 → README.ko.md](README.ko.md)
 
 A VS Code extension that helps you write experiment notes in Markdown. It opens `.labnote.md` files in a webview-based Section Editor, providing a UI optimized for lab note keeping — Front Matter forms, workflow checklists, unit operation accordions, sample definition buttons, clipboard image paste/thumbnails, and more.
 
@@ -102,7 +102,7 @@ When you open a `.labnote.md` file, the Section Editor is shown automatically. I
   - Image-extension attachments are previewed as **thumbnails** like pasted images, while PDFs/spreadsheets/etc. show only a paperclip link row.
 - **Auto-grow textarea**: all SectionEditor textareas grow to fit their content (no inner scrollbar).
 - **Sample ID highlighting**: sample IDs inside textareas are highlighted per type color (including custom types).
-  - Clicking a highlighted ID jumps to its definition.
+  - Clicking a highlighted ID opens a definition popover (alias/description plus a "Go to definition" button); close it with the top-right x button, an outside click, or Esc.
 - **Markdown table support**: every textarea (SectionEditor and UnitOp sections) helps you author Markdown tables.
   - Click the table icon next to a heading → specify rows/columns → insert a table template.
   - Tab/Shift+Tab navigates cells; Tab in the last cell adds a new row.

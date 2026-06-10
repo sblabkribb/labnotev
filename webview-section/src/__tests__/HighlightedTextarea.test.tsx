@@ -113,8 +113,8 @@ describe('HighlightedTextarea', () => {
 
       const textarea = getTextarea(container);
       // Grab the sample span rendered inside the overlay. In interactive mode
-      // the span is wrapped in a Mantine HoverCard.Target, so query by style
-      // color instead of a specific DOM nesting.
+      // the span may be wrapped in a Mantine Popover.Target once clicked, so
+      // query by style color instead of a specific DOM nesting.
       const spans = container.querySelectorAll('span');
       const sampleSpan = Array.from(spans).find(
         (s) => s.textContent === 'DNA-001'

@@ -121,7 +121,7 @@ describe('SampleHighlighter', () => {
     expect(spans.length).toBe(2);
   });
 
-  it('shows alias and description in hover card and navigates on button click', async () => {
+  it('shows alias and description in popover and navigates on button click', async () => {
     renderWithMantine(
       <SampleHighlighter
         text="DNA-001"
@@ -131,7 +131,7 @@ describe('SampleHighlighter', () => {
         sampleDefs={{ 'DNA-001': { alias: 'GeneA', description: 'Plasmid prep' } }}
       />
     );
-    fireEvent.mouseEnter(screen.getByText('DNA-001'));
+    fireEvent.click(screen.getByText('DNA-001'));
     await waitFor(() => {
       expect(screen.getByText('GeneA')).toBeInTheDocument();
     });
@@ -153,7 +153,7 @@ describe('SampleHighlighter', () => {
         sampleDefs={{}}
       />
     );
-    fireEvent.mouseEnter(screen.getByText('DNA-001'));
+    fireEvent.click(screen.getByText('DNA-001'));
     await waitFor(() => {
       expect(screen.getByText('No definition info')).toBeInTheDocument();
     });
@@ -169,9 +169,52 @@ describe('SampleHighlighter', () => {
         sampleDefs={{ 'DNA-001': { alias: null, description: null } }}
       />
     );
-    fireEvent.mouseEnter(screen.getByText('DNA-001'));
+    fireEvent.click(screen.getByText('DNA-001'));
     await waitFor(() => {
       expect(screen.getByText('No alias or description registered')).toBeInTheDocument();
+    });
+  });
+
+  it('closes the popover when the close (x) button is clicked', async () => {
+    renderWithMantine(
+      <SampleHighlighter
+        text="DNA-001"
+        interactive
+        availableTypes={DEFAULT_AVAILABLE_TYPES}
+        sampleTypeColors={DEFAULT_SAMPLE_COLORS}
+        sampleDefs={{ 'DNA-001': { alias: 'GeneA', description: 'Plasmid prep' } }}
+      />
+    );
+    fireEvent.click(screen.getByText('DNA-001'));
+    await waitFor(() => {
+      expect(screen.getByText('GeneA')).toBeInTheDocument();
+    });
+    fireEvent.click(screen.getByRole('button', { name: /close/i, hidden: true }));
+    await waitFor(() => {
+      expect(screen.queryByText('GeneA')).not.toBeInTheDocument();
+    });
+  });
+
+  it('moves the caret (onSampleClick) and opens the popover on a single click', async () => {
+    const onSampleClick = vi.fn();
+    renderWithMantine(
+      <SampleHighlighter
+        text="DNA-001"
+        interactive
+        availableTypes={DEFAULT_AVAILABLE_TYPES}
+        sampleTypeColors={DEFAULT_SAMPLE_COLORS}
+        sampleDefs={{ 'DNA-001': { alias: 'GeneA', description: 'Plasmid prep' } }}
+        onSampleClick={onSampleClick}
+      />
+    );
+    // jsdom does not derive a `click` from mousedown/mouseup, so dispatch both
+    // explicitly to model a real single click on the token.
+    const token = screen.getByText('DNA-001');
+    fireEvent.mouseDown(token);
+    fireEvent.click(token);
+    expect(onSampleClick).toHaveBeenCalledTimes(1);
+    await waitFor(() => {
+      expect(screen.getByText('GeneA')).toBeInTheDocument();
     });
   });
 });
