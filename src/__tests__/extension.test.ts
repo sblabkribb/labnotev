@@ -54,5 +54,16 @@ describe('Extension', () => {
       expect(deactivate).toBeDefined();
       expect(() => deactivate()).not.toThrow();
     });
+
+    it('disposes the sample highlight decorations', async () => {
+      const { sampleDecorations } = await import('../lib/sampleDecorations');
+      const anyType = Object.keys(sampleDecorations)[0] as keyof typeof sampleDecorations;
+      const disposeSpy = sampleDecorations[anyType].dispose as ReturnType<typeof vi.fn>;
+      disposeSpy.mockClear();
+
+      deactivate();
+
+      expect(disposeSpy).toHaveBeenCalled();
+    });
   });
 });

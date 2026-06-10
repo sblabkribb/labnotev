@@ -408,10 +408,49 @@ export class SampleInfoPanel {
   }
 
   private _wrapHtml(content: string): string {
-    return `<!DOCTYPE html>
+    return wrapSampleInfoHtml(content, this._panel.webview.cspSource);
+  }
+
+  public dispose(): void {
+    SampleInfoPanel.currentPanel = undefined;
+
+    this._panel.dispose();
+
+    while (this._disposables.length) {
+      const disposable = this._disposables.pop();
+      if (disposable) {
+        disposable.dispose();
+      }
+    }
+  }
+}
+
+function getNonce(): string {
+  const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
+  let nonce = '';
+  for (let i = 0; i < 32; i++) {
+    nonce += chars.charAt(Math.floor(Math.random() * chars.length));
+  }
+  return nonce;
+}
+
+/**
+ * Wrap the sample-list body in the panel document, applying a restrictive CSP
+ * (no remote content, inline styles allowed, scripts only via a per-render
+ * nonce). Exported so the CSP/nonce contract can be unit tested.
+ */
+export function wrapSampleInfoHtml(content: string, cspSource = ''): string {
+  const nonce = getNonce();
+  const csp = [
+    `default-src 'none'`,
+    `style-src ${cspSource} 'unsafe-inline'`,
+    `script-src 'nonce-${nonce}'`,
+  ].join('; ');
+  return `<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8">
+  <meta http-equiv="Content-Security-Policy" content="${csp}">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Sample Info</title>
   <style>
@@ -502,7 +541,7 @@ export class SampleInfoPanel {
 </head>
 <body>
   ${content}
-  <script>
+  <script nonce="${nonce}">
     const vscode = acquireVsCodeApi();
     
     document.querySelectorAll('.action-btn').forEach(btn => {
@@ -516,18 +555,4 @@ export class SampleInfoPanel {
   </script>
 </body>
 </html>`;
-  }
-
-  public dispose(): void {
-    SampleInfoPanel.currentPanel = undefined;
-
-    this._panel.dispose();
-
-    while (this._disposables.length) {
-      const disposable = this._disposables.pop();
-      if (disposable) {
-        disposable.dispose();
-      }
-    }
-  }
 }

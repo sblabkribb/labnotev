@@ -72,7 +72,9 @@ export function normalizeWorkflowUnitSectionHeading(heading: string): string {
 }
 
 export function parseWorkflowMd(md: string): WorkflowDocument {
-  const { frontMatter: rawFm, body } = parseFrontMatter(md);
+  // Normalize CRLF up front so front matter and body line splitting behave
+  // identically for Windows-saved files (serialization always emits LF).
+  const { frontMatter: rawFm, body } = parseFrontMatter(md.replace(/\r\n/g, '\n'));
 
   const fm: WorkflowFrontMatter = {
     title: String(rawFm.title ?? ''),

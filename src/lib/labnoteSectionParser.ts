@@ -54,7 +54,9 @@ const RESULTS_PATTERN = /^##\s.*Results/i;
 const H2_PATTERN = /^##\s+/;
 
 export function parseLabNoteMd(md: string): LabNoteDocument {
-  const { frontMatter: rawFm, body } = parseFrontMatter(md);
+  // Normalize CRLF up front so front matter and body line splitting behave
+  // identically for Windows-saved files (serialization always emits LF).
+  const { frontMatter: rawFm, body } = parseFrontMatter(md.replace(/\r\n/g, '\n'));
 
   const fm: LabNoteFrontMatter = {
     title: String(rawFm.title ?? ''),

@@ -10,6 +10,7 @@ import {
   registerCreationCommands,
 } from './commands';
 import { SectionEditorProvider } from './sectionEditorProvider';
+import { disposeDecorations } from './lib/sampleDecorations';
 
 // Captures the time when this module finishes being required by the extension
 // host. Comparing this against `activateStart` reveals how long VS Code waits
@@ -221,5 +222,7 @@ export async function activate(context: vscode.ExtensionContext) {
 }
 
 export function deactivate() {
-  // No resources require explicit teardown beyond context.subscriptions.
+  // Decoration types are created lazily at module load (not via
+  // context.subscriptions), so dispose them explicitly here.
+  disposeDecorations();
 }

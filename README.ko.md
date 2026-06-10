@@ -1,6 +1,6 @@
 # Labnote Assistant (LabnoteV)
 
-**v0.60.7** · [English → README.md](README.md)
+**v0.61.0** · [English → README.md](README.md)
 
 VS Code에서 실험 노트를 마크다운으로 작성할 수 있도록 돕는 확장입니다. `.labnote.md` 파일을 Section Editor(웹뷰 기반 구조화 편집기)로 열어 Front Matter 폼, 워크플로 체크리스트, 유닛 오퍼레이션 아코디언, 샘플 정의 버튼, 이미지 붙여넣기/썸네일 등 실험 기록에 최적화된 UI를 제공합니다.
 

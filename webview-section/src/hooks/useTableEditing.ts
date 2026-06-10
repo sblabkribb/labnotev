@@ -104,7 +104,7 @@ export function useTableEditing(
         reportCursor();
       });
     }
-  }, [content, onChange, handleAlignTable, reportCursor]);
+  }, [content, onChange, reportCursor]);
 
   const handlePaste = useCallback((e: React.ClipboardEvent<HTMLTextAreaElement>) => {
     const text = e.clipboardData.getData('text/plain');
@@ -125,7 +125,7 @@ export function useTableEditing(
       ta.selectionStart = ta.selectionEnd = newPos;
       reportCursor();
     });
-  }, [content, onChange]);
+  }, [content, onChange, reportCursor]);
 
   const cursorInTable = (() => {
     const ta = textareaRef.current;

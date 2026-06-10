@@ -23,6 +23,7 @@ import type {
 import { postMessage } from './vscodeApi';
 import { resolveInsertPosition, type FocusTarget } from './lib/resolveInsertPosition';
 import { insertAttachmentLinkAt } from './lib/insertAttachmentLink';
+import { insertSampleText } from './lib/insertSampleText';
 import { isFocusedOn, type AttachPayload } from './lib/isFocusedOn';
 import { FindBar } from './components/FindBar';
 import { SearchHighlightLayer } from './components/SearchHighlightLayer';
@@ -145,6 +146,7 @@ export default function App() {
   const modeRef = useRef<string | null>(null);
   const labNoteRef = useRef<LabNoteDocument | null>(null);
   const workflowRef = useRef<WorkflowDocument | null>(null);
+  const linkedWorkflowsRef = useRef<WorkflowDocument[]>([]);
 
   const performSave = useCallback(() => {
     const m = modeRef.current;
@@ -169,6 +171,7 @@ export default function App() {
   useEffect(() => { modeRef.current = mode; }, [mode]);
   useEffect(() => { labNoteRef.current = labNote; }, [labNote]);
   useEffect(() => { workflowRef.current = workflow; }, [workflow]);
+  useEffect(() => { linkedWorkflowsRef.current = linkedWorkflows; }, [linkedWorkflows]);
 
   // --- Editor-mode find (#30) ---------------------------------------------
 
@@ -325,59 +328,28 @@ export default function App() {
             showInsertWarning('Click the textarea of the section you want to insert into first.');
             break;
           }
-          // Phase A-4: unify the fallback so pendingCursor matches where the
-          // text was actually spliced. Previously `actualPos` defaulted to 0
-          // while `insertAt` defaulted to original.length, so the caret focus
-          // jumped to column 0 after inserting into an empty section.
-          // Phase C-2: if the user typed a `@type;`/`@type:` prefix, then
-          // picked a sample from the TreeView (which sends a full definition
-          // starting with `@type;`), splice out the existing prefix at the
-          // caret instead of inserting after it. Otherwise we end up with
-          // `@dna;@dna;DNA-123` in the textarea.
-          const prefixMatch = /^@([a-z]+)[;:]/.exec(text);
-          // Resolve the pre-insert original content synchronously so we can
-          // compute the final caret position before React runs the updater.
-          // Reading from the updater's `prev` works for the splice itself but
-          // leaves `actualPos` at its initial value when pendingCursor is set
-          // in the same tick, which caused the caret to jump to column 0.
+          // Read the pre-insert content from refs (not the message-handler's
+          // captured render scope, which is fixed at mount) so the splice and
+          // the resulting caret are both computed from the CURRENT document.
+          // Phase C-2: when `text` starts with a `@type;`/`@type:` prefix and
+          // the user already typed the same prefix at the caret, the helper
+          // collapses it so we don't produce `@dna;@dna;DNA-123`.
           let original = '';
           if (target.area === 'labnoteSection') {
-            const sec = labNote?.sections?.[target.sectionIndex];
+            const sec = labNoteRef.current?.sections?.[target.sectionIndex];
             if (sec && 'content' in sec && typeof (sec as { content?: unknown }).content === 'string') {
               original = (sec as { content: string }).content;
             }
           } else if (target.area === 'unitOp') {
             const srcList = target.linkedWfIndex !== undefined
-              ? linkedWorkflows[target.linkedWfIndex]?.unitOperations
-              : workflow?.unitOperations;
+              ? linkedWorkflowsRef.current[target.linkedWfIndex]?.unitOperations
+              : workflowRef.current?.unitOperations;
             original = srcList?.[target.opIndex]?.sections?.[target.secIndex]?.content ?? '';
           } else if (target.area === 'tailContent') {
-            original = workflow?.tailContent ?? '';
+            original = workflowRef.current?.tailContent ?? '';
           }
-          const pos = target.cursorPos ?? original.length;
-          let cutStart = pos;
-          if (prefixMatch) {
-            const typeLower = prefixMatch[1];
-            const before = original.slice(0, pos);
-            const existingRe = new RegExp(`@${typeLower}[;:]$`, 'i');
-            const m = existingRe.exec(before);
-            if (m) {
-              cutStart = before.length - m[0].length;
-            }
-          }
-          const actualPos = cutStart;
-          const insertAt = (orig: string) => {
-            const oPos = target.cursorPos ?? orig.length;
-            let oCut = oPos;
-            if (prefixMatch) {
-              const typeLower = prefixMatch[1];
-              const oBefore = orig.slice(0, oPos);
-              const existingRe = new RegExp(`@${typeLower}[;:]$`, 'i');
-              const m = existingRe.exec(oBefore);
-              if (m) oCut = oBefore.length - m[0].length;
-            }
-            return orig.slice(0, oCut) + text + orig.slice(oPos);
-          };
+
+          const { content: nextContent, caret } = insertSampleText(original, target.cursorPos, text);
 
           if (target.area === 'labnoteSection') {
             setLabNote(prev => {
@@ -385,7 +357,7 @@ export default function App() {
               const sections = [...prev.sections];
               const sec = sections[target.sectionIndex];
               if (sec && 'content' in sec) {
-                sections[target.sectionIndex] = { ...sec, content: insertAt(sec.content) };
+                sections[target.sectionIndex] = { ...sec, content: nextContent };
               }
               return { ...prev, sections };
             });
@@ -399,7 +371,7 @@ export default function App() {
                 const op = ops[target.opIndex];
                 if (!op) return prev;
                 const secs = [...op.sections];
-                secs[target.secIndex] = { ...secs[target.secIndex], content: insertAt(secs[target.secIndex].content) };
+                secs[target.secIndex] = { ...secs[target.secIndex], content: nextContent };
                 ops[target.opIndex] = { ...op, sections: secs };
                 updated[target.linkedWfIndex!] = { ...wf, unitOperations: ops };
                 return updated;
@@ -411,7 +383,7 @@ export default function App() {
                 const op = ops[target.opIndex];
                 if (!op) return prev;
                 const secs = [...op.sections];
-                secs[target.secIndex] = { ...secs[target.secIndex], content: insertAt(secs[target.secIndex].content) };
+                secs[target.secIndex] = { ...secs[target.secIndex], content: nextContent };
                 ops[target.opIndex] = { ...op, sections: secs };
                 return { ...prev, unitOperations: ops };
               });
@@ -419,11 +391,10 @@ export default function App() {
           } else if (target.area === 'tailContent') {
             setWorkflow(prev => {
               if (!prev) return prev;
-              return { ...prev, tailContent: insertAt(prev.tailContent ?? '') };
+              return { ...prev, tailContent: nextContent };
             });
           }
-          const pendingPos = actualPos + text.length;
-          setPendingCursor({ pos: pendingPos, tick: Date.now(), scroll: 'nearest' });
+          setPendingCursor({ pos: caret, tick: Date.now(), scroll: 'nearest' });
           // Clear pendingCursor after the next render cycle consumes it.
           // Without this, a stale pendingCursor is re-applied whenever the
           // textarea component remounts (e.g. when the accordion is folded
@@ -666,6 +637,13 @@ export default function App() {
 
         case 'saveCompleted':
           setSaveStatus('saved');
+          break;
+
+        case 'saveFailed':
+          // The extension showed the error; leave the editor marked unsaved so
+          // the user knows their changes are not persisted (and a later edit
+          // will retrigger the debounced save).
+          setSaveStatus('unsaved');
           break;
 
         case 'documentChanged':

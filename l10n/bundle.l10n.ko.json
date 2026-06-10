@@ -1,4 +1,6 @@
 {
+  "Failed to save the lab note: {0}": "랩노트를 저장하지 못했습니다: {0}",
+  "Section Editor action failed: {0}": "Section Editor 작업이 실패했습니다: {0}",
   "Failed to open Chat. Ensure VS Code Chat is enabled.": "Chat을 열 수 없습니다. VS Code Chat이 활성화되어 있는지 확인하세요.",
   "Enter an alias for the new {0} sample": "새 {0} 샘플의 별칭을 입력하세요",
   "e.g. Sample-A": "예: Sample-A",

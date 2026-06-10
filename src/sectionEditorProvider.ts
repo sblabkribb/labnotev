@@ -140,7 +140,8 @@ export async function openAttachmentFile(uri: vscode.Uri): Promise<void> {
 }
 
 export function detectMdFileType(content: string): MdFileType {
-  const fmMatch = content.match(/^---\n([\s\S]*?)\n---/);
+  // Normalize CRLF so Windows-saved files match the same front-matter shape.
+  const fmMatch = content.replace(/\r\n/g, '\n').match(/^---\n([\s\S]*?)\n---/);
   if (!fmMatch) return 'unknown';
   const yaml = fmMatch[1];
   if (/experiment_type:\s*labnote/i.test(yaml)) return 'labnote';
@@ -201,7 +202,10 @@ export class SectionEditorProvider implements vscode.CustomTextEditorProvider {
   // Editors at once (not just the active one). Entries are removed in
   // `webviewPanel.onDidDispose`.
   private _allEditors: Set<ActiveEditor> = new Set();
-  private _suppressDocChange = false;
+  // Documents whose change events should be ignored because the extension is
+  // mid-write on them. Tracked per-URI so one document's save does not silence
+  // another open document's sync (a shared boolean used to leak across panels).
+  private _suppressedDocs = new Set<string>();
   private _sampleTreeProvider: SampleTreeViewProvider | undefined;
 
   constructor(private readonly context: vscode.ExtensionContext) {}
@@ -327,11 +331,12 @@ export class SectionEditorProvider implements vscode.CustomTextEditorProvider {
       document.positionAt(content.length)
     );
     edit.replace(document.uri, fullRange, newContent);
-    this._suppressDocChange = true;
+    const docKey = document.uri.toString();
+    this._suppressedDocs.add(docKey);
     try {
       await vscode.workspace.applyEdit(edit);
     } finally {
-      this._suppressDocChange = false;
+      this._suppressedDocs.delete(docKey);
     }
 
     if (this.activeEditor?.document === document) {
@@ -411,14 +416,23 @@ export class SectionEditorProvider implements vscode.CustomTextEditorProvider {
       if (!isValidSectionEditorMessage(message)) {
         return;
       }
+      try {
       switch (message.type) {
         case 'ready':
           await this.sendInitMessage(document, webviewPanel, mode);
           break;
 
         case 'save':
-          await this.handleSave(document, message.data, mode);
-          webviewPanel.webview.postMessage({ type: 'saveCompleted' });
+          try {
+            await this.handleSave(document, message.data, mode);
+            webviewPanel.webview.postMessage({ type: 'saveCompleted' });
+          } catch (err) {
+            // Without this the webview never leaves the "saving" state.
+            webviewPanel.webview.postMessage({ type: 'saveFailed' });
+            vscode.window.showErrorMessage(
+              vscode.l10n.t('Failed to save the lab note: {0}', String(err))
+            );
+          }
           break;
 
         case 'openAsText':
@@ -430,10 +444,10 @@ export class SectionEditorProvider implements vscode.CustomTextEditorProvider {
             const dir = path.dirname(document.uri.fsPath);
             const imagePath = resolveContainedPath(dir, message.data.imagePath);
             if (imagePath) {
-              await vscode.commands.executeCommand(
-                'labnotev.openImagePreview',
-                vscode.Uri.file(imagePath)
-              );
+              await vscode.commands.executeCommand('labnotev.openImagePreview', {
+                imagePath: vscode.Uri.file(imagePath).toString(),
+                altText: '',
+              });
             }
           }
           break;
@@ -684,6 +698,13 @@ export class SectionEditorProvider implements vscode.CustomTextEditorProvider {
           break;
         }
       }
+      } catch (err) {
+        // Surface unexpected failures instead of leaving an unhandled
+        // promise rejection (file writes, clipboard, command dispatch, ...).
+        vscode.window.showErrorMessage(
+          vscode.l10n.t('Section Editor action failed: {0}', String(err))
+        );
+      }
     });
 
     webviewPanel.onDidChangeViewState(() => {
@@ -729,7 +750,7 @@ export class SectionEditorProvider implements vscode.CustomTextEditorProvider {
     });
 
     const changeSubscription = vscode.workspace.onDidChangeTextDocument((e) => {
-      if (this._suppressDocChange) return;
+      if (this._suppressedDocs.has(e.document.uri.toString())) return;
       if (e.document.uri.toString() === document.uri.toString() && e.contentChanges.length > 0) {
         const newContent = e.document.getText();
         if (mode === 'labnote') {
@@ -770,8 +791,11 @@ export class SectionEditorProvider implements vscode.CustomTextEditorProvider {
       const wfSection = labNote.sections.find(s => s.type === 'workflows');
       if (wfSection?.type === 'workflows') {
         for (const item of wfSection.items) {
-          const wfPath = path.resolve(docDir, item.link);
-          if (fs.existsSync(wfPath)) {
+          // Constrain the webview-supplied link to the document folder so a
+          // crafted `.labnote.md` cannot read arbitrary files (mirrors the
+          // openWorkflow / openImagePreview / writeChangedWorkflows guards).
+          const wfPath = resolveContainedPath(docDir, item.link);
+          if (wfPath && fs.existsSync(wfPath)) {
             const wfContent = fs.readFileSync(wfPath, 'utf8');
             linkedWorkflows.push(parseWorkflowMd(wfContent));
           }
@@ -817,7 +841,8 @@ export class SectionEditorProvider implements vscode.CustomTextEditorProvider {
     data: any,
     mode: MdFileType
   ): Promise<void> {
-    this._suppressDocChange = true;
+    const docKey = document.uri.toString();
+    this._suppressedDocs.add(docKey);
     try {
       if (mode === 'labnote' && data.labNote) {
         data.labNote.frontMatter.last_updated_date = new Date().toISOString().split('T')[0];
@@ -849,7 +874,7 @@ export class SectionEditorProvider implements vscode.CustomTextEditorProvider {
         this.syncWorkflowTitleToReadme(document, data.workflow.workflowHeader);
       }
     } finally {
-      this._suppressDocChange = false;
+      this._suppressedDocs.delete(docKey);
     }
   }
 

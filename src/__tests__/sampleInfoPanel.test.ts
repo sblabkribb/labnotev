@@ -162,6 +162,22 @@ describe('Sample Info Panel', () => {
     });
   });
 
+  describe('wrapSampleInfoHtml CSP', () => {
+    it('includes a restrictive CSP and a nonce that matches the inline script', async () => {
+      const { wrapSampleInfoHtml } = await import('../views/SampleInfoPanel');
+
+      const html = wrapSampleInfoHtml('<div>body</div>', 'vscode-webview://host');
+
+      expect(html).toContain('Content-Security-Policy');
+      expect(html).toContain("default-src 'none'");
+
+      const cspNonce = html.match(/script-src 'nonce-([A-Za-z0-9]+)'/)?.[1];
+      const scriptNonce = html.match(/<script nonce="([A-Za-z0-9]+)"/)?.[1];
+      expect(cspNonce).toBeTruthy();
+      expect(scriptNonce).toBe(cspNonce);
+    });
+  });
+
   describe('findSampleLocation', () => {
     it('should find sample location in text', async () => {
       const { findSampleLocation } = await import('../views/SampleInfoPanel');

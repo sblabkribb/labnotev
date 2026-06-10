@@ -89,6 +89,7 @@ export type ExtensionToWebviewMessage =
   | { type: 'sampleDefinitionCreated'; data: { definitionText: string; opIndex: number; secIndex: number; opId?: string; secHeading?: string } }
   | { type: 'documentChanged'; data: { labNote?: LabNoteDocument; workflow?: WorkflowDocument } }
   | { type: 'saveCompleted' }
+  | { type: 'saveFailed' }
   | { type: 'imagePasted'; data: { markdownText: string } }
   | { type: 'productSearchResult'; data: { alias: string; description: string } }
   | { type: 'customTypesUpdated'; data: { availableTypes: string[]; sampleTypeColors?: Record<string, string> } }

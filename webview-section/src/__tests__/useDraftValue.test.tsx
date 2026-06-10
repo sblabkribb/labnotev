@@ -102,6 +102,35 @@ describe('useDraftValue', () => {
     expect(result.current[0]).toBe('typed-more');
   });
 
+  // Issue 2-6 regression: while the user is mid-edit (draft diverged, debounce
+  // pending), an external `documentChanged` updates the prop. The external value
+  // must be adopted, and a later blur (flush) must NOT re-commit the abandoned
+  // draft over the external change.
+  it('adopts an external change mid-edit and flush() does not clobber it', () => {
+    const onCommit = vi.fn();
+    const { result, rerender } = renderHook(
+      ({ v }) => useDraftValue(v, onCommit, 250),
+      { initialProps: { v: 'a' } }
+    );
+
+    act(() => {
+      result.current[1]('user typing'); // diverged draft + pending timer
+    });
+
+    // External documentChanged arrives before the user finished.
+    rerender({ v: 'external update' });
+    expect(result.current[0]).toBe('external update');
+
+    // Blur commits the current draft, which now equals the adopted external
+    // value -> no commit of the abandoned 'user typing' draft.
+    act(() => {
+      result.current[2](); // flush
+    });
+
+    expect(onCommit).not.toHaveBeenCalledWith('user typing');
+    expect(result.current[0]).toBe('external update');
+  });
+
   it('does not commit a stale draft after an external adoption (timer self-heals)', () => {
     const onCommit = vi.fn();
     const { result, rerender } = renderHook(

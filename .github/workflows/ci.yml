@@ -18,6 +18,11 @@ jobs:
         with:
           node-version: '22'
           cache: 'npm'
+          # Two lock files exist (root + webview-section); include both so the
+          # npm cache key invalidates when either set of dependencies changes.
+          cache-dependency-path: |
+            package-lock.json
+            webview-section/package-lock.json
 
       - name: Install root dependencies
         run: npm ci

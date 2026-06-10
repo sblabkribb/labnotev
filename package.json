@@ -2,7 +2,7 @@
   "name": "labnotev",
   "displayName": "Labnote Assistant",
   "description": "Markdown-based lab notebook with sample tracking, workflow checklists, and a structured Section Editor for biology and bioinformatics experiments.",
-  "version": "0.60.7",
+  "version": "0.61.0",
   "license": "MIT",
   "publisher": "korea-biofoundry",
   "icon": "resources/icons/labnotev-128.png",
@@ -92,126 +92,126 @@
     "commands": [
       {
         "command": "labnotev.createLabnote",
-        "title": "Labnote: Create New Labnote Folder"
+        "title": "%labnotev.cmd.createLabnote.title%"
       },
       {
         "command": "labnotev.insertDate",
-        "title": "Labnote: Insert Current Date"
+        "title": "%labnotev.cmd.insertDate.title%"
       },
       {
         "command": "labnotev.insertDateTime",
-        "title": "Labnote: Insert Current Date and Time"
+        "title": "%labnotev.cmd.insertDateTime.title%"
       },
       {
         "command": "labnotev.updateDateField",
-        "title": "Labnote: Update Date Field on Current Line"
+        "title": "%labnotev.cmd.updateDateField.title%"
       },
       {
         "command": "labnotev.updateAllDateFields",
-        "title": "Labnote: Update All last_updated_date Fields"
+        "title": "%labnotev.cmd.updateAllDateFields.title%"
       },
       {
         "command": "labnotev.addWorkflow",
-        "title": "Labnote: Add Workflow"
+        "title": "%labnotev.cmd.addWorkflow.title%"
       },
       {
         "command": "labnotev.addUnitOperation",
-        "title": "Labnote: Add Unit Operation"
+        "title": "%labnotev.cmd.addUnitOperation.title%"
       },
       {
         "command": "labnotev.refreshSampleTree",
-        "title": "Labnote: Refresh Sample Tree",
+        "title": "%labnotev.cmd.refreshSampleTree.title%",
         "icon": "$(refresh)"
       },
       {
         "command": "labnotev.insertSampleToEditor",
-        "title": "Insert to Editor"
+        "title": "%labnotev.cmd.insertSampleToEditor.title%"
       },
       {
         "command": "labnotev.insertSampleDefinition",
-        "title": "Insert Definition",
+        "title": "%labnotev.cmd.insertSampleDefinition.title%",
         "icon": "$(symbol-constant)"
       },
       {
         "command": "labnotev.addSample",
-        "title": "Add Sample",
+        "title": "%labnotev.cmd.addSample.title%",
         "icon": "$(add)"
       },
       {
         "command": "labnotev.deleteSample",
-        "title": "Delete Sample",
+        "title": "%labnotev.cmd.deleteSample.title%",
         "icon": "$(trash)"
       },
       {
         "command": "labnotev.deleteCustomType",
-        "title": "Delete Custom Type",
+        "title": "%labnotev.cmd.deleteCustomType.title%",
         "icon": "$(trash)"
       },
       {
         "command": "labnotev.editSample",
-        "title": "Edit Sample",
+        "title": "%labnotev.cmd.editSample.title%",
         "icon": "$(edit)"
       },
       {
         "command": "labnotev.moveToDefinition",
-        "title": "Move to Definition",
+        "title": "%labnotev.cmd.moveToDefinition.title%",
         "icon": "$(go-to-file)"
       },
       {
         "command": "labnotev.searchSample",
-        "title": "Labnote: Search Sample",
+        "title": "%labnotev.cmd.searchSample.title%",
         "icon": "$(search)"
       },
       {
         "command": "labnotev.openImagePreview",
-        "title": "Labnote: Open Image Preview"
+        "title": "%labnotev.cmd.openImagePreview.title%"
       },
       {
         "command": "labnotev.manageTemplates",
-        "title": "Labnote: Manage Templates"
+        "title": "%labnotev.cmd.manageTemplates.title%"
       },
       {
         "command": "labnotev.refreshWorkflowTree",
-        "title": "Labnote: Refresh Workflow Tree",
+        "title": "%labnotev.cmd.refreshWorkflowTree.title%",
         "icon": "$(refresh)"
       },
       {
         "command": "labnotev.searchWorkflow",
-        "title": "Labnote: Search Workflow",
+        "title": "%labnotev.cmd.searchWorkflow.title%",
         "icon": "$(search)"
       },
       {
         "command": "labnotev.createWorkflowFromTree",
-        "title": "Labnote: Create Workflow",
+        "title": "%labnotev.cmd.createWorkflowFromTree.title%",
         "icon": "$(new-file)"
       },
       {
         "command": "labnotev.renameWorkflow",
-        "title": "Labnote: Rename Workflow"
+        "title": "%labnotev.cmd.renameWorkflow.title%"
       },
       {
         "command": "labnotev.addWorkflowItem",
-        "title": "Labnote: Add Workflow",
+        "title": "%labnotev.cmd.addWorkflowItem.title%",
         "icon": "$(add)"
       },
       {
         "command": "labnotev.insertUnitOperation",
-        "title": "Labnote: Insert Unit Operation",
+        "title": "%labnotev.cmd.insertUnitOperation.title%",
         "icon": "$(insert)"
       },
       {
         "command": "labnotev.addUnitOperationItem",
-        "title": "Labnote: Add Unit Operation",
+        "title": "%labnotev.cmd.addUnitOperationItem.title%",
         "icon": "$(add)"
       },
       {
         "command": "labnotev.moveSampleToGlobal",
-        "title": "Labnote: Move to Global",
+        "title": "%labnotev.cmd.moveSampleToGlobal.title%",
         "icon": "$(globe)"
       },
       {
         "command": "labnotev.moveSampleToLocal",
-        "title": "Labnote: Move to Local",
+        "title": "%labnotev.cmd.moveSampleToLocal.title%",
         "icon": "$(folder)"
       },
       {
@@ -402,17 +402,12 @@
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",
-    "@types/js-yaml": "^4.0.9",
     "@types/node": "^20.10.0",
     "@types/vscode": "^1.85.0",
-    "concurrently": "^8.2.2",
     "esbuild": "^0.27.2",
     "eslint": "^10.4.1",
     "typescript": "^5.3.2",
     "typescript-eslint": "^8.60.1",
     "vitest": "^4.0.18"
-  },
-  "dependencies": {
-    "js-yaml": "^4.1.1"
   }
 }

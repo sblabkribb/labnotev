@@ -177,6 +177,49 @@ describe('App', () => {
     expect(descInput).toBeTruthy();
   });
 
+  // Regression for the message-handler stale-closure fix: `textInserted` now
+  // reads the current section content from refs (not the render scope captured
+  // when the handler effect mounted), so inserting into a focused section that
+  // was populated by a later `init` splices into the up-to-date content.
+  it('inserts textInserted into the focused labnote section using current content', async () => {
+    render(<App />);
+
+    await act(async () => {
+      simulateMessage({ type: 'init', data: { mode: 'labnote', labNote: mockLabNote } });
+    });
+
+    const textareas = Array.from(document.querySelectorAll('textarea')) as HTMLTextAreaElement[];
+    const objective = textareas.find(t => t.value === 'Test objective');
+    expect(objective).toBeTruthy();
+
+    objective!.selectionStart = objective!.selectionEnd = objective!.value.length;
+    await act(async () => {
+      fireEvent.focus(objective!);
+    });
+
+    await act(async () => {
+      simulateMessage({ type: 'textInserted', data: { text: ' INSERTED' } });
+    });
+
+    expect(objective!.value).toBe('Test objective INSERTED');
+  });
+
+  // When the extension reports a failed save, the editor must not stay stuck
+  // showing "Saving"; it returns to the unsaved state.
+  it('marks the editor unsaved when a saveFailed message arrives', async () => {
+    render(<App />);
+
+    await act(async () => {
+      simulateMessage({ type: 'init', data: { mode: 'labnote', labNote: mockLabNote } });
+    });
+
+    await act(async () => {
+      simulateMessage({ type: 'saveFailed' });
+    });
+
+    expect(screen.getByText(/Unsaved/i)).toBeInTheDocument();
+  });
+
   it('syncs workflowHeader to bracket-only form when title has no " - " separator', async () => {
     render(<App />);
 
