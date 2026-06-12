@@ -22,7 +22,7 @@ interface SectionEditorProps {
   content: string;
   onChange: (index: number, content: string) => void;
   onFocus?: (index: number) => void;
-  onCursorActivity?: (pos: number) => void;
+  onCursorActivity?: (pos: number, value: string) => void;
   headingLevel?: 'h2' | 'h3' | 'h4';
   minRows?: number;
   docBaseUri?: string;
@@ -75,7 +75,7 @@ export const SectionEditor = memo(function SectionEditor({
 
   const reportCursor = useCallback(() => {
     if (textareaRef.current && onCursorActivity) {
-      onCursorActivity(textareaRef.current.selectionStart);
+      onCursorActivity(textareaRef.current.selectionStart, textareaRef.current.value);
     }
   }, [onCursorActivity]);
 

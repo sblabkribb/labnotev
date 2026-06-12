@@ -81,4 +81,28 @@ describe('resolveInsertPosition', () => {
     };
     expect(resolveInsertPosition(active, resolved, secContent)).toBe(secContent.length);
   });
+
+  it('clamps a cursorPos beyond content length down to content length', () => {
+    const active: FocusTarget = {
+      area: 'unitOp',
+      opIndex: 0,
+      secIndex: 1,
+      opId: 'UHW010',
+      secHeading: 'Input',
+      cursorPos: 999,
+    };
+    expect(resolveInsertPosition(active, resolved, secContent)).toBe(secContent.length);
+  });
+
+  it('clamps a negative cursorPos up to 0', () => {
+    const active: FocusTarget = {
+      area: 'unitOp',
+      opIndex: 0,
+      secIndex: 1,
+      opId: 'UHW010',
+      secHeading: 'Input',
+      cursorPos: -5,
+    };
+    expect(resolveInsertPosition(active, resolved, secContent)).toBe(0);
+  });
 });

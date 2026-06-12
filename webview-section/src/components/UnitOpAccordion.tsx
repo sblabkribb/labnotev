@@ -43,7 +43,7 @@ interface UnitOpAccordionProps {
   unitOperations: UnitOperationBlock[];
   onChange: (unitOperations: UnitOperationBlock[]) => void;
   onSectionFocus?: (opIndex: number, secIndex: number, opId: string, secHeading: string) => void;
-  onCursorActivity?: (pos: number) => void;
+  onCursorActivity?: (pos: number, value: string) => void;
   onCreateSample?: (opIndex: number, secIndex: number, sampleType: string, alias: string, description: string) => void;
   onSearchProducts?: (sampleType: string) => void;
   productSearchResult?: { alias: string; description: string } | null;
@@ -99,7 +99,7 @@ interface UnitOpSectionTextareaProps {
   showSampleButton?: boolean;
   onUpdateSection: (opIndex: number, secIndex: number, content: string) => void;
   onSectionFocus?: (opIndex: number, secIndex: number, opId: string, secHeading: string) => void;
-  onCursorActivity?: (pos: number) => void;
+  onCursorActivity?: (pos: number, value: string) => void;
   onCreateSample?: (opIndex: number, secIndex: number, sampleType: string, alias: string, description: string) => void;
   onSearchProducts?: (sampleType: string) => void;
   productSearchResult?: { alias: string; description: string } | null;
@@ -141,7 +141,7 @@ const UnitOpSectionTextarea = memo(function UnitOpSectionTextarea({
 
   const reportCursor = useCallback(() => {
     if (textareaRef.current && onCursorActivity) {
-      onCursorActivity(textareaRef.current.selectionStart);
+      onCursorActivity(textareaRef.current.selectionStart, textareaRef.current.value);
     }
   }, [onCursorActivity]);
 
@@ -185,7 +185,7 @@ const UnitOpSectionTextarea = memo(function UnitOpSectionTextarea({
                   if (ta) {
                     ta.focus({ preventScroll: true });
                     handleFocus();
-                    onCursorActivity?.(ta.selectionStart);
+                    onCursorActivity?.(ta.selectionStart, ta.value);
                   }
                   setSampleModalOpen(true);
                 }}
@@ -354,7 +354,7 @@ interface SortableUnitOpProps {
   onUpdateAlias: (opIndex: number, alias: string) => void;
   onUpdateDescription?: (opIndex: number, opDescription: string) => void;
   onSectionFocus?: (opIndex: number, secIndex: number, opId: string, secHeading: string) => void;
-  onCursorActivity?: (pos: number) => void;
+  onCursorActivity?: (pos: number, value: string) => void;
   onCreateSample?: (opIndex: number, secIndex: number, sampleType: string, alias: string, description: string) => void;
   onSearchProducts?: (sampleType: string) => void;
   productSearchResult?: { alias: string; description: string } | null;

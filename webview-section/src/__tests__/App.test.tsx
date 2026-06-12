@@ -204,6 +204,109 @@ describe('App', () => {
     expect(objective!.value).toBe('Test objective INSERTED');
   });
 
+  // Issue #33 regression: after v0.60.7 introduced per-section drafts
+  // (useDraftValue), the live textarea value diverges from App's committed
+  // content while typing. An insertion that splices into the *committed*
+  // (lagging) content corrupts the section (mid-line cut / lost typing). The
+  // splice must use the *live* value the caret indexes.
+  it('inserts textInserted into the live (uncommitted) labnote draft, not the lagging committed content', async () => {
+    const ln: LabNoteDocument = {
+      ...mockLabNote,
+      sections: [
+        { type: 'objective', content: 'AAA' },
+        { type: 'workflows', items: [] },
+        { type: 'results', content: 'Test results' },
+      ],
+    };
+
+    render(<App />);
+    await act(async () => {
+      simulateMessage({ type: 'init', data: { mode: 'labnote', labNote: ln } });
+    });
+
+    const textareas = Array.from(document.querySelectorAll('textarea')) as HTMLTextAreaElement[];
+    const objective = textareas.find(t => t.value === 'AAA')!;
+    expect(objective).toBeTruthy();
+
+    await act(async () => {
+      fireEvent.focus(objective);
+    });
+    // Type so the local draft (live value) grows past the committed 'AAA'
+    // WITHOUT letting the debounce commit it back to App.
+    await act(async () => {
+      fireEvent.change(objective, { target: { value: 'AAAZ\nBBB' } });
+    });
+    objective.selectionStart = objective.selectionEnd = 'AAAZ\nBBB'.length;
+    await act(async () => {
+      fireEvent.keyUp(objective);
+    });
+
+    await act(async () => {
+      simulateMessage({ type: 'textInserted', data: { text: ' INS' } });
+    });
+
+    // Live value preserved, insertion at the live caret (end). The buggy path
+    // would splice into 'AAA' and yield 'AAA INS', losing 'Z\nBBB'.
+    expect(objective.value).toBe('AAAZ\nBBB INS');
+  });
+
+  // Issue #33 (reported path): +Sample modal -> sampleDefinitionCreated. With a
+  // diverged draft, splicing into the committed content cuts the line in the
+  // middle. The definition must land at the live caret inside the live value.
+  it('splices sampleDefinitionCreated into the live unit-op draft at the live caret', async () => {
+    const wf: WorkflowDocument = {
+      ...mockWorkflow,
+      unitOperations: [
+        {
+          id: 'uo-a',
+          opId: 'UO_A',
+          opName: 'Op A',
+          opDescription: '',
+          opType: 'hw',
+          sections: [{ heading: 'Samples', content: 'XX' }],
+        },
+      ],
+    };
+
+    render(<App />);
+    await act(async () => {
+      simulateMessage({ type: 'init', data: { mode: 'workflow', workflow: wf } });
+    });
+
+    const textareas = Array.from(document.querySelectorAll('textarea')) as HTMLTextAreaElement[];
+    const sec = textareas.find(t => t.value === 'XX')!;
+    expect(sec).toBeTruthy();
+
+    await act(async () => {
+      fireEvent.focus(sec);
+    });
+    await act(async () => {
+      fireEvent.change(sec, { target: { value: 'XXXX\nYYYY' } });
+    });
+    // Caret at the start of the second line (offset 5).
+    sec.selectionStart = sec.selectionEnd = 5;
+    await act(async () => {
+      fireEvent.keyUp(sec);
+    });
+
+    await act(async () => {
+      simulateMessage({
+        type: 'sampleDefinitionCreated',
+        data: {
+          definitionText: '- @dna;DNA-1',
+          opIndex: 0,
+          secIndex: 0,
+          opId: 'UO_A',
+          secHeading: 'Samples',
+        },
+      });
+    });
+
+    // Live first line intact ('XXXX'), definition at the live caret, rest kept.
+    // The buggy path splices into committed 'XX' -> 'XX\n- @dna;DNA-1'.
+    expect(sec.value).toBe('XXXX\n- @dna;DNA-1YYYY');
+  });
+
   // When the extension reports a failed save, the editor must not stay stuck
   // showing "Saving"; it returns to the unsaved state.
   it('marks the editor unsaved when a saveFailed message arrives', async () => {

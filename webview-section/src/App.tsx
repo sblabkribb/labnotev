@@ -127,9 +127,18 @@ export default function App() {
   // Stable identity so it can be passed as `onCursorActivity` to memoized
   // children (UnitOpAccordion, HighlightedTextarea) without retriggering
   // their re-renders on every parent state change.
-  const updateCursorPos = useCallback((pos: number) => {
+  // Updated on every keystroke/caret move of the focused section. Writes to a
+  // ref only (no setState) so it stays off the typing hot path. `liveValue`
+  // mirrors the section's uncommitted draft so insertions splice into the
+  // exact string `cursorPos` indexes — see issue #33 (insertions used to
+  // splice into App's lagging committed content after drafts were introduced).
+  const updateCursorPos = useCallback((pos: number, value?: string) => {
     if (activeSectionRef.current) {
-      activeSectionRef.current = { ...activeSectionRef.current, cursorPos: pos };
+      activeSectionRef.current = {
+        ...activeSectionRef.current,
+        cursorPos: pos,
+        ...(value !== undefined ? { liveValue: value } : {}),
+      };
     }
   }, []);
 
@@ -328,26 +337,30 @@ export default function App() {
             showInsertWarning('Click the textarea of the section you want to insert into first.');
             break;
           }
-          // Read the pre-insert content from refs (not the message-handler's
-          // captured render scope, which is fixed at mount) so the splice and
-          // the resulting caret are both computed from the CURRENT document.
+          // Splice into the section's *live* (possibly uncommitted) draft when
+          // available, so the caret offset and the spliced string come from the
+          // same source. Section drafts (useDraftValue) let the textarea run
+          // ahead of App's committed content, so reading committed refs here
+          // would cut at the wrong place (issue #33). Fall back to the committed
+          // content from refs when no live value was reported.
           // Phase C-2: when `text` starts with a `@type;`/`@type:` prefix and
           // the user already typed the same prefix at the caret, the helper
           // collapses it so we don't produce `@dna;@dna;DNA-123`.
-          let original = '';
+          let committed = '';
           if (target.area === 'labnoteSection') {
             const sec = labNoteRef.current?.sections?.[target.sectionIndex];
             if (sec && 'content' in sec && typeof (sec as { content?: unknown }).content === 'string') {
-              original = (sec as { content: string }).content;
+              committed = (sec as { content: string }).content;
             }
           } else if (target.area === 'unitOp') {
             const srcList = target.linkedWfIndex !== undefined
               ? linkedWorkflowsRef.current[target.linkedWfIndex]?.unitOperations
               : workflowRef.current?.unitOperations;
-            original = srcList?.[target.opIndex]?.sections?.[target.secIndex]?.content ?? '';
+            committed = srcList?.[target.opIndex]?.sections?.[target.secIndex]?.content ?? '';
           } else if (target.area === 'tailContent') {
-            original = workflowRef.current?.tailContent ?? '';
+            committed = workflowRef.current?.tailContent ?? '';
           }
+          const original = target.liveValue ?? committed;
 
           const { content: nextContent, caret } = insertSampleText(original, target.cursorPos, text);
 
@@ -416,6 +429,22 @@ export default function App() {
           // attached to the right section no matter what.
           const { definitionText, opIndex, secIndex, opId, secHeading } = message.data;
           const curTarget = activeSectionRef.current;
+          // Splice into the focused section's *live* (uncommitted) draft when it
+          // is the resolved section, so the offset and the spliced string share
+          // one source. Section drafts run ahead of App's committed content, so
+          // using committed content here would cut mid-line (issue #33).
+          const liveBaseFor = (oid: string, heading: string): string | null => {
+            if (
+              curTarget &&
+              curTarget.area === 'unitOp' &&
+              curTarget.opId === oid &&
+              curTarget.secHeading === heading &&
+              curTarget.liveValue !== undefined
+            ) {
+              return curTarget.liveValue;
+            }
+            return null;
+          };
           // Pre-resolve target section synchronously (same lookup logic as
           // the updater below) so we can compute the final caret position
           // before React batches the setState. Mirrors v0.48.2's fix for
@@ -440,12 +469,13 @@ export default function App() {
           }
           let pendingDefCursorPos: number | null = null;
           if (preOp && preSec) {
+            const preBase = liveBaseFor(preOp.opId, preSec.heading) ?? preSec.content;
             const pPos = resolveInsertPosition(
               curTarget,
               { opId: preOp.opId, secHeading: preSec.heading },
-              preSec.content,
+              preBase,
             );
-            const pSep = pPos > 0 && preSec.content[pPos - 1] !== '\n' ? '\n' : '';
+            const pSep = pPos > 0 && preBase[pPos - 1] !== '\n' ? '\n' : '';
             pendingDefCursorPos = pPos + pSep.length + definitionText.length;
           }
           setWorkflow(prev => {
@@ -475,15 +505,16 @@ export default function App() {
             // back to end-of-section so we don't splice into an unrelated
             // location (e.g. clicking +Sample in section B while the caret
             // lived in section A).
+            const base = liveBaseFor(op.opId, sec.heading) ?? sec.content;
             const pos = resolveInsertPosition(
               curTarget,
               { opId: op.opId, secHeading: sec.heading },
-              sec.content,
+              base,
             );
-            const separator = pos > 0 && sec.content[pos - 1] !== '\n' ? '\n' : '';
+            const separator = pos > 0 && base[pos - 1] !== '\n' ? '\n' : '';
             sections[resolvedSecIndex] = {
               ...sec,
-              content: sec.content.slice(0, pos) + separator + definitionText + sec.content.slice(pos),
+              content: base.slice(0, pos) + separator + definitionText + base.slice(pos),
             };
             ops[resolvedOpIndex] = { ...op, sections };
             return { ...prev, unitOperations: ops };
@@ -517,10 +548,14 @@ export default function App() {
           // pos we actually used inside insertImg so pendingCursor always lands
           // at the end of the just-inserted text (empty sections included).
           let actualPos = 0;
-          const insertImg = (original: string) => {
-            const pos = target.cursorPos ?? original.length;
+          const insertImg = (committedContent: string) => {
+            // Prefer the live draft (issue #33): pasting while the section has
+            // uncommitted edits must splice into what the user sees, not the
+            // lagging committed content.
+            const base = target.liveValue ?? committedContent;
+            const pos = Math.max(0, Math.min(target.cursorPos ?? base.length, base.length));
             actualPos = pos;
-            return original.slice(0, pos) + imgText + original.slice(pos);
+            return base.slice(0, pos) + imgText + base.slice(pos);
           };
 
           if (target.area === 'labnoteSection') {
