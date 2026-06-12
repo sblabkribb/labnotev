@@ -23,21 +23,174 @@ import { normalizeUnitOpSectionHeading, unitOpSectionAllowsSampleButton, getSect
 // re-renders. Hoisting the whole options object keeps the descriptor stable.
 const POINTER_SENSOR_OPTIONS = { activationConstraint: { distance: 8 } } as const;
 
-function parseMetaContent(content: string): Record<string, string> {
+// Meta lines use a loose `- Key: value` list format (values are usually, but
+// not always, single-quoted). Capture the key up to the FIRST colon and treat
+// the remainder as the value, then strip a single outer quote pair. This keeps
+// colons/quotes inside the value intact (e.g. `'2026-01-15 10:30'`, `'it''s'`)
+// instead of dropping the whole line, and allows non-ASCII (Korean) keys.
+export function parseMetaContent(content: string): Record<string, string> {
   const result: Record<string, string> = {};
   for (const line of content.split('\n')) {
-    const match = line.match(/^-\s*(\w+):\s*'?([^']*)'?$/);
-    if (match) result[match[1]] = match[2].trim();
+    const match = line.match(/^-\s*(.+?):\s*(.*)$/);
+    if (!match) continue;
+    const key = match[1].trim();
+    let value = match[2].trim();
+    if (value.length >= 2 && value.startsWith("'") && value.endsWith("'")) {
+      value = value.slice(1, -1);
+    }
+    result[key] = value;
   }
   return result;
 }
 
-function serializeMetaContent(fields: Record<string, string>): string {
+export function serializeMetaContent(fields: Record<string, string>): string {
   return Object.entries(fields)
     .filter(([, v]) => v !== undefined)
     .map(([k, v]) => `- ${k}: '${v}'`)
     .join('\n');
 }
+
+// Keys with a dedicated widget. Any other Meta key is rendered as a generic,
+// editable text field (issue #32) so custom entries like `Duration` are visible
+// and editable in the Editor instead of forcing a drop to text mode.
+const DEDICATED_META_KEYS = ['Experimenter', 'Start_date', 'End_date'];
+
+interface MetaSectionProps {
+  opType: 'hw' | 'sw';
+  content: string;
+  onContentChange: (content: string) => void;
+}
+
+const MetaSection = memo(function MetaSection({ opType, content, onContentChange }: MetaSectionProps) {
+  const [adding, setAdding] = useState(false);
+  const [newName, setNewName] = useState('');
+  const [addError, setAddError] = useState<string | null>(null);
+
+  const metaFields = parseMetaContent(content);
+
+  const updateMetaField = (key: string, value: string) => {
+    onContentChange(serializeMetaContent({ ...metaFields, [key]: value }));
+  };
+
+  const removeMetaField = (key: string) => {
+    const { [key]: _drop, ...rest } = metaFields;
+    onContentChange(serializeMetaContent(rest));
+  };
+
+  // The Software widget (sw only) covers `Software`; otherwise treat it as a
+  // custom field so a manually-added value is never hidden.
+  const showSoftware = opType === 'sw' && metaFields['Software'] !== undefined;
+  const renderedByWidget = showSoftware
+    ? [...DEDICATED_META_KEYS, 'Software']
+    : DEDICATED_META_KEYS;
+  const customKeys = Object.keys(metaFields).filter((k) => !renderedByWidget.includes(k));
+
+  const cancelAdd = () => {
+    setAdding(false);
+    setNewName('');
+    setAddError(null);
+  };
+
+  const confirmAdd = () => {
+    const name = newName.trim();
+    if (!name) {
+      setAddError('필드 이름을 입력하세요');
+      return;
+    }
+    if (name.includes(':')) {
+      setAddError("필드 이름에 콜론(:)은 쓸 수 없습니다");
+      return;
+    }
+    if (name in metaFields) {
+      setAddError('이미 있는 필드 이름입니다');
+      return;
+    }
+    updateMetaField(name, '');
+    cancelAdd();
+  };
+
+  return (
+    <div>
+      <Title order={5} mb={4}>Meta</Title>
+      <Stack gap="xs">
+        <TextInput
+          label="Experimenter"
+          size="sm"
+          value={metaFields['Experimenter'] ?? ''}
+          onChange={(e) => updateMetaField('Experimenter', e.currentTarget.value)}
+        />
+        <DateTimeField
+          label="Start Date"
+          size="sm"
+          value={metaFields['Start_date'] ?? ''}
+          onChange={(v) => updateMetaField('Start_date', v)}
+        />
+        <DateTimeField
+          label="End Date"
+          size="sm"
+          value={metaFields['End_date'] ?? ''}
+          onChange={(v) => updateMetaField('End_date', v)}
+        />
+        {showSoftware && (
+          <TextInput
+            label="Software"
+            size="sm"
+            value={metaFields['Software'] ?? ''}
+            onChange={(e) => updateMetaField('Software', e.currentTarget.value)}
+          />
+        )}
+        {customKeys.map((key) => (
+          <Group key={key} gap="xs" align="flex-end" wrap="nowrap">
+            <TextInput
+              label={key}
+              size="sm"
+              style={{ flex: 1 }}
+              value={metaFields[key] ?? ''}
+              onChange={(e) => updateMetaField(key, e.currentTarget.value)}
+            />
+            <Tooltip label="필드 삭제" position="bottom" withArrow>
+              <ActionIcon
+                variant="subtle"
+                color="gray"
+                size="sm"
+                aria-label={`${key} 삭제`}
+                onClick={() => removeMetaField(key)}
+              >
+                ×
+              </ActionIcon>
+            </Tooltip>
+          </Group>
+        ))}
+        {adding ? (
+          <Stack gap={4}>
+            <Group gap="xs" align="flex-end" wrap="nowrap">
+              <TextInput
+                label="필드 이름"
+                size="sm"
+                style={{ flex: 1 }}
+                value={newName}
+                error={!!addError}
+                autoFocus
+                onChange={(e) => { setNewName(e.currentTarget.value); setAddError(null); }}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' && !e.nativeEvent.isComposing) { e.preventDefault(); confirmAdd(); }
+                  else if (e.key === 'Escape') { e.preventDefault(); cancelAdd(); }
+                }}
+              />
+              <Button size="sm" variant="light" onClick={confirmAdd}>추가</Button>
+              <Button size="sm" variant="subtle" color="gray" onClick={cancelAdd}>취소</Button>
+            </Group>
+            {addError && <Text size="xs" c="red">{addError}</Text>}
+          </Stack>
+        ) : (
+          <Group>
+            <Button size="xs" variant="subtle" onClick={() => setAdding(true)}>+ 필드 추가</Button>
+          </Group>
+        )}
+      </Stack>
+    </div>
+  );
+});
 
 interface UnitOpAccordionProps {
   unitOperations: UnitOperationBlock[];
@@ -483,43 +636,13 @@ const SortableUnitOp = memo(function SortableUnitOp({ op, opIndex, onUpdateSecti
             />
             {op.sections.map((section, secIndex) => {
               if (section.heading === 'Meta') {
-                const metaFields = parseMetaContent(section.content);
-                const updateMetaField = (key: string, value: string) => {
-                  const updated = { ...metaFields, [key]: value };
-                  onUpdateSection(opIndex, secIndex, serializeMetaContent(updated));
-                };
                 return (
-                  <div key={secIndex}>
-                    <Title order={5} mb={4}>Meta</Title>
-                    <Stack gap="xs">
-                      <TextInput
-                        label="Experimenter"
-                        size="sm"
-                        value={metaFields['Experimenter'] ?? ''}
-                        onChange={(e) => updateMetaField('Experimenter', e.currentTarget.value)}
-                      />
-                      <DateTimeField
-                        label="Start Date"
-                        size="sm"
-                        value={metaFields['Start_date'] ?? ''}
-                        onChange={(v) => updateMetaField('Start_date', v)}
-                      />
-                      <DateTimeField
-                        label="End Date"
-                        size="sm"
-                        value={metaFields['End_date'] ?? ''}
-                        onChange={(v) => updateMetaField('End_date', v)}
-                      />
-                      {op.opType === 'sw' && metaFields['Software'] !== undefined && (
-                        <TextInput
-                          label="Software"
-                          size="sm"
-                          value={metaFields['Software'] ?? ''}
-                          onChange={(e) => updateMetaField('Software', e.currentTarget.value)}
-                        />
-                      )}
-                    </Stack>
-                  </div>
+                  <MetaSection
+                    key={secIndex}
+                    opType={op.opType}
+                    content={section.content}
+                    onContentChange={(content) => onUpdateSection(opIndex, secIndex, content)}
+                  />
                 );
               }
 

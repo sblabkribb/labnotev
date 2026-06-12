@@ -1,6 +1,6 @@
 # Labnote Assistant (LabnoteV)
 
-**v0.62.1** · [English → README.md](README.md)
+**v0.63.0** · [English → README.md](README.md)
 
 VS Code에서 실험 노트를 마크다운으로 작성할 수 있도록 돕는 확장입니다. `.labnote.md` 파일을 Section Editor(웹뷰 기반 구조화 편집기)로 열어 Front Matter 폼, 워크플로 체크리스트, 유닛 오퍼레이션 아코디언, 샘플 정의 버튼, 이미지 붙여넣기/썸네일 등 실험 기록에 최적화된 UI를 제공합니다.
 
@@ -80,7 +80,7 @@ VS Code에서 실험 노트를 마크다운으로 작성할 수 있도록 돕는
 - **Unit Operations**: 유닛 오퍼레이션 목록을 아코디언 UI로 표시
   - 드래그 앤 드롭으로 순서 변경
   - 유닛 오퍼레이션 이름 옆에 별칭(alias) 인라인 편집 가능
-  - Meta 섹션: Experimenter(텍스트 입력), Start/End Date(날짜 달력 + 시간 선택)를 구조화된 폼으로 표시
+  - Meta 섹션: Experimenter(텍스트 입력), Start/End Date(날짜 달력 + 시간 선택)를 구조화된 폼으로 표시. `Duration` 등 커스텀 항목도 일반 입력칸으로 표시·편집되며, "+ 필드 추가" 버튼으로 새 커스텀 항목을 추가하거나 삭제(x)할 수 있음(한글 필드명 지원)
   - 마크다운에 `#### Reagen`처럼 오타가 있어도 저장·표시 시 **`#### Reagent`**로 자동 정규화됨
   - 일반 섹션(Input, Output, Method 등): textarea로 자유롭게 편집
   - 카탈로그에서 삽입한 유닛 오퍼레이션 ID는 **`UHW…`(하드웨어)·`USW…`(소프트웨어)** 형식이며, Section Editor의 HW/SW 표시와 Meta의 Equipment/Software 필드가 이 접두어를 기준으로 맞춰짐(텍스트 에디터로 본문을 고친 뒤 다시 열어도 동일하게 인식)

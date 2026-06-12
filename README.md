@@ -1,6 +1,6 @@
 # Labnote Assistant (LabnoteV)
 
-**v0.62.1** · [한국어 → README.ko.md](README.ko.md)
+**v0.63.0** · [한국어 → README.ko.md](README.ko.md)
 
 A VS Code extension that helps you write experiment notes in Markdown. It opens `.labnote.md` files in a webview-based Section Editor, providing a UI optimized for lab note keeping — Front Matter forms, workflow checklists, unit operation accordions, sample definition buttons, clipboard image paste/thumbnails, and more.
 
@@ -80,7 +80,7 @@ When you open a `.labnote.md` file, the Section Editor is shown automatically. I
 - **Unit Operations**: shown as an accordion UI.
   - Reorder by drag-and-drop.
   - The unit operation alias is editable inline next to the name.
-  - Meta section: Experimenter (text input) plus Start/End Date (calendar + time picker) shown as structured fields.
+  - Meta section: Experimenter (text input) plus Start/End Date (calendar + time picker) shown as structured fields. Custom entries such as `Duration` are also shown as editable inputs, and an "+ Add field" button lets you add or delete (x) custom entries (non-ASCII field names supported).
   - Typos such as `#### Reagen` are auto-normalized back to `#### Reagent` when saving/loading.
   - Other sections (Input, Output, Method, etc.) are free-form textareas.
   - Unit operation IDs inserted from the catalog follow the **`UHW…` (hardware) / `USW…` (software)** prefix scheme. The Section Editor's HW/SW indicator and Meta `Equipment` / `Software` fields are aligned to that prefix (the recognition is stable even after editing the body via a text editor).
