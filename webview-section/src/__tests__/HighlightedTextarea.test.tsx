@@ -89,12 +89,12 @@ describe('HighlightedTextarea', () => {
       textarea.selectionStart = 3;
       textarea.selectionEnd = 3;
       fireEvent.click(textarea);
-      expect(onCursorChange).toHaveBeenCalledWith(3, 'abcdef');
+      expect(onCursorChange).toHaveBeenCalledWith(3);
       onCursorChange.mockClear();
       textarea.selectionStart = 5;
       textarea.selectionEnd = 5;
       fireEvent.keyUp(textarea, { key: 'ArrowRight' });
-      expect(onCursorChange).toHaveBeenCalledWith(5, 'abcdef');
+      expect(onCursorChange).toHaveBeenCalledWith(5);
     });
   });
 
@@ -128,7 +128,7 @@ describe('HighlightedTextarea', () => {
       expect(document.activeElement).toBe(textarea);
       expect(textarea.selectionStart).toBe('prefix DNA-001'.length);
       expect(textarea.selectionEnd).toBe('prefix DNA-001'.length);
-      expect(onCursorChange).toHaveBeenCalledWith('prefix DNA-001'.length, 'prefix DNA-001 suffix');
+      expect(onCursorChange).toHaveBeenCalledWith('prefix DNA-001'.length);
     });
   });
 

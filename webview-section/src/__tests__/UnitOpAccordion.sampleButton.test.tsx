@@ -100,7 +100,7 @@ describe('UnitOpAccordion + Sample button', () => {
 
     // Focus + cursor must be reported so activeSectionRef is synced BEFORE the
     // modal dispatches sampleDefinitionCreated back to the webview.
-    expect(onSectionFocus).toHaveBeenCalledWith(0, 0, 'UHW010', 'Input');
+    expect(onSectionFocus).toHaveBeenCalledWith(0, 0, 'UHW010', 'Input', expect.any(HTMLTextAreaElement));
     expect(onCursorActivity).toHaveBeenCalled();
 
     // Both calls must happen BEFORE (or at worst simultaneously with) the

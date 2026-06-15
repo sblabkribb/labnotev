@@ -307,6 +307,114 @@ describe('App', () => {
     expect(sec.value).toBe('XXXX\n- @dna;DNA-1YYYY');
   });
 
+  // Issue #34: consecutive registrations without re-focusing/typing in between.
+  // The snapshot the insertion handler splices into (liveValue/cursorPos) is
+  // only refreshed by user events or a deferred rAF, so a second insertion
+  // reuses the pre-first-insertion snapshot, splicing into stale content at the
+  // stale caret and OVERWRITING the first insertion (data loss). The live
+  // textarea (the user's source of truth) must drive both base and caret.
+  it('does not overwrite a prior textInserted when a second one arrives without intervening events', async () => {
+    const ln: LabNoteDocument = {
+      ...mockLabNote,
+      sections: [
+        { type: 'objective', content: 'AAA' },
+        { type: 'workflows', items: [] },
+        { type: 'results', content: 'Test results' },
+      ],
+    };
+
+    render(<App />);
+    await act(async () => {
+      simulateMessage({ type: 'init', data: { mode: 'labnote', labNote: ln } });
+    });
+
+    const objective = (Array.from(document.querySelectorAll('textarea')) as HTMLTextAreaElement[])
+      .find(t => t.value === 'AAA')!;
+    expect(objective).toBeTruthy();
+
+    await act(async () => {
+      fireEvent.focus(objective);
+    });
+    objective.selectionStart = objective.selectionEnd = 3;
+    await act(async () => {
+      fireEvent.keyUp(objective);
+    });
+
+    // First registration lands at the live caret (end).
+    await act(async () => {
+      simulateMessage({ type: 'textInserted', data: { text: ' ONE' } });
+    });
+    expect(objective.value).toBe('AAA ONE');
+
+    // The user's caret is now at the end of the freshly inserted text. No
+    // focus/keyup/click events fire (mirrors a programmatic re-registration).
+    objective.selectionStart = objective.selectionEnd = objective.value.length;
+
+    // Second registration must append after ' ONE', not overwrite it.
+    await act(async () => {
+      simulateMessage({ type: 'textInserted', data: { text: ' TWO' } });
+    });
+
+    // Buggy snapshot path reuses liveValue 'AAA' + cursorPos 3 -> 'AAA TWO'
+    // (the first ' ONE' is gone). The live-DOM path keeps both.
+    expect(objective.value).toBe('AAA ONE TWO');
+  });
+
+  it('does not overwrite a prior sampleDefinitionCreated when a second one arrives without intervening events', async () => {
+    const wf: WorkflowDocument = {
+      ...mockWorkflow,
+      unitOperations: [
+        {
+          id: 'uo-a',
+          opId: 'UO_A',
+          opName: 'Op A',
+          opDescription: '',
+          opType: 'hw',
+          sections: [{ heading: 'Samples', content: 'AAA' }],
+        },
+      ],
+    };
+
+    render(<App />);
+    await act(async () => {
+      simulateMessage({ type: 'init', data: { mode: 'workflow', workflow: wf } });
+    });
+
+    const sec = (Array.from(document.querySelectorAll('textarea')) as HTMLTextAreaElement[])
+      .find(t => t.value === 'AAA')!;
+    expect(sec).toBeTruthy();
+
+    await act(async () => {
+      fireEvent.focus(sec);
+    });
+    sec.selectionStart = sec.selectionEnd = 3;
+    await act(async () => {
+      fireEvent.keyUp(sec);
+    });
+
+    await act(async () => {
+      simulateMessage({
+        type: 'sampleDefinitionCreated',
+        data: { definitionText: '- @dna;DNA-1', opIndex: 0, secIndex: 0, opId: 'UO_A', secHeading: 'Samples' },
+      });
+    });
+    expect(sec.value).toBe('AAA\n- @dna;DNA-1');
+
+    // Caret at end of the first definition; no intervening events.
+    sec.selectionStart = sec.selectionEnd = sec.value.length;
+
+    await act(async () => {
+      simulateMessage({
+        type: 'sampleDefinitionCreated',
+        data: { definitionText: '- @dna;DNA-2', opIndex: 0, secIndex: 0, opId: 'UO_A', secHeading: 'Samples' },
+      });
+    });
+
+    // Buggy path reuses stale base 'AAA' + cursorPos 3 -> 'AAA\n- @dna;DNA-2'
+    // (DNA-1 lost). The live-DOM path preserves both definitions.
+    expect(sec.value).toBe('AAA\n- @dna;DNA-1\n- @dna;DNA-2');
+  });
+
   // When the extension reports a failed save, the editor must not stay stuck
   // showing "Saving"; it returns to the unsaved state.
   it('marks the editor unsaved when a saveFailed message arrives', async () => {

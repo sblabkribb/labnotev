@@ -21,8 +21,8 @@ interface SectionEditorProps {
   heading: string;
   content: string;
   onChange: (index: number, content: string) => void;
-  onFocus?: (index: number) => void;
-  onCursorActivity?: (pos: number, value: string) => void;
+  onFocus?: (index: number, el?: HTMLTextAreaElement | null) => void;
+  onCursorActivity?: (pos: number) => void;
   headingLevel?: 'h2' | 'h3' | 'h4';
   minRows?: number;
   docBaseUri?: string;
@@ -70,12 +70,12 @@ export const SectionEditor = memo(function SectionEditor({
   // highlight in sync.
   const [debouncedContent] = useDebouncedValue(draft, 300);
 
-  const handleFocus = useCallback(() => onFocus?.(index), [onFocus, index]);
+  const handleFocus = useCallback(() => onFocus?.(index, textareaRef.current), [onFocus, index]);
   const handleAttachFile = useCallback(() => onAttachFile?.(index), [onAttachFile, index]);
 
   const reportCursor = useCallback(() => {
     if (textareaRef.current && onCursorActivity) {
-      onCursorActivity(textareaRef.current.selectionStart, textareaRef.current.value);
+      onCursorActivity(textareaRef.current.selectionStart);
     }
   }, [onCursorActivity]);
 

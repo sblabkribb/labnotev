@@ -39,7 +39,7 @@ export interface HighlightedTextareaProps {
   value: string;
   onChange: (value: string) => void;
   onFocus?: () => void;
-  onCursorChange?: (pos: number, value: string) => void;
+  onCursorChange?: (pos: number) => void;
   onKeyDown?: React.KeyboardEventHandler<HTMLTextAreaElement>;
   onPaste?: React.ClipboardEventHandler<HTMLTextAreaElement>;
   minRows?: number;
@@ -205,7 +205,7 @@ export const HighlightedTextarea = memo(forwardRef<HTMLTextAreaElement, Highligh
     const reportCursor = useCallback(() => {
       if (isApplyingFocusRef.current) return;
       if (textareaRef.current && onCursorChange) {
-        onCursorChange(textareaRef.current.selectionStart, textareaRef.current.value);
+        onCursorChange(textareaRef.current.selectionStart);
       }
     }, [onCursorChange]);
 
@@ -308,7 +308,7 @@ export const HighlightedTextarea = memo(forwardRef<HTMLTextAreaElement, Highligh
         } finally {
           isApplyingFocusRef.current = false;
         }
-        if (onCursorChange) onCursorChange(ta.selectionStart, ta.value);
+        if (onCursorChange) onCursorChange(ta.selectionStart);
       });
       // Cancel a pending rAF if `tick` changes before the callback fires, or
       // if the component unmounts. Without this, stale callbacks can race

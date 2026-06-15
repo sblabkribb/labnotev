@@ -7,12 +7,14 @@
  * caret position. Without this check the caret from section A could be
  * applied when inserting into section B.
  */
-// `liveValue` mirrors the focused textarea's current (possibly uncommitted)
-// value. Section drafts (useDraftValue) decouple the live textarea from App's
-// committed document state, so insertions must splice into `liveValue` — the
-// exact string `cursorPos` indexes — instead of the lagging committed content.
+// `cursorPos` is the last reported caret offset of the focused textarea, used
+// only as a fallback when the live DOM node is unavailable. The authoritative
+// source for both content and caret at insertion time is the focused textarea
+// DOM node itself (App tracks it as `activeSectionRef.current.el`), which never
+// drifts from what the user sees — unlike a value snapshot, which goes stale
+// after a programmatic insertion (issues #33, #34).
 export type FocusTarget =
-  | { area: 'labnoteSection'; sectionIndex: number; cursorPos?: number; liveValue?: string }
+  | { area: 'labnoteSection'; sectionIndex: number; cursorPos?: number }
   | {
       area: 'unitOp';
       opIndex: number;
@@ -21,9 +23,8 @@ export type FocusTarget =
       secHeading?: string;
       linkedWfIndex?: number;
       cursorPos?: number;
-      liveValue?: string;
     }
-  | { area: 'tailContent'; cursorPos?: number; liveValue?: string };
+  | { area: 'tailContent'; cursorPos?: number };
 
 /**
  * Pick the insertion offset for a `sampleDefinitionCreated`-style message.

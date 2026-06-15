@@ -195,8 +195,8 @@ const MetaSection = memo(function MetaSection({ opType, content, onContentChange
 interface UnitOpAccordionProps {
   unitOperations: UnitOperationBlock[];
   onChange: (unitOperations: UnitOperationBlock[]) => void;
-  onSectionFocus?: (opIndex: number, secIndex: number, opId: string, secHeading: string) => void;
-  onCursorActivity?: (pos: number, value: string) => void;
+  onSectionFocus?: (opIndex: number, secIndex: number, opId: string, secHeading: string, el?: HTMLTextAreaElement | null) => void;
+  onCursorActivity?: (pos: number) => void;
   onCreateSample?: (opIndex: number, secIndex: number, sampleType: string, alias: string, description: string) => void;
   onSearchProducts?: (sampleType: string) => void;
   productSearchResult?: { alias: string; description: string } | null;
@@ -251,8 +251,8 @@ interface UnitOpSectionTextareaProps {
   content: string;
   showSampleButton?: boolean;
   onUpdateSection: (opIndex: number, secIndex: number, content: string) => void;
-  onSectionFocus?: (opIndex: number, secIndex: number, opId: string, secHeading: string) => void;
-  onCursorActivity?: (pos: number, value: string) => void;
+  onSectionFocus?: (opIndex: number, secIndex: number, opId: string, secHeading: string, el?: HTMLTextAreaElement | null) => void;
+  onCursorActivity?: (pos: number) => void;
   onCreateSample?: (opIndex: number, secIndex: number, sampleType: string, alias: string, description: string) => void;
   onSearchProducts?: (sampleType: string) => void;
   productSearchResult?: { alias: string; description: string } | null;
@@ -294,12 +294,12 @@ const UnitOpSectionTextarea = memo(function UnitOpSectionTextarea({
 
   const reportCursor = useCallback(() => {
     if (textareaRef.current && onCursorActivity) {
-      onCursorActivity(textareaRef.current.selectionStart, textareaRef.current.value);
+      onCursorActivity(textareaRef.current.selectionStart);
     }
   }, [onCursorActivity]);
 
   const handleFocus = useCallback(() => {
-    onSectionFocus?.(opIndex, secIndex, op.opId, rawHeading);
+    onSectionFocus?.(opIndex, secIndex, op.opId, rawHeading, textareaRef.current);
   }, [onSectionFocus, opIndex, secIndex, op.opId, rawHeading]);
 
   const handleCreateSample = useCallback((type: string, alias: string, desc: string) => {
@@ -338,7 +338,7 @@ const UnitOpSectionTextarea = memo(function UnitOpSectionTextarea({
                   if (ta) {
                     ta.focus({ preventScroll: true });
                     handleFocus();
-                    onCursorActivity?.(ta.selectionStart, ta.value);
+                    onCursorActivity?.(ta.selectionStart);
                   }
                   setSampleModalOpen(true);
                 }}
@@ -506,8 +506,8 @@ interface SortableUnitOpProps {
   onUpdateSection: (opIndex: number, secIndex: number, content: string) => void;
   onUpdateAlias: (opIndex: number, alias: string) => void;
   onUpdateDescription?: (opIndex: number, opDescription: string) => void;
-  onSectionFocus?: (opIndex: number, secIndex: number, opId: string, secHeading: string) => void;
-  onCursorActivity?: (pos: number, value: string) => void;
+  onSectionFocus?: (opIndex: number, secIndex: number, opId: string, secHeading: string, el?: HTMLTextAreaElement | null) => void;
+  onCursorActivity?: (pos: number) => void;
   onCreateSample?: (opIndex: number, secIndex: number, sampleType: string, alias: string, description: string) => void;
   onSearchProducts?: (sampleType: string) => void;
   productSearchResult?: { alias: string; description: string } | null;
