@@ -20,6 +20,13 @@ export type FocusTarget =
       opIndex: number;
       secIndex: number;
       opId?: string;
+      /**
+       * Unique instance id of the focused unit op (`UnitOperationBlock.id`).
+       * Issue #34: `opId` is a reusable code, so it cannot disambiguate two
+       * unit ops sharing the same code. When present, matching is done by
+       * `uoId` instead so inserts land in the exact op the user edited.
+       */
+      uoId?: string;
       secHeading?: string;
       linkedWfIndex?: number;
       cursorPos?: number;
@@ -31,19 +38,26 @@ export type FocusTarget =
  *
  * Rules:
  * - Use `activeRef.cursorPos` only when the focused textarea matches the
- *   `resolved` unit-op section (same `opId` AND same `secHeading`).
+ *   `resolved` unit-op section. When both sides carry a unique instance id
+ *   (`uoId`), match on that (issue #34); otherwise fall back to matching the
+ *   reusable `opId` code. The section must always match on `secHeading`.
  * - Otherwise fall back to the section's content length (append at end).
  * - The returned offset is always clamped to `[0, secContent.length]` so a
  *   stale/oversized caret can never splice past the end of the content.
  */
 export function resolveInsertPosition(
   active: FocusTarget | null,
-  resolved: { opId: string; secHeading: string },
+  resolved: { opId: string; secHeading: string; uoId?: string },
   secContent: string,
 ): number {
   if (!active || active.area !== 'unitOp') return secContent.length;
-  if (!active.opId || !active.secHeading) return secContent.length;
-  if (active.opId !== resolved.opId) return secContent.length;
+  if (!active.secHeading) return secContent.length;
+  if (resolved.uoId !== undefined && active.uoId !== undefined) {
+    if (active.uoId !== resolved.uoId) return secContent.length;
+  } else {
+    if (!active.opId) return secContent.length;
+    if (active.opId !== resolved.opId) return secContent.length;
+  }
   if (active.secHeading !== resolved.secHeading) return secContent.length;
   if (active.cursorPos === undefined) return secContent.length;
   return Math.max(0, Math.min(active.cursorPos, secContent.length));

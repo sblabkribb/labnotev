@@ -195,7 +195,7 @@ const MetaSection = memo(function MetaSection({ opType, content, onContentChange
 interface UnitOpAccordionProps {
   unitOperations: UnitOperationBlock[];
   onChange: (unitOperations: UnitOperationBlock[]) => void;
-  onSectionFocus?: (opIndex: number, secIndex: number, opId: string, secHeading: string, el?: HTMLTextAreaElement | null) => void;
+  onSectionFocus?: (opIndex: number, secIndex: number, opId: string, secHeading: string, uoId?: string, el?: HTMLTextAreaElement | null) => void;
   onCursorActivity?: (pos: number) => void;
   onCreateSample?: (opIndex: number, secIndex: number, sampleType: string, alias: string, description: string) => void;
   onSearchProducts?: (sampleType: string) => void;
@@ -251,7 +251,7 @@ interface UnitOpSectionTextareaProps {
   content: string;
   showSampleButton?: boolean;
   onUpdateSection: (opIndex: number, secIndex: number, content: string) => void;
-  onSectionFocus?: (opIndex: number, secIndex: number, opId: string, secHeading: string, el?: HTMLTextAreaElement | null) => void;
+  onSectionFocus?: (opIndex: number, secIndex: number, opId: string, secHeading: string, uoId?: string, el?: HTMLTextAreaElement | null) => void;
   onCursorActivity?: (pos: number) => void;
   onCreateSample?: (opIndex: number, secIndex: number, sampleType: string, alias: string, description: string) => void;
   onSearchProducts?: (sampleType: string) => void;
@@ -299,8 +299,8 @@ const UnitOpSectionTextarea = memo(function UnitOpSectionTextarea({
   }, [onCursorActivity]);
 
   const handleFocus = useCallback(() => {
-    onSectionFocus?.(opIndex, secIndex, op.opId, rawHeading, textareaRef.current);
-  }, [onSectionFocus, opIndex, secIndex, op.opId, rawHeading]);
+    onSectionFocus?.(opIndex, secIndex, op.opId, rawHeading, op.id, textareaRef.current);
+  }, [onSectionFocus, opIndex, secIndex, op.opId, op.id, rawHeading]);
 
   const handleCreateSample = useCallback((type: string, alias: string, desc: string) => {
     onCreateSample?.(opIndex, secIndex, type, alias, desc);
@@ -506,7 +506,7 @@ interface SortableUnitOpProps {
   onUpdateSection: (opIndex: number, secIndex: number, content: string) => void;
   onUpdateAlias: (opIndex: number, alias: string) => void;
   onUpdateDescription?: (opIndex: number, opDescription: string) => void;
-  onSectionFocus?: (opIndex: number, secIndex: number, opId: string, secHeading: string, el?: HTMLTextAreaElement | null) => void;
+  onSectionFocus?: (opIndex: number, secIndex: number, opId: string, secHeading: string, uoId?: string, el?: HTMLTextAreaElement | null) => void;
   onCursorActivity?: (pos: number) => void;
   onCreateSample?: (opIndex: number, secIndex: number, sampleType: string, alias: string, description: string) => void;
   onSearchProducts?: (sampleType: string) => void;

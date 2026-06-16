@@ -86,7 +86,7 @@ export type ExtensionToWebviewMessage =
   | { type: 'sampleInserted'; data: { text: string } }
   | { type: 'textInserted'; data: { text: string } }
   | { type: 'workflowAdded'; data: WorkflowReference & { workflow?: WorkflowDocument } }
-  | { type: 'sampleDefinitionCreated'; data: { definitionText: string; opIndex: number; secIndex: number; opId?: string; secHeading?: string } }
+  | { type: 'sampleDefinitionCreated'; data: { definitionText: string; opIndex: number; secIndex: number; opId?: string; uoId?: string; secHeading?: string } }
   | { type: 'documentChanged'; data: { labNote?: LabNoteDocument; workflow?: WorkflowDocument } }
   | { type: 'saveCompleted' }
   | { type: 'saveFailed' }
@@ -119,7 +119,7 @@ export type WebviewToExtensionMessage =
   | { type: 'save'; data: any }
   | { type: 'openAsText' }
   | { type: 'openImagePreview'; data: { imagePath: string; altText?: string } }
-  | { type: 'createSampleFromModal'; data: { sampleType: string; alias: string; description: string; opIndex: number; secIndex: number; opId?: string; secHeading?: string } }
+  | { type: 'createSampleFromModal'; data: { sampleType: string; alias: string; description: string; opIndex: number; secIndex: number; opId?: string; uoId?: string; secHeading?: string } }
   | { type: 'searchProducts'; data: { sampleType: string } }
   | { type: 'addCustomType'; data: { typeName: string } }
   | { type: 'navigateToSample'; data: { sampleId: string; sampleType: string } }

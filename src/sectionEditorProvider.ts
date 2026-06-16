@@ -482,7 +482,7 @@ export class SectionEditorProvider implements vscode.CustomTextEditorProvider {
           // webview resolved at submit time, so the webview can re-locate the
           // target section even if unit operations have been reordered,
           // inserted, or removed in the meantime.
-          const { sampleType: reqType, alias, description, opIndex, secIndex, opId, secHeading } = message.data || {};
+          const { sampleType: reqType, alias, description, opIndex, secIndex, opId, uoId, secHeading } = message.data || {};
           if (!reqType || !this._sampleTreeProvider) break;
 
           const newId = generateSampleId(reqType);
@@ -493,7 +493,7 @@ export class SectionEditorProvider implements vscode.CustomTextEditorProvider {
 
           webviewPanel.webview.postMessage({
             type: 'sampleDefinitionCreated',
-            data: { definitionText, opIndex, secIndex, opId, secHeading },
+            data: { definitionText, opIndex, secIndex, opId, uoId, secHeading },
           });
           webviewPanel.webview.postMessage({
             type: 'sampleDefsUpdated',

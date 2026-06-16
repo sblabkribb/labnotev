@@ -442,7 +442,7 @@ export default function App() {
           // may have reordered or removed unit operations, which would shift
           // the numeric indices. Looking up by id/heading keeps the definition
           // attached to the right section no matter what.
-          const { definitionText, opIndex, secIndex, opId, secHeading } = message.data;
+          const { definitionText, opIndex, secIndex, opId, uoId, secHeading } = message.data;
           const curTarget = activeSectionRef.current;
           // Read the focused textarea's live value/caret once, synchronously, so
           // both the pre-resolve (for pendingCursor) and the setState updater
@@ -451,19 +451,25 @@ export default function App() {
           // after a prior insertion (issues #33, #34); otherwise we fall back to
           // committed content + the tracked caret via resolveInsertPosition.
           const live = readLive(curTarget?.el);
-          const resolveBaseAndPos = (oid: string, heading: string, committedContent: string): { base: string; pos: number } => {
+          // `resolvedUoId` is the unique id of the op we routed to. Issue #34:
+          // guard the live read by uoId (not the reusable opId code) so we only
+          // splice live content when the focused textarea is that exact op.
+          const resolveBaseAndPos = (resolvedUoId: string | undefined, oid: string, heading: string, committedContent: string): { base: string; pos: number } => {
+            const idMatches = resolvedUoId !== undefined && curTarget?.area === 'unitOp' && curTarget.uoId !== undefined
+              ? curTarget.uoId === resolvedUoId
+              : curTarget?.area === 'unitOp' && curTarget.opId === oid;
             if (
               live &&
               curTarget &&
               curTarget.area === 'unitOp' &&
-              curTarget.opId === oid &&
+              idMatches &&
               curTarget.secHeading === heading
             ) {
               return { base: live.value, pos: Math.max(0, Math.min(live.caret, live.value.length)) };
             }
             return {
               base: committedContent,
-              pos: resolveInsertPosition(curTarget, { opId: oid, secHeading: heading }, committedContent),
+              pos: resolveInsertPosition(curTarget, { opId: oid, secHeading: heading, uoId: resolvedUoId }, committedContent),
             };
           };
           // Pre-resolve target section synchronously (same lookup logic as
@@ -474,10 +480,17 @@ export default function App() {
           const preWf = workflowRef.current;
           let preOp: UnitOperationBlock | undefined;
           if (preWf) {
-            let idx = typeof opId === 'string' && opId.length > 0
-              ? preWf.unitOperations.findIndex(o => o.opId === opId)
+            // Issue #34: route by the unique instance id first (uoId), then the
+            // submit-time position (opIndex), and only fall back to the opId
+            // *code* last — the code can repeat across unit ops, so matching it
+            // would target the first duplicate and corrupt the wrong section.
+            let idx = typeof uoId === 'string' && uoId.length > 0
+              ? preWf.unitOperations.findIndex(o => o.id === uoId)
               : -1;
             if (idx < 0 && typeof opIndex === 'number') idx = opIndex;
+            if (idx < 0 && typeof opId === 'string' && opId.length > 0) {
+              idx = preWf.unitOperations.findIndex(o => o.opId === opId);
+            }
             preOp = preWf.unitOperations[idx];
           }
           let preSec: { heading: string; content: string } | undefined;
@@ -490,19 +503,21 @@ export default function App() {
           }
           let pendingDefCursorPos: number | null = null;
           if (preOp && preSec) {
-            const { base: preBase, pos: pPos } = resolveBaseAndPos(preOp.opId, preSec.heading, preSec.content);
+            const { base: preBase, pos: pPos } = resolveBaseAndPos(preOp.id, preOp.opId, preSec.heading, preSec.content);
             const pSep = pPos > 0 && preBase[pPos - 1] !== '\n' ? '\n' : '';
             pendingDefCursorPos = pPos + pSep.length + definitionText.length;
           }
           setWorkflow(prev => {
             if (!prev) return prev;
             const ops = [...prev.unitOperations];
-            let resolvedOpIndex = -1;
-            if (typeof opId === 'string' && opId.length > 0) {
-              resolvedOpIndex = ops.findIndex(o => o.opId === opId);
-            }
+            let resolvedOpIndex = typeof uoId === 'string' && uoId.length > 0
+              ? ops.findIndex(o => o.id === uoId)
+              : -1;
             if (resolvedOpIndex < 0 && typeof opIndex === 'number') {
               resolvedOpIndex = opIndex;
+            }
+            if (resolvedOpIndex < 0 && typeof opId === 'string' && opId.length > 0) {
+              resolvedOpIndex = ops.findIndex(o => o.opId === opId);
             }
             const op = ops[resolvedOpIndex];
             if (!op) return prev;
@@ -521,7 +536,7 @@ export default function App() {
             // back to end-of-section so we don't splice into an unrelated
             // location (e.g. clicking +Sample in section B while the caret
             // lived in section A).
-            const { base, pos } = resolveBaseAndPos(op.opId, sec.heading, sec.content);
+            const { base, pos } = resolveBaseAndPos(op.id, op.opId, sec.heading, sec.content);
             const separator = pos > 0 && base[pos - 1] !== '\n' ? '\n' : '';
             sections[resolvedSecIndex] = {
               ...sec,
@@ -788,10 +803,14 @@ export default function App() {
     const wf = workflowRef.current;
     const op = wf?.unitOperations[opIndex];
     const opId = op?.opId;
+    // Issue #34: opId is an operation *code* that may repeat across unit ops.
+    // Carry the unique instance id (uoId = op.id) so the echoed definition is
+    // routed back to the exact op the user edited, not the first opId match.
+    const uoId = op?.id;
     const secHeading = op?.sections[secIndex]?.heading;
     postMessage({
       type: 'createSampleFromModal',
-      data: { sampleType, alias, description, opIndex, secIndex, opId, secHeading },
+      data: { sampleType, alias, description, opIndex, secIndex, opId, uoId, secHeading },
     });
   }, []);
 
@@ -854,7 +873,12 @@ export default function App() {
         setOpenedOpIds(prevIds => prevIds.filter(id => newIds.has(id)));
         const a = activeSectionRef.current;
         if (a?.area === 'unitOp') {
-          const newIdx = a.opId ? ops.findIndex(o => o.opId === a.opId) : -1;
+          // Issue #34: track the focused op by its unique id (uoId) so that
+          // removing one of several ops sharing the same opId code re-points
+          // to the correct surviving instance, not the first code match.
+          const newIdx = a.uoId
+            ? ops.findIndex(o => o.id === a.uoId)
+            : (a.opId ? ops.findIndex(o => o.opId === a.opId) : -1);
           if (newIdx < 0) {
             activeSectionRef.current = null;
           } else if (newIdx !== a.opIndex) {
@@ -867,8 +891,8 @@ export default function App() {
     markDirty();
   }, [markDirty]);
 
-  const handleUnitOpSectionFocus = useCallback((opIndex: number, secIndex: number, opId: string, secHeading: string, el?: HTMLTextAreaElement | null) => {
-    activeSectionRef.current = { area: 'unitOp', opIndex, secIndex, opId, secHeading, el };
+  const handleUnitOpSectionFocus = useCallback((opIndex: number, secIndex: number, opId: string, secHeading: string, uoId?: string, el?: HTMLTextAreaElement | null) => {
+    activeSectionRef.current = { area: 'unitOp', opIndex, secIndex, opId, uoId, secHeading, el };
   }, []);
 
   const getCursorForUnitOpSection = useCallback((opI: number, secI: number) => {

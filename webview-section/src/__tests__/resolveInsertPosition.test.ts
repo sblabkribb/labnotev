@@ -105,4 +105,49 @@ describe('resolveInsertPosition', () => {
     };
     expect(resolveInsertPosition(active, resolved, secContent)).toBe(0);
   });
+
+  // Issue #34: when both sides carry a unique uoId, matching uses uoId — even
+  // a matching opId code on a different instance must not reuse the caret.
+  it('returns cursorPos when uoId matches on both sides', () => {
+    const active: FocusTarget = {
+      area: 'unitOp',
+      opIndex: 1,
+      secIndex: 1,
+      opId: 'UHW010',
+      uoId: 'unitop-2',
+      secHeading: 'Input',
+      cursorPos: 7,
+    };
+    expect(
+      resolveInsertPosition(active, { opId: 'UHW010', secHeading: 'Input', uoId: 'unitop-2' }, secContent),
+    ).toBe(7);
+  });
+
+  it('falls back to content.length when uoId differs even if opId matches', () => {
+    const active: FocusTarget = {
+      area: 'unitOp',
+      opIndex: 0,
+      secIndex: 1,
+      opId: 'UHW010',
+      uoId: 'unitop-1',
+      secHeading: 'Input',
+      cursorPos: 7,
+    };
+    expect(
+      resolveInsertPosition(active, { opId: 'UHW010', secHeading: 'Input', uoId: 'unitop-2' }, secContent),
+    ).toBe(secContent.length);
+  });
+
+  it('falls back to opId matching when resolved has no uoId (legacy)', () => {
+    const active: FocusTarget = {
+      area: 'unitOp',
+      opIndex: 0,
+      secIndex: 1,
+      opId: 'UHW010',
+      uoId: 'unitop-1',
+      secHeading: 'Input',
+      cursorPos: 7,
+    };
+    expect(resolveInsertPosition(active, resolved, secContent)).toBe(7);
+  });
 });
