@@ -330,6 +330,10 @@ export function parseExperimenterFromReadme(readmeContent: string): string {
     return '';
   }
   
-  const authorMatch = match[0].match(/author:\s*(.+)/i);
+  // Issue #36: anchor the key to the line start and only consume same-line
+  // spaces/tabs. A bare `/author:\s*(.+)/` lets `\s*` cross the newline when
+  // the author value is empty, capturing the next line (e.g.
+  // `experiment_type: labnote`) as the experimenter.
+  const authorMatch = match[0].match(/^author:[ \t]*(.*)$/im);
   return authorMatch ? authorMatch[1].trim() : '';
 }

@@ -41,6 +41,26 @@ end_date: ''
     expect(detectMdFileType(md)).toBe('workflow');
   });
 
+  // Issue #36: a workflow whose experimenter value got polluted with the
+  // literal text "experiment_type: labnote" must still detect as 'workflow'.
+  // The detector must match keys line-anchored, not as a loose substring.
+  it('should detect workflow even when experimenter value contains experiment_type text', async () => {
+    const { detectMdFileType } = await import('../sectionEditorProvider');
+    const md = `---
+title: WD010 Test
+experimenter: experiment_type: labnote
+created_date: 2026-01-01
+last_updated_date: 2026-01-01
+end_date: ''
+---
+
+## [WD010 Test]
+
+> Description
+`;
+    expect(detectMdFileType(md)).toBe('workflow');
+  });
+
   it('should return unknown for non-lab MD files', async () => {
     const { detectMdFileType } = await import('../sectionEditorProvider');
     const md = `# Just a regular markdown file

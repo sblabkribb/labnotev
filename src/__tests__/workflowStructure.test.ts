@@ -166,6 +166,56 @@ describe('Workflow Structure', () => {
     });
   });
 
+  describe('parseExperimenterFromReadme', () => {
+    it('returns the author name when present', async () => {
+      const { parseExperimenterFromReadme } = await import('../lib/workflowStructure');
+
+      const readme = `---
+title: Test
+author: 홍길동
+experiment_type: labnote
+sample_tracking: yes
+---
+`;
+      expect(parseExperimenterFromReadme(readme)).toBe('홍길동');
+    });
+
+    // Issue #36: an empty author line must NOT let the regex spill over the
+    // newline and capture the following `experiment_type: labnote` line.
+    it('returns empty string when author is blank (does not capture next line)', async () => {
+      const { parseExperimenterFromReadme } = await import('../lib/workflowStructure');
+
+      const readme = `---
+title: Test
+author: 
+experiment_type: labnote
+sample_tracking: yes
+---
+`;
+      expect(parseExperimenterFromReadme(readme)).toBe('');
+    });
+  });
+
+  // Issue #36 end-to-end: creating a labnote folder without an author, then a
+  // workflow, must still produce a file that detects as 'workflow' (not
+  // 'labnote') so the Workflow Section Editor opens and unit-op insertion works.
+  describe('empty-author workflow creation (issue #36)', () => {
+    it('produces a workflow-detected file when the labnote README has no author', async () => {
+      const { generateReadmeContent } = await import('../lib/labnoteStructure');
+      const { parseExperimenterFromReadme, createWorkflowContent } = await import('../lib/workflowStructure');
+      const { detectMdFileType } = await import('../sectionEditorProvider');
+
+      const readme = generateReadmeContent('My Experiment', '');
+      const experimenter = parseExperimenterFromReadme(readme);
+      const workflowContent = createWorkflowContent(
+        { id: 'WD010', name: 'General Design', description: 'Desc' },
+        experimenter,
+      );
+
+      expect(detectMdFileType(workflowContent)).toBe('workflow');
+    });
+  });
+
   describe('createWorkflowFileName', () => {
     it('should create filename with .labnote.md extension', async () => {
       const { createWorkflowFileName } = await import('../lib/workflowStructure');

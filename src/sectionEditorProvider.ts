@@ -144,8 +144,11 @@ export function detectMdFileType(content: string): MdFileType {
   const fmMatch = content.replace(/\r\n/g, '\n').match(/^---\n([\s\S]*?)\n---/);
   if (!fmMatch) return 'unknown';
   const yaml = fmMatch[1];
-  if (/experiment_type:\s*labnote/i.test(yaml)) return 'labnote';
-  if (/experimenter:/i.test(yaml)) return 'workflow';
+  // Issue #36: match keys line-anchored so a value that happens to contain the
+  // substring (e.g. a polluted `experimenter: experiment_type: labnote`) cannot
+  // trigger a false labnote classification.
+  if (/^experiment_type:\s*labnote/im.test(yaml)) return 'labnote';
+  if (/^experimenter:/im.test(yaml)) return 'workflow';
   return 'unknown';
 }
 
