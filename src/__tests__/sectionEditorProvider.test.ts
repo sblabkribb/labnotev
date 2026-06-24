@@ -97,6 +97,73 @@ Some content here.
     expect(block.sections.some(s => s.heading === 'Discussion')).toBe(true);
   });
 
+  // Issue #37: the tree-view "insert unit operation" command must resolve the
+  // target workflow document even when the single-slot tracking
+  // (activeEditor / _lastActiveEditor) is empty — e.g. focus moved to the
+  // sidebar and a previously-closed editor cleared `_lastActiveEditor`. The
+  // authoritative live set `_allEditors` still holds the open workflow editor
+  // (with its resolve-time mode='workflow'), so picking must scan it.
+  describe('pickWorkflowDocument', () => {
+    const wfContent = `---
+title: WD010 Test
+experimenter: Tester
+---
+`;
+    const readmeContent = `---
+title: Test
+experiment_type: labnote
+---
+`;
+    const makeEditor = (mode: 'labnote' | 'workflow' | 'unknown', content: string, fsPath: string) => ({
+      document: {
+        getText: () => content,
+        uri: { fsPath, toString: () => `file://${fsPath}` },
+      },
+      mode,
+    }) as any;
+
+    it('returns the tracked document when its cached mode is workflow (fast path)', async () => {
+      const { pickWorkflowDocument, detectMdFileType } = await import('../sectionEditorProvider');
+      const wf = makeEditor('workflow', wfContent, '/ws/labnote/001_X/001_WD010.labnote.md');
+      expect(pickWorkflowDocument(wf, [wf], detectMdFileType)).toBe(wf.document);
+    });
+
+    it('returns an open workflow editor from _allEditors when no slot is tracked', async () => {
+      const { pickWorkflowDocument, detectMdFileType } = await import('../sectionEditorProvider');
+      const wf = makeEditor('workflow', wfContent, '/ws/labnote/001_X/001_WD010.labnote.md');
+      // tracked undefined (slots cleared) but the live editor survives.
+      expect(pickWorkflowDocument(undefined, [wf], detectMdFileType)).toBe(wf.document);
+    });
+
+    it('returns the tracked document when mode is stale labnote but content detects workflow', async () => {
+      const { pickWorkflowDocument, detectMdFileType } = await import('../sectionEditorProvider');
+      const stale = makeEditor('labnote', wfContent, '/somewhere/odd/001_WD010.labnote.md');
+      expect(pickWorkflowDocument(stale, [stale], detectMdFileType)).toBe(stale.document);
+    });
+
+    it('returns undefined when only a labnote README is open', async () => {
+      const { pickWorkflowDocument, detectMdFileType } = await import('../sectionEditorProvider');
+      const readme = makeEditor('labnote', readmeContent, '/ws/labnote/001_X/README.labnote.md');
+      expect(pickWorkflowDocument(readme, [readme], detectMdFileType)).toBeUndefined();
+    });
+
+    it('returns undefined when there are no editors at all', async () => {
+      const { pickWorkflowDocument, detectMdFileType } = await import('../sectionEditorProvider');
+      expect(pickWorkflowDocument(undefined, [], detectMdFileType)).toBeUndefined();
+    });
+  });
+
+  it('should expose getActiveWorkflowDocument returning undefined when no document is active', async () => {
+    const { SectionEditorProvider } = await import('../sectionEditorProvider');
+    const mockContext = {
+      subscriptions: [],
+      extensionUri: { fsPath: '/test' },
+      extensionPath: '/test',
+    } as any;
+    const provider = new SectionEditorProvider(mockContext);
+    expect(provider.getActiveWorkflowDocument()).toBeUndefined();
+  });
+
   it('should expose getActiveDocument returning undefined when no document is active', async () => {
     const { SectionEditorProvider } = await import('../sectionEditorProvider');
     const mockContext = {
@@ -181,5 +248,53 @@ end_date: ''
     expect(replaceArgs[2]).toContain('HW001');
     expect(replaceArgs[2]).toContain('Centrifugation');
     expect(mockVscode.workspace.applyEdit).toHaveBeenCalled();
+  });
+
+  // Issue #37: after a tree-view insert, the webview must refresh even when the
+  // target editor is not the active slot (focus on sidebar / slots cleared).
+  // appendUnitOpToDocument must post `unitOpAdded` to the panel owning the
+  // document, resolved via _allEditors — not only when it is `activeEditor`.
+  it('posts unitOpAdded to the owning panel even when no slot is active', async () => {
+    const { SectionEditorProvider, buildUnitOperationBlock } = await import('../sectionEditorProvider');
+    const mockContext = {
+      subscriptions: [],
+      extensionUri: { fsPath: '/test' },
+      extensionPath: '/test',
+    } as any;
+    const provider = new SectionEditorProvider(mockContext);
+
+    const content = `---
+title: WD010 Test
+experimenter: Tester
+---
+
+## [WD010 Test]
+
+## Related Unit Operations
+
+`;
+    const mockDoc = {
+      uri: { fsPath: '/test.labnote.md', toString: () => 'file:///test.labnote.md' },
+      getText: vi.fn(() => content),
+      positionAt: vi.fn((offset: number) => ({ line: 0, character: offset })),
+    } as any;
+
+    const postMessage = vi.fn();
+    const editor = {
+      document: mockDoc,
+      webviewPanel: { webview: { postMessage } },
+      mode: 'workflow',
+    };
+    // Simulate slots cleared (focus on sidebar) while the editor stays live.
+    (provider as any).activeEditor = undefined;
+    (provider as any)._lastActiveEditor = undefined;
+    (provider as any)._allEditors = new Set([editor]);
+
+    const block = buildUnitOperationBlock('HW001', 'Centrifugation', 'desc', 'hw', 'Tester');
+    await provider.appendUnitOpToDocument(mockDoc, block);
+
+    expect(postMessage).toHaveBeenCalledWith(
+      expect.objectContaining({ type: 'unitOpAdded' })
+    );
   });
 });

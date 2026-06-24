@@ -152,6 +152,33 @@ export function detectMdFileType(content: string): MdFileType {
   return 'unknown';
 }
 
+type WfEditorLike = { document: vscode.TextDocument; mode: MdFileType };
+
+/**
+ * Issue #37: resolve the workflow document a TreeView insert command should
+ * target. The tracked single slot (activeEditor / _lastActiveEditor) can be
+ * empty even while a workflow editor is open (e.g. focus moved to the sidebar
+ * and a previously-closed editor cleared `_lastActiveEditor`). Scanning the
+ * authoritative live set `_allEditors` recovers the open workflow editor.
+ *
+ * Workflow-ness is determined by the cached mode OR a fresh content detection,
+ * so the result is independent of folder naming and robust to a stale/mis-cached
+ * mode (e.g. an editor left open from before the #36 detection fix).
+ */
+export function pickWorkflowDocument(
+  tracked: WfEditorLike | undefined,
+  all: WfEditorLike[],
+  detect: (text: string) => MdFileType,
+): vscode.TextDocument | undefined {
+  const isWf = (e: WfEditorLike) =>
+    e.mode === 'workflow' || detect(e.document.getText()) === 'workflow';
+  if (tracked && isWf(tracked)) return tracked.document;
+  for (let i = all.length - 1; i >= 0; i--) {
+    if (isWf(all[i])) return all[i].document;
+  }
+  return undefined;
+}
+
 /**
  * Read the user's `labnotev.customSampleTypes` config and funnel it through
  * the single `getSampleDisplayMeta` entry point. All call sites that need
@@ -223,6 +250,15 @@ export class SectionEditorProvider implements vscode.CustomTextEditorProvider {
 
   public getEditorMode(): MdFileType | undefined {
     return (this.activeEditor ?? this._lastActiveEditor)?.mode;
+  }
+
+  /**
+   * Issue #37: the open workflow document for TreeView insert commands, resolved
+   * robustly across the live editor set (not just the single tracked slot).
+   */
+  public getActiveWorkflowDocument(): vscode.TextDocument | undefined {
+    const tracked = this.activeEditor ?? this._lastActiveEditor;
+    return pickWorkflowDocument(tracked, [...this._allEditors], detectMdFileType);
   }
 
   public getDocumentFolder(): string | undefined {
@@ -342,12 +378,28 @@ export class SectionEditorProvider implements vscode.CustomTextEditorProvider {
       this._suppressedDocs.delete(docKey);
     }
 
-    if (this.activeEditor?.document === document) {
-      this.activeEditor.webviewPanel.webview.postMessage({
+    // Issue #37: refresh the panel owning this document even if it is not the
+    // active slot (tree-view insert leaves focus on the sidebar). The self-edit
+    // suppresses the generic `documentChanged` sync, so `unitOpAdded` is the
+    // only refresh signal — it must reach the right webview.
+    const target = this.getEditorForDocument(document);
+    if (target) {
+      target.webviewPanel.webview.postMessage({
         type: 'unitOpAdded',
         data: unitOp,
       });
     }
+  }
+
+  private getEditorForDocument(
+    document: vscode.TextDocument
+  ): ActiveEditor | undefined {
+    if (this.activeEditor?.document === document) return this.activeEditor;
+    if (this._lastActiveEditor?.document === document) return this._lastActiveEditor;
+    for (const editor of this._allEditors) {
+      if (editor.document === document) return editor;
+    }
+    return undefined;
   }
 
   public async insertSampleIntoDocument(

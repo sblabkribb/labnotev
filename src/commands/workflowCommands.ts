@@ -251,9 +251,11 @@ export function registerWorkflowCommands(
   // Register insert unit operation command
   context.subscriptions.push(
     vscode.commands.registerCommand('labnotev.insertUnitOperation', async (item: WorkflowTreeItem | { opId: string; opName: string; opDescription: string; opType: 'hw' | 'sw'; equipment?: string; software?: string }) => {
-      // Check section editor first
-      if (sectionEditorProvider?.getEditorMode() === 'workflow') {
-        const secDoc = sectionEditorProvider.getActiveDocument();
+      // Check section editor first. Resolve the open workflow document robustly
+      // (Issue #37) so a tree-view insert works even when the active/last slot
+      // is empty (focus on sidebar / a previously-closed editor cleared it).
+      {
+        const secDoc = sectionEditorProvider?.getActiveWorkflowDocument();
         if (secDoc) {
           const opId = item.opId || (item as any).opId;
           const opName = item.opName || (item as any).opName;
@@ -272,7 +274,7 @@ export function registerWorkflowCommands(
           }
           const { buildUnitOperationBlock } = await import('../sectionEditorProvider');
           const block = buildUnitOperationBlock(opId, opName, opDescription || '', opType, experimenter);
-          await sectionEditorProvider.appendUnitOpToDocument(secDoc, block);
+          await sectionEditorProvider?.appendUnitOpToDocument(secDoc, block);
           vscode.window.showInformationMessage(
             vscode.l10n.t('Unit operation inserted: {0} {1}', opId, opName)
           );

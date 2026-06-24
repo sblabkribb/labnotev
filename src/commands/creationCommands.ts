@@ -302,9 +302,10 @@ export function registerCreationCommands(
 
       const op = selectedOp.operation;
 
-      // Section Editor path
-      if (sectionEditorProvider?.getEditorMode() === 'workflow') {
-        const secDoc = sectionEditorProvider.getActiveDocument();
+      // Section Editor path. Resolve the open workflow document robustly
+      // (Issue #37) so insertion works even when the active/last slot is empty.
+      {
+        const secDoc = sectionEditorProvider?.getActiveWorkflowDocument();
         if (secDoc) {
           const dir = path.dirname(secDoc.uri.fsPath);
           const readmePath = path.join(dir, 'README.labnote.md');
@@ -314,7 +315,7 @@ export function registerCreationCommands(
           }
           const { buildUnitOperationBlock } = await import('../sectionEditorProvider');
           const block = buildUnitOperationBlock(op.id, op.name, op.description || '', opType as 'hw' | 'sw', experimenter);
-          await sectionEditorProvider.appendUnitOpToDocument(secDoc, block);
+          await sectionEditorProvider?.appendUnitOpToDocument(secDoc, block);
           vscode.window.showInformationMessage(
             vscode.l10n.t('Unit operation inserted: {0} {1}', op.id, op.name)
           );
