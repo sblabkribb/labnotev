@@ -241,7 +241,7 @@ export function serializeWorkflowMd(doc: WorkflowDocument): string {
   parts.push('');
   if (doc.unitOperations.length > 0) {
     for (const op of doc.unitOperations) {
-      const label = `${op.opId} ${op.opName}`;
+      const label = `${op.opId} ${op.opName}${op.alias ? ' | ' + op.alias : ''}`;
       const headingText = `[${op.opId} ${op.opName}]${op.alias ? ' ' + op.alias : ''}`;
       const slug = headingText.toLowerCase().replace(/[^\w\s-]/g, '').replace(/\s+/g, '-').replace(/^-+|-+$/g, '');
       parts.push(`- [${label}](#${slug})`);

@@ -288,6 +288,68 @@ end_date: ''
       const md = serializeWorkflowMd(doc);
       expect(md).toContain('---');
     });
+
+    // Issue #35: the auto-generated "Related Unit Operations" TOC link text must
+    // include the per-instance step name (alias), formatted as
+    // `{opId} {opName} | {alias}`.
+    const WORKFLOW_WITH_ALIAS = `---
+title: WB150 Test
+experimenter: 홍길동
+created_date: 2026-01-15
+last_updated_date: 2026-01-20
+end_date: ''
+---
+
+## [WB150 Test]
+
+> Test workflow
+
+## Related Unit Operations
+
+---
+
+### [UHW400 Manual] Oligo Pool Resuspension
+
+> Resuspend
+
+#### Method
+- step
+
+---
+
+### [UHW010 Liquid Handling]
+
+> No alias here
+
+#### Method
+- step
+`;
+
+    it('should include the step name (alias) in the TOC link label', () => {
+      const doc = parseWorkflowMd(WORKFLOW_WITH_ALIAS);
+      const md = serializeWorkflowMd(doc);
+      expect(md).toContain('- [UHW400 Manual | Oligo Pool Resuspension](#');
+    });
+
+    it('should keep the TOC label as "{opId} {opName}" without a trailing " | " when there is no alias', () => {
+      const doc = parseWorkflowMd(WORKFLOW_WITH_ALIAS);
+      const md = serializeWorkflowMd(doc);
+      const tocLines = md.split('\n').filter(l => l.startsWith('- ['));
+      const noAliasLine = tocLines.find(l => l.includes('UHW010 Liquid Handling'));
+      expect(noAliasLine).toBeDefined();
+      expect(noAliasLine).toContain('- [UHW010 Liquid Handling](#');
+      expect(noAliasLine).not.toContain('|');
+    });
+
+    it('should keep the TOC anchor pointing at the (alias-inclusive) heading slug', () => {
+      const doc = parseWorkflowMd(WORKFLOW_WITH_ALIAS);
+      const md = serializeWorkflowMd(doc);
+      // The alias-bearing op serializes its heading as "### [UHW400 Manual] Oligo Pool Resuspension".
+      // Its GitHub-style slug removes brackets/pipes and joins words with hyphens.
+      const expectedSlug = 'uhw400-manual-oligo-pool-resuspension';
+      expect(md).toContain('### [UHW400 Manual] Oligo Pool Resuspension');
+      expect(md).toContain(`](#${expectedSlug})`);
+    });
   });
 
   describe('validateWorkflowDocument', () => {

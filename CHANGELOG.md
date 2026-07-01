@@ -5,6 +5,11 @@
 형식은 [Keep a Changelog](https://keepachangelog.com/ko/1.1.0/)를 기반으로 하며,
 이 프로젝트는 [유의적 버전 관리](https://semver.org/lang/ko/)를 따릅니다.
 
+## [0.64.0] - 2026-07-01
+
+### Changed
+- **Related Unit Operations 목차 링크에 단계명 포함 (#35)**: 워크플로 파일 상단에 자동 생성되는 "Related Unit Operations" 목차 링크가 기존 `{오퍼레이션 코드} {오퍼레이션 이름}`(예: `UHW010 Liquid Handling`)에서, 각 단계의 사용자 지정 단계명(alias)이 있으면 `{코드} {이름} | {단계명}`(예: `UHW400 Manual | Oligo Pool Resuspension`)으로 표시되도록 개선. 단계명이 없는 오퍼레이션은 기존과 동일하게 표시되며, 목차 클릭 시 이동하는 앵커 링크는 그대로 동작
+
 ## [0.63.4] - 2026-06-25
 
 ### Fixed
