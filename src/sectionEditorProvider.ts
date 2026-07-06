@@ -12,7 +12,7 @@ import { showProductPicker } from './lib/productPicker';
 import { parseWorkflowChecklistFromReadme, generateWorkflowChecklist, updateReadmeWorkflowSection } from './lib/workflowStructure';
 import type { SampleTreeViewProvider } from './views/SampleTreeViewProvider';
 import { isPathInsideDir, resolveContainedPath } from './lib/isPathInsideDir';
-import { buildInDocDirAttachmentMarkdownLink } from './lib/attachmentMarkdownLink';
+import { buildInDocDirAttachmentMarkdownLink, formatAttachmentMarkdown } from './lib/attachmentMarkdownLink';
 import { buildSampleDefMap } from './lib/dataLoader';
 import { openFileInOsDefaultApp } from './lib/openInOs';
 import { buildSwUnitOpSections, buildHwUnitOpSections } from './lib/unitOpTemplate';
@@ -658,7 +658,7 @@ export class SectionEditorProvider implements vscode.CustomTextEditorProvider {
             const destPath = getUniqueAttachmentDestPath(attachDir, baseName);
             fs.copyFileSync(selectedPath, destPath);
             const destName = path.basename(destPath);
-            markdownLink = `[${destName}](resources/attachments/${destName})`;
+            markdownLink = formatAttachmentMarkdown(destName, `resources/attachments/${destName}`);
           }
 
           webviewPanel.webview.postMessage({

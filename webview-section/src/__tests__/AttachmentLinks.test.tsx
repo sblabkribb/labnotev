@@ -43,6 +43,11 @@ See [report](resources/attachments/report.pdf)
     expect(parseResourceAttachmentLinks('[wf](./001_WD010_Design.labnote.md)')).toEqual([]);
   });
 
+  it('decodes %20/%28/%29 in attachment hrefs (Issue #37)', () => {
+    const links = parseResourceAttachmentLinks('[my file](resources/attachments/my%20file%20%281%29.pdf)');
+    expect(links.map(l => l.path)).toEqual(['resources/attachments/my file (1).pdf']);
+  });
+
   it('returns empty when no resource links', () => {
     expect(parseResourceAttachmentLinks('hello ![](images/a.png)')).toEqual([]);
   });
@@ -64,6 +69,17 @@ describe('AttachmentLinks', () => {
     expect(vscodeApi.postMessage).toHaveBeenCalledWith({
       type: 'openAttachment',
       data: { path: 'resources/attachments/doc.pdf' },
+    });
+  });
+
+  it('posts the decoded path when the href is percent-encoded (Issue #37)', () => {
+    render(<AttachmentLinks content="- [doc v2](resources/attachments/doc%20v2.pdf)" />, { wrapper });
+    const link = screen.getByText('doc v2').closest('a');
+    expect(link).toBeTruthy();
+    fireEvent.click(link!);
+    expect(vscodeApi.postMessage).toHaveBeenCalledWith({
+      type: 'openAttachment',
+      data: { path: 'resources/attachments/doc v2.pdf' },
     });
   });
 });

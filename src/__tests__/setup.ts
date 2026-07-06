@@ -195,10 +195,31 @@ export const mockVscode = {
       fsPath: path,
       toString: () => `file://${path}`,
     })),
+    parse: vi.fn((value: string) => ({
+      toString: () => value,
+      value,
+    })),
     joinPath: vi.fn((base: { fsPath: string }, ...paths: string[]) => ({
       fsPath: [base.fsPath, ...paths].join('/'),
       toString: () => `file://${[base.fsPath, ...paths].join('/')}`,
     })),
+  },
+  Position: class MockPosition {
+    line: number;
+    character: number;
+    constructor(line: number, character: number) {
+      this.line = line;
+      this.character = character;
+    }
+  },
+  DocumentLink: class MockDocumentLink {
+    range: unknown;
+    target: unknown;
+    tooltip?: string;
+    constructor(range: unknown, target?: unknown) {
+      this.range = range;
+      this.target = target;
+    }
   },
   Range: class MockRange {
     start: { line: number; character: number };

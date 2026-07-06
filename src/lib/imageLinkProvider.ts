@@ -1,5 +1,6 @@
 import * as vscode from 'vscode';
 import * as path from 'path';
+import { decodeAttachmentHref } from './attachmentMarkdownLink';
 
 /**
  * DocumentLinkProvider for markdown image links
@@ -38,14 +39,17 @@ export class ImageLinkProvider implements vscode.DocumentLinkProvider {
           const endPos = new vscode.Position(lineNum, match.index + match[0].length);
           const range = new vscode.Range(startPos, endPos);
           
-          // Resolve the image path relative to document
+          // Resolve the image path relative to document. Issue #37: hrefs are
+          // stored percent-encoded (`%20` etc.), so decode before touching the
+          // filesystem while keeping the highlight range on the original match.
+          const decodedPath = decodeAttachmentHref(imagePath);
           const documentDir = path.dirname(document.uri.fsPath);
-          const absoluteImagePath = path.isAbsolute(imagePath) 
-            ? imagePath 
-            : path.resolve(documentDir, imagePath);
+          const absoluteImagePath = path.isAbsolute(decodedPath) 
+            ? decodedPath 
+            : path.resolve(documentDir, decodedPath);
           
           const imageUri = vscode.Uri.file(absoluteImagePath);
-          const altText = match[1] || path.basename(imagePath);
+          const altText = match[1] || path.basename(decodedPath);
           
           // Create link with command URI
           const commandUri = vscode.Uri.parse(

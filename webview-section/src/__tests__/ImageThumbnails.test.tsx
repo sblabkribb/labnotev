@@ -25,4 +25,9 @@ describe('parseImageLinks', () => {
   it('does not collect non-image file links', () => {
     expect(parseImageLinks('[doc](resources/attachments/doc.pdf)')).toEqual([]);
   });
+
+  it('decodes %20/%28/%29 in image hrefs (Issue #37)', () => {
+    const md = '![shot](images/fig%20%281%29.png)';
+    expect(parseImageLinks(md)).toEqual([{ path: 'images/fig (1).png', alt: 'shot' }]);
+  });
 });
