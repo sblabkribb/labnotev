@@ -1,6 +1,6 @@
 # Labnote Assistant (LabnoteV)
 
-**v0.65.0** · [English → README.md](README.md)
+**v0.66.0** · [English → README.md](README.md)
 
 VS Code에서 실험 노트를 마크다운으로 작성할 수 있도록 돕는 확장입니다. `.labnote.md` 파일을 Section Editor(웹뷰 기반 구조화 편집기)로 열어 Front Matter 폼, 워크플로 체크리스트, 유닛 오퍼레이션 아코디언, 샘플 정의 버튼, 이미지 붙여넣기/썸네일 등 실험 기록에 최적화된 UI를 제공합니다.
 
@@ -68,6 +68,7 @@ VS Code에서 실험 노트를 마크다운으로 작성할 수 있도록 돕는
 - **Experiment Objective**: 실험 목적을 자유롭게 작성하는 textarea
 - **Related Workflows**: 연결된 워크플로 체크리스트
   - 워크플로 제목 클릭 시 해당 워크플로 `.labnote.md` 파일을 Section Editor로 열기
+  - 각 항목의 위/아래 화살표 버튼으로 워크플로 순서를 변경할 수 있음. README의 목록 순서만 바뀌며 파일명과 번호는 그대로 유지됨
   - 저장 시 `## Related Unit Operations` 아래에 각 워크플로·유닛 오퍼레이션으로 점프할 수 있는 **목차(앵커 링크)**가 자동 생성되며, 마크다운 미리보기에서 링크를 클릭하면 해당 헤딩으로 이동할 수 있음
 - **Results & Discussion**: 실험 결과 및 논의 작성 영역
 - **Summary and Discussion**: 실험 전체 요약 작성 영역
