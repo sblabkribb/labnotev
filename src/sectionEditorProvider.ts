@@ -606,6 +606,11 @@ export class SectionEditorProvider implements vscode.CustomTextEditorProvider {
           break;
         }
 
+        case 'renumberWorkflows': {
+          await vscode.commands.executeCommand('labnotev.renumberWorkflows', document.uri);
+          break;
+        }
+
         case 'pasteImage': {
           const { imageBase64, mimeType } = message.data || {};
           if (!imageBase64) break;

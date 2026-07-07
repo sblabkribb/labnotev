@@ -1,6 +1,6 @@
 # Labnote Assistant (LabnoteV)
 
-**v0.66.0** · [한국어 → README.ko.md](README.ko.md)
+**v0.67.0** · [한국어 → README.ko.md](README.ko.md)
 
 A VS Code extension that helps you write experiment notes in Markdown. It opens `.labnote.md` files in a webview-based Section Editor, providing a UI optimized for lab note keeping — Front Matter forms, workflow checklists, unit operation accordions, sample definition buttons, clipboard image paste/thumbnails, and more.
 
@@ -69,6 +69,7 @@ When you open a `.labnote.md` file, the Section Editor is shown automatically. I
 - **Related Workflows**: checklist of linked workflows.
   - Clicking a workflow title opens that workflow's `.labnote.md` in the Section Editor.
   - Use the up/down arrow buttons on each item to reorder workflows. Only the list order in the README changes; file names and their numbers stay the same.
+  - To make the file numbers follow the list order, use the "Renumber" button in the Related Workflows header (also available via the Command Palette "Labnote: Renumber Workflows" or by right-clicking the README in the Explorer). This renames the workflow files' `NNN` prefixes to 001..N to match the current order.
   - On save, a `## Related Unit Operations` section is generated below the checklist with anchor links to each workflow and unit operation. The Markdown preview can be used to navigate to those headings.
 - **Results & Discussion**: free-form textarea for experiment results and discussion.
 - **Summary and Discussion**: free-form textarea for the overall experiment summary.

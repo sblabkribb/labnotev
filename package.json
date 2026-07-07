@@ -2,7 +2,7 @@
   "name": "labnotev",
   "displayName": "Labnote Assistant",
   "description": "Markdown-based lab notebook with sample tracking, workflow checklists, and a structured Section Editor for biology and bioinformatics experiments.",
-  "version": "0.66.0",
+  "version": "0.67.0",
   "license": "MIT",
   "publisher": "korea-biofoundry",
   "icon": "resources/icons/labnotev-128.png",
@@ -190,6 +190,10 @@
         "title": "%labnotev.cmd.renameWorkflow.title%"
       },
       {
+        "command": "labnotev.renumberWorkflows",
+        "title": "%labnotev.cmd.renumberWorkflows.title%"
+      },
+      {
         "command": "labnotev.addWorkflowItem",
         "title": "%labnotev.cmd.addWorkflowItem.title%",
         "icon": "$(add)"
@@ -339,6 +343,11 @@
         {
           "command": "labnotev.renameWorkflow",
           "when": "resourceFilename =~ /^\\d{3}_.+\\.labnote\\.md$/",
+          "group": "7_modification"
+        },
+        {
+          "command": "labnotev.renumberWorkflows",
+          "when": "resourceFilename =~ /^README\\.labnote\\.md$/i",
           "group": "7_modification"
         }
       ]

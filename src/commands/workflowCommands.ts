@@ -20,6 +20,7 @@ import {
 } from '../lib/workflowDataLoader';
 import {
   isValidWorkflowPath,
+  isValidReadmePath,
   getNextWorkflowNumber,
   createWorkflowContent,
   createWorkflowFileName,
@@ -33,6 +34,7 @@ import {
   WorkflowChecklistItem,
 } from '../lib/workflowStructure';
 import { planRenameWorkflow, type RenameWorkflowErrorCode } from '../lib/workflowRename';
+import { planRenumberWorkflows, type RenumberError } from '../lib/workflowRenumber';
 import { buildSwUnitOpMarkdown, buildHwUnitOpMarkdown } from '../lib/unitOpTemplate';
 import { getSeoulDateTimeString as getDateTime } from '../lib/dateUtils';
 import {
@@ -506,6 +508,171 @@ export function registerWorkflowCommands(
       }
     })
   );
+
+  // Issue #38 follow-up (C option): renumber workflow files so their `NNN`
+  // sequence prefixes match the current README checklist order. Reordering
+  // stays a pure webview action; this command aligns the on-disk numbers on
+  // demand. Available from the Command Palette, the README Explorer context
+  // menu, and the webview's Related Workflows section.
+  context.subscriptions.push(
+    vscode.commands.registerCommand('labnotev.renumberWorkflows', async (uri?: vscode.Uri) => {
+      const readmeUri = resolveReadmeUri(uri, sectionEditorProvider);
+      if (!readmeUri) {
+        vscode.window.showWarningMessage(vscode.l10n.t('Please open README.labnote.md.'));
+        return;
+      }
+      const dirPath = path.dirname(readmeUri.fsPath);
+
+      // Save the README first: a pending webview reorder may not be flushed
+      // yet, and reading the live (saved) text guarantees we renumber the
+      // order the user actually sees.
+      const readmeDoc = await vscode.workspace.openTextDocument(readmeUri);
+      if (readmeDoc.isDirty) {
+        await readmeDoc.save();
+      }
+      const readmeContent = readmeDoc.getText();
+      const items = parseWorkflowChecklistFromReadme(readmeContent);
+
+      let diskWorkflowFiles: string[] = [];
+      try {
+        diskWorkflowFiles = fs
+          .readdirSync(dirPath)
+          .filter(f => f.toLowerCase() !== 'readme.labnote.md' && parseWorkflowFileName(f) !== null);
+      } catch {
+        diskWorkflowFiles = [];
+      }
+
+      const plan = planRenumberWorkflows({ items, diskWorkflowFiles });
+      if ('error' in plan) {
+        vscode.window.showWarningMessage(renumberWorkflowErrorMessage(plan.error));
+        return;
+      }
+      if (!plan.changed) {
+        vscode.window.showInformationMessage(
+          vscode.l10n.t('Workflow numbers already match the list order.')
+        );
+        return;
+      }
+
+      const confirm = await vscode.window.showWarningMessage(
+        vscode.l10n.t('Renumber {0} workflow file(s) to match the README order?', plan.renames.length),
+        { modal: true },
+        vscode.l10n.t('Renumber')
+      );
+      if (!confirm) return;
+
+      try {
+        // Save any dirty open editors for the files we are about to move so
+        // the rename does not collide with in-memory edits.
+        for (const r of plan.renames) {
+          const oldPath = path.join(dirPath, r.oldFileName);
+          const openDoc = vscode.workspace.textDocuments.find(d => d.uri.fsPath === oldPath);
+          if (openDoc && openDoc.isDirty) {
+            await openDoc.save();
+          }
+        }
+
+        // Two-phase rename via unique temp names avoids collisions when the
+        // new numbering forms a cycle/swap (e.g. 001<->002). `fs.rename` keeps
+        // open editors' URIs in sync so the Section Editor follows along.
+        const staged: { tempUri: vscode.Uri; finalUri: vscode.Uri }[] = [];
+        for (let i = 0; i < plan.renames.length; i++) {
+          const r = plan.renames[i];
+          const oldUri = vscode.Uri.file(path.join(dirPath, r.oldFileName));
+          const tempUri = vscode.Uri.file(path.join(dirPath, `${r.oldFileName}.renumber-tmp-${i}`));
+          await vscode.workspace.fs.rename(oldUri, tempUri, { overwrite: false });
+          staged.push({ tempUri, finalUri: vscode.Uri.file(path.join(dirPath, r.newFileName)) });
+        }
+        try {
+          for (const s of staged) {
+            await vscode.workspace.fs.rename(s.tempUri, s.finalUri, { overwrite: false });
+          }
+        } catch (renameError) {
+          // Best-effort cleanup: restore any temp file that has not reached its
+          // final name so we do not leave dangling `*.renumber-tmp-*` files.
+          for (const s of staged) {
+            try {
+              await vscode.workspace.fs.stat(s.tempUri);
+              await vscode.workspace.fs.rename(s.tempUri, s.finalUri, { overwrite: false });
+            } catch {
+              // ignore; the file was already moved or cannot be recovered here
+            }
+          }
+          throw renameError;
+        }
+
+        // README update last so a mid-flight failure leaves only stale README
+        // links (recoverable by re-running the command).
+        const currentText = readmeDoc.getText();
+        const newReadme = updateReadmeWorkflowSection(
+          currentText,
+          generateWorkflowChecklist(plan.newItems)
+        );
+        const edit = new vscode.WorkspaceEdit();
+        edit.replace(
+          readmeUri,
+          new vscode.Range(readmeDoc.positionAt(0), readmeDoc.positionAt(currentText.length)),
+          newReadme
+        );
+        await vscode.workspace.applyEdit(edit);
+        await readmeDoc.save();
+
+        vscode.window.showInformationMessage(
+          vscode.l10n.t('Renumbered {0} workflow(s).', plan.renames.length)
+        );
+      } catch (error) {
+        vscode.window.showErrorMessage(
+          vscode.l10n.t('Failed to renumber workflows: {0}', String(error))
+        );
+      }
+    })
+  );
+}
+
+/**
+ * Resolve the README.labnote.md URI for the renumber command. Accepts an
+ * Explorer/webview argument (README itself or a sibling labnote file) and
+ * falls back to the active labnote edit target (README text editor or Section
+ * Editor document).
+ */
+function resolveReadmeUri(
+  uri: vscode.Uri | undefined,
+  sectionEditorProvider: SectionEditorProvider | undefined
+): vscode.Uri | undefined {
+  if (uri && isValidReadmePath(uri.fsPath)) {
+    return uri;
+  }
+  const target = getActiveLabnoteEditTarget(sectionEditorProvider);
+  if (target) {
+    const readmePath = path.join(labnoteDirFromTarget(target), 'README.labnote.md');
+    if (fs.existsSync(readmePath)) return vscode.Uri.file(readmePath);
+  }
+  if (uri) {
+    const sibling = path.join(path.dirname(uri.fsPath), 'README.labnote.md');
+    if (fs.existsSync(sibling)) return vscode.Uri.file(sibling);
+  }
+  return undefined;
+}
+
+/**
+ * Map a {@link RenumberError} to a localised, user-facing message. The English
+ * source strings double as keys for the VS Code l10n bundle.
+ */
+function renumberWorkflowErrorMessage(error: RenumberError): string {
+  const list = (error.details ?? []).join(', ');
+  switch (error.code) {
+    case 'no_items':
+      return vscode.l10n.t('No workflows to renumber.');
+    case 'invalid_filename':
+      return vscode.l10n.t('Cannot renumber: these entries are not workflow files: {0}', list);
+    case 'missing_files':
+      return vscode.l10n.t('Cannot renumber: these listed files are missing on disk: {0}', list);
+    case 'orphan_files':
+      return vscode.l10n.t(
+        'Cannot renumber: these workflow files are not in the README list: {0}. Add them to the list or remove them, then try again.',
+        list
+      );
+  }
 }
 
 /**

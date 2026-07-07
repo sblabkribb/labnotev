@@ -2,6 +2,7 @@ import { render, screen, fireEvent } from '@testing-library/react';
 import { MantineProvider } from '@mantine/core';
 import { WorkflowChecklist, moveWorkflowItem } from '../components/WorkflowChecklist';
 import type { WorkflowReference } from '../types';
+import * as vscodeApi from '../vscodeApi';
 
 const wrapper = ({ children }: { children: React.ReactNode }) => (
   <MantineProvider>{children}</MantineProvider>
@@ -96,5 +97,21 @@ describe('WorkflowChecklist reorder buttons', () => {
     const checkboxes = screen.getAllByRole('checkbox') as HTMLInputElement[];
     fireEvent.click(checkboxes[0]);
     expect(onChange.mock.calls[0][0][0].checked).toBe(true);
+  });
+});
+
+describe('WorkflowChecklist renumber button', () => {
+  it('posts a renumberWorkflows message when clicked', () => {
+    const spy = vi.spyOn(vscodeApi, 'postMessage').mockImplementation(() => {});
+    render(<WorkflowChecklist items={items} onChange={vi.fn()} />, { wrapper });
+    const btn = screen.getByRole('button', { name: 'Renumber workflows to match order' });
+    fireEvent.click(btn);
+    expect(spy).toHaveBeenCalledWith({ type: 'renumberWorkflows' });
+    spy.mockRestore();
+  });
+
+  it('does not render the renumber button when there are no workflows', () => {
+    render(<WorkflowChecklist items={[]} onChange={vi.fn()} />, { wrapper });
+    expect(screen.queryByRole('button', { name: 'Renumber workflows to match order' })).toBeNull();
   });
 });

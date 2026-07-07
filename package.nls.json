@@ -21,6 +21,7 @@
   "labnotev.cmd.searchWorkflow.title": "Labnote: Search Workflow",
   "labnotev.cmd.createWorkflowFromTree.title": "Labnote: Create Workflow",
   "labnotev.cmd.renameWorkflow.title": "Labnote: Rename Workflow",
+  "labnotev.cmd.renumberWorkflows.title": "Labnote: Renumber Workflows",
   "labnotev.cmd.addWorkflowItem.title": "Labnote: Add Workflow",
   "labnotev.cmd.insertUnitOperation.title": "Labnote: Insert Unit Operation",
   "labnotev.cmd.addUnitOperationItem.title": "Labnote: Add Unit Operation",

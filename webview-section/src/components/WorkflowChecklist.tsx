@@ -37,10 +37,29 @@ export const WorkflowChecklist = memo(function WorkflowChecklist({ items, onChan
     postMessage({ type: 'openWorkflow', data: { link } });
   };
 
+  const handleRenumber = () => {
+    postMessage({ type: 'renumberWorkflows' });
+  };
+
   return (
     <Paper p="sm" withBorder>
       <Stack gap="xs">
-        <Title order={3}>🗂️ Related Workflows</Title>
+        <Group justify="space-between" wrap="nowrap">
+          <Title order={3}>🗂️ Related Workflows</Title>
+          {items.length > 0 && (
+            <Tooltip label="Renumber files to match this order" position="top" withArrow>
+              <ActionIcon
+                size="sm"
+                variant="subtle"
+                color="gray"
+                aria-label="Renumber workflows to match order"
+                onClick={handleRenumber}
+              >
+                <RenumberIcon />
+              </ActionIcon>
+            </Tooltip>
+          )}
+        </Group>
         {items.length === 0 && (
           <Text c="dimmed" size="sm">No workflows yet. Use F1 → "Add Workflow" or pick one from the TreeView menu.</Text>
         )}
@@ -103,6 +122,15 @@ function ChevronDownIcon() {
   return (
     <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.6" aria-hidden>
       <path d="M4 6l4 4 4-4" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  );
+}
+
+function RenumberIcon() {
+  return (
+    <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.6" aria-hidden>
+      <path d="M4 3v8M4 11l-2-2M4 11l2-2" strokeLinecap="round" strokeLinejoin="round" />
+      <path d="M9 4h5M9 8h5M9 12h5" strokeLinecap="round" strokeLinejoin="round" />
     </svg>
   );
 }

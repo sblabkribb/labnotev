@@ -124,6 +124,7 @@ export type WebviewToExtensionMessage =
   | { type: 'addCustomType'; data: { typeName: string } }
   | { type: 'navigateToSample'; data: { sampleId: string; sampleType: string } }
   | { type: 'openWorkflow'; data: { link: string } }
+  | { type: 'renumberWorkflows' }
   | { type: 'pasteImage'; data: { imageBase64: string; mimeType: string } }
   | {
       type: 'attachFile';
