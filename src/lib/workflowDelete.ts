@@ -6,11 +6,6 @@
  * section. The filesystem side (moving the file to trash, sample cleanup) is
  * handled by the command; this module stays pure and unit-testable.
  */
-import {
-  parseWorkflowChecklistFromReadme,
-  generateWorkflowChecklist,
-  updateReadmeWorkflowSection,
-} from './workflowStructure';
 
 export interface RemoveWorkflowFromReadmeResult {
   changed: boolean;
@@ -18,7 +13,29 @@ export interface RemoveWorkflowFromReadmeResult {
 }
 
 /**
+ * Whether `line` is a "Related Workflows" checklist item linking to `fileName`.
+ *
+ * Matches `[ ] [title](link)` / `[x] [title](link)` and compares the link's
+ * base name to `fileName`. The link pattern is intentionally permissive
+ * (`[^)]+`) so non-ASCII file names — which the strict checklist parser rejects
+ * — are still recognised for removal.
+ */
+function isChecklistLineForFile(line: string, fileName: string): boolean {
+  const match = line.trim().match(/^\[[ xX]\]\s*\[[^\]]*\]\(([^)]+)\)/);
+  if (!match) return false;
+  const link = match[1].replace(/^\.\//, '');
+  const linkFile = link.split('/').pop();
+  return linkFile === fileName;
+}
+
+/**
  * Return README content with the checklist entry for `fileName` removed.
+ *
+ * Removes only the matching checklist line(s) and leaves every other line
+ * byte-for-byte intact, rather than re-serialising the whole section. A
+ * parse-and-regenerate approach would silently drop any sibling entry the
+ * strict checklist parser cannot recognise (e.g. a manually created link with
+ * a non-ASCII file name). (Code review MEDIUM.)
  *
  * When no entry references `fileName` the original content is returned with
  * `changed: false`, so the caller can still delete an unlisted file without
@@ -28,16 +45,21 @@ export function removeWorkflowFromReadme(
   readmeContent: string,
   fileName: string
 ): RemoveWorkflowFromReadmeResult {
-  const items = parseWorkflowChecklistFromReadme(readmeContent);
-  const remaining = items.filter(item => item.fileName !== fileName);
+  const lines = readmeContent.split('\n');
+  const kept: string[] = [];
+  let changed = false;
 
-  if (remaining.length === items.length) {
+  for (const line of lines) {
+    if (isChecklistLineForFile(line, fileName)) {
+      changed = true;
+      continue;
+    }
+    kept.push(line);
+  }
+
+  if (!changed) {
     return { changed: false, content: readmeContent };
   }
 
-  const content = updateReadmeWorkflowSection(
-    readmeContent,
-    generateWorkflowChecklist(remaining)
-  );
-  return { changed: true, content };
+  return { changed: true, content: kept.join('\n') };
 }

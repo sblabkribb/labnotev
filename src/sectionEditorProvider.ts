@@ -16,6 +16,7 @@ import { buildInDocDirAttachmentMarkdownLink, formatAttachmentMarkdown } from '.
 import { buildSampleDefMap } from './lib/dataLoader';
 import { openFileInOsDefaultApp } from './lib/openInOs';
 import { buildSwUnitOpSections, buildHwUnitOpSections } from './lib/unitOpTemplate';
+import { generateNonce } from './lib/nonce';
 
 export type MdFileType = 'labnote' | 'workflow' | 'unknown';
 
@@ -932,7 +933,7 @@ export class SectionEditorProvider implements vscode.CustomTextEditorProvider {
         await document.save();
 
         if (data.changedWorkflows) {
-          this.writeChangedWorkflows(document, data.changedWorkflows);
+          await this.writeChangedWorkflows(document, data.changedWorkflows);
         }
       } else if (mode === 'workflow' && data.workflow) {
         data.workflow.frontMatter.last_updated_date = new Date().toISOString().split('T')[0];
@@ -946,7 +947,7 @@ export class SectionEditorProvider implements vscode.CustomTextEditorProvider {
         await vscode.workspace.applyEdit(edit);
         await document.save();
 
-        this.syncWorkflowTitleToReadme(document, data.workflow.workflowHeader);
+        await this.syncWorkflowTitleToReadme(document, data.workflow.workflowHeader);
       }
     } finally {
       this._suppressedDocs.delete(docKey);
@@ -958,11 +959,16 @@ export class SectionEditorProvider implements vscode.CustomTextEditorProvider {
    * `link` is a webview-supplied relative path, so it is constrained to the
    * document folder via `resolveContainedPath` before writing — a crafted
    * `link` (`../`, absolute path) is skipped rather than written.
+   *
+   * Writes go through `openTextDocument` + `WorkspaceEdit` + `save()` (not a
+   * raw `fs.writeFileSync`) so that a linked workflow open in another editor
+   * stays in sync instead of being silently overwritten under its dirty
+   * buffer (H-2 in the code review).
    */
-  writeChangedWorkflows(
+  async writeChangedWorkflows(
     document: vscode.TextDocument,
     changedWorkflows: Array<{ link?: string; workflow?: unknown }>
-  ): void {
+  ): Promise<void> {
     const dir = path.dirname(document.uri.fsPath);
     for (const cw of changedWorkflows) {
       if (!cw.link || !cw.workflow) continue;
@@ -972,17 +978,31 @@ export class SectionEditorProvider implements vscode.CustomTextEditorProvider {
         continue;
       }
       const wfContent = serializeWorkflowMd(cw.workflow as Parameters<typeof serializeWorkflowMd>[0]);
-      fs.writeFileSync(wfPath, wfContent, 'utf8');
+      const wfUri = vscode.Uri.file(wfPath);
+      const wfDoc = await vscode.workspace.openTextDocument(wfUri);
+      const edit = new vscode.WorkspaceEdit();
+      edit.replace(
+        wfUri,
+        new vscode.Range(wfDoc.positionAt(0), wfDoc.positionAt(wfDoc.getText().length)),
+        wfContent
+      );
+      await vscode.workspace.applyEdit(edit);
+      await wfDoc.save();
     }
   }
 
-  private syncWorkflowTitleToReadme(document: vscode.TextDocument, workflowHeader: string): void {
+  private async syncWorkflowTitleToReadme(
+    document: vscode.TextDocument,
+    workflowHeader: string
+  ): Promise<void> {
     try {
       const docDir = path.dirname(document.uri.fsPath);
       const readmePath = path.join(docDir, 'README.labnote.md');
       if (!fs.existsSync(readmePath)) return;
 
-      const readmeContent = fs.readFileSync(readmePath, 'utf8');
+      const readmeUri = vscode.Uri.file(readmePath);
+      const readmeDoc = await vscode.workspace.openTextDocument(readmeUri);
+      const readmeContent = readmeDoc.getText();
       const workflowFileName = path.basename(document.uri.fsPath);
       const items = parseWorkflowChecklistFromReadme(readmeContent);
       const itemIndex = items.findIndex(item => item.fileName === workflowFileName);
@@ -1001,7 +1021,14 @@ export class SectionEditorProvider implements vscode.CustomTextEditorProvider {
       items[itemIndex].title = newTitle;
       const newChecklist = generateWorkflowChecklist(items);
       const updatedReadme = updateReadmeWorkflowSection(readmeContent, newChecklist);
-      fs.writeFileSync(readmePath, updatedReadme, 'utf8');
+      const edit = new vscode.WorkspaceEdit();
+      edit.replace(
+        readmeUri,
+        new vscode.Range(readmeDoc.positionAt(0), readmeDoc.positionAt(readmeContent.length)),
+        updatedReadme
+      );
+      await vscode.workspace.applyEdit(edit);
+      await readmeDoc.save();
     } catch {
       // non-critical: silently ignore sync failures
     }
@@ -1075,7 +1102,7 @@ export class SectionEditorProvider implements vscode.CustomTextEditorProvider {
     const distUri = vscode.Uri.joinPath(this.context.extensionUri, 'webview-section', 'dist');
     const scriptUri = webview.asWebviewUri(vscode.Uri.joinPath(distUri, 'index.js'));
     const styleUri = webview.asWebviewUri(vscode.Uri.joinPath(distUri, 'index.css'));
-    const nonce = getNonce();
+    const nonce = generateNonce();
 
     return `<!DOCTYPE html>
 <html lang="en">
@@ -1092,13 +1119,4 @@ export class SectionEditorProvider implements vscode.CustomTextEditorProvider {
 </body>
 </html>`;
   }
-}
-
-function getNonce(): string {
-  let text = '';
-  const possible = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
-  for (let i = 0; i < 32; i++) {
-    text += possible.charAt(Math.floor(Math.random() * possible.length));
-  }
-  return text;
 }

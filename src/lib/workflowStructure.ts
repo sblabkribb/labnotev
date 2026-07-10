@@ -188,7 +188,12 @@ export function parseWorkflowChecklistFromReadme(readmeContent: string): Workflo
       break;
     }
     
-    const checkboxMatch = line.match(/^\[([ x])\]\s*\[([^\]]+)\]\(\.\/([\w\-_.]+\.labnote\.md)\)/i);
+    // Link pattern is permissive (optional `./`, any characters up to the
+    // `.labnote.md` suffix) so it interprets a README the same way the Section
+    // Editor parser does — including manually created links with non-ASCII file
+    // names. Downstream commands still validate each name via
+    // `parseWorkflowFileName`.
+    const checkboxMatch = line.match(/^\[([ x])\]\s*\[([^\]]+)\]\((?:\.\/)?([^)]+\.labnote\.md)\)/i);
     if (checkboxMatch) {
       items.push({
         done: checkboxMatch[1].toLowerCase() === 'x',

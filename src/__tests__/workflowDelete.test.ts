@@ -64,4 +64,52 @@ describe('removeWorkflowFromReadme', () => {
     removeWorkflowFromReadme(README, '002_WT010_Test.labnote.md');
     expect(README).toBe(copy);
   });
+
+  it('preserves checklist entries the strict parser cannot recognise (e.g. non-ASCII file names)', async () => {
+    const { removeWorkflowFromReadme } = await import('../lib/workflowDelete');
+
+    // The middle entry has a Korean file name that the strict checklist regex
+    // ([\w\-_.]+) cannot match. A parse-and-regenerate approach would silently
+    // drop it; line-based removal must keep it verbatim.
+    const withKorean = `# 001_Exp
+
+## Related Workflows
+
+> Enter the list of related workflow files between the markers below.
+
+[ ] [001 WD010 Design](./001_WD010_Design.labnote.md)
+[ ] [002 설계 노트](./002_WD020_설계.labnote.md)
+[ ] [003 WX010 Extra](./003_WX010_Extra.labnote.md)
+
+## Other Section
+`;
+
+    const result = removeWorkflowFromReadme(withKorean, '001_WD010_Design.labnote.md');
+
+    expect(result.changed).toBe(true);
+    expect(result.content).not.toContain('001_WD010_Design.labnote.md');
+    // Both the Korean entry and the trailing standard entry survive.
+    expect(result.content).toContain('[002 설계 노트](./002_WD020_설계.labnote.md)');
+    expect(result.content).toContain('[003 WX010 Extra](./003_WX010_Extra.labnote.md)');
+  });
+
+  it('removes a checklist entry that has a non-ASCII file name', async () => {
+    const { removeWorkflowFromReadme } = await import('../lib/workflowDelete');
+
+    const withKorean = `# 001_Exp
+
+## Related Workflows
+
+[ ] [001 WD010 Design](./001_WD010_Design.labnote.md)
+[ ] [002 설계 노트](./002_WD020_설계.labnote.md)
+
+## Other Section
+`;
+
+    const result = removeWorkflowFromReadme(withKorean, '002_WD020_설계.labnote.md');
+
+    expect(result.changed).toBe(true);
+    expect(result.content).not.toContain('002_WD020_설계.labnote.md');
+    expect(result.content).toContain('[001 WD010 Design](./001_WD010_Design.labnote.md)');
+  });
 });

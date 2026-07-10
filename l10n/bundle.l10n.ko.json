@@ -21,8 +21,12 @@
   "Sample updated: {0}": "샘플이 수정되었습니다: {0}",
   "Moved {0} to Global": "{0}을(를) Global로 이동했습니다",
   "Moved {0} to Local": "{0}을(를) Local로 이동했습니다",
-  "Definition not found.": "정의를 찾을 수 없습니다.",
+  "Definition not found in current document.": "현재 문서에서 정의를 찾을 수 없습니다.",
+  "Open the file with the Section Editor to navigate to definitions.": "정의로 이동하려면 Section Editor로 파일을 여세요.",
   "No samples to search.": "검색할 샘플이 없습니다.",
+  "No samples": "샘플 없음",
+  "Removed from sample tree: {0}": "샘플 트리에서 제거되었습니다: {0}",
+  "Removed {0} samples from sample tree (no longer defined in any document)": "샘플 트리에서 샘플 {0}개를 제거했습니다 (어떤 문서에도 더 이상 정의되어 있지 않음)",
   "Search samples... (by ID, alias, or description)": "샘플 검색... (ID, 별칭, 설명으로 검색)",
 
   "New sample created: {0}": "새 샘플이 생성되었습니다: {0}",
@@ -64,7 +68,9 @@
   "Enter the workflow description": "워크플로 설명을 입력하세요",
   "New workflow added: {0}": "새 워크플로가 추가되었습니다: {0}",
   "Missing unit operation info.": "유닛 오퍼레이션 정보가 없습니다.",
-  "Enter a new name": "새 이름을 입력하세요",
+  "New unit operation added: {0}": "새 유닛 오퍼레이션이 추가되었습니다: {0}",
+  "Unit operation copied to clipboard": "유닛 오퍼레이션을 클립보드에 복사했습니다",
+  "Clipboard does not contain a Unit Operation.": "클립보드에 유닛 오퍼레이션이 없습니다.",
   "Enter a new unit operation name": "새 유닛 오퍼레이션 이름을 입력하세요",
   "Enter a description": "설명을 입력하세요",
   "Enter the equipment": "장비를 입력하세요",
@@ -101,8 +107,6 @@
   "Invalid path.": "잘못된 경로입니다.",
   "Cannot open files outside the document folder.": "문서 밖 파일은 열 수 없습니다.",
 
-  "No samples — right-click → \"Create Sample\"": "샘플 없음 — 마우스 오른쪽 버튼 → \"샘플 생성\"",
-  "No samples — saving an @type;id definition in a document registers it automatically": "샘플 없음 — 문서에서 @type;id 정의를 저장하면 자동 등록됩니다",
   "(none)": "(없음)",
 
   "No sample IDs found in the current document.": "현재 문서에서 샘플 ID를 찾을 수 없습니다.",

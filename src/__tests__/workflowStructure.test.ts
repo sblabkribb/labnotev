@@ -265,6 +265,25 @@ Content here
       
       expect(result.length).toBe(0);
     });
+
+    it('should parse links with non-ASCII file names (align with editor parser)', async () => {
+      const { parseWorkflowChecklistFromReadme } = await import('../lib/workflowStructure');
+
+      const readmeContent = `# Test
+## Related Workflows
+
+[ ] [001 WD010 Design](./001_WD010_Design.labnote.md)
+[ ] [002 설계 노트](./002_WD020_설계.labnote.md)
+
+## Other Section
+`;
+
+      const result = parseWorkflowChecklistFromReadme(readmeContent);
+
+      expect(result.length).toBe(2);
+      expect(result[1].fileName).toBe('002_WD020_설계.labnote.md');
+      expect(result[1].title).toBe('002 설계 노트');
+    });
   });
 
   describe('generateWorkflowChecklist', () => {

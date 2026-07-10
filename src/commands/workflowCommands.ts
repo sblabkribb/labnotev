@@ -659,26 +659,6 @@ export function registerWorkflowCommands(
       );
       if (confirm !== deleteLabel) return;
 
-      // Clean up samples defined only in this document (best-effort; a failure
-      // here must not block the actual file deletion).
-      try {
-        const workspaceRoot = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath;
-        const globalLabsamplesFolder = workspaceRoot
-          ? getGlobalLabsamplesFolder(workspaceRoot)
-          : undefined;
-        const customTypes = vscode.workspace
-          .getConfiguration('labnotev')
-          .get<string[]>('customSampleTypes', []);
-        const removed = removeSourcesForDocument(targetUri.fsPath, '', globalLabsamplesFolder, customTypes);
-        if (removed.length > 0) {
-          showOrphanRemovedNotice(removed);
-          await vscode.commands.executeCommand('labnotev.refreshSampleTree');
-          sectionEditorProvider?.broadcastSampleDefsUpdated();
-        }
-      } catch (error) {
-        console.warn('[labnotev] Sample cleanup during workflow delete failed:', error);
-      }
-
       // Close any open tabs for the file so a custom editor (Section Editor)
       // does not linger in a broken state once the file is gone.
       try {
@@ -701,6 +681,29 @@ export function registerWorkflowCommands(
           vscode.l10n.t('Failed to delete workflow: {0}', String(error))
         );
         return;
+      }
+
+      // Clean up samples defined only in this document, AFTER the file deletion
+      // succeeds. Running this first risked stripping sample definitions while
+      // the workflow file was still present if the deletion then failed. This
+      // remains best-effort: a cleanup failure must not surface as a delete
+      // failure now that the file is already gone.
+      try {
+        const workspaceRoot = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath;
+        const globalLabsamplesFolder = workspaceRoot
+          ? getGlobalLabsamplesFolder(workspaceRoot)
+          : undefined;
+        const customTypes = vscode.workspace
+          .getConfiguration('labnotev')
+          .get<string[]>('customSampleTypes', []);
+        const removed = removeSourcesForDocument(targetUri.fsPath, '', globalLabsamplesFolder, customTypes);
+        if (removed.length > 0) {
+          showOrphanRemovedNotice(removed);
+          await vscode.commands.executeCommand('labnotev.refreshSampleTree');
+          sectionEditorProvider?.broadcastSampleDefsUpdated();
+        }
+      } catch (error) {
+        console.warn('[labnotev] Sample cleanup during workflow delete failed:', error);
       }
 
       // Remove the sibling README checklist entry last (a mid-flight failure
