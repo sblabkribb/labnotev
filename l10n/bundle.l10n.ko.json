@@ -90,6 +90,10 @@
   "Cannot renumber: these entries are not workflow files: {0}": "번호를 매길 수 없습니다. 워크플로 파일이 아닌 항목이 있습니다: {0}",
   "Cannot renumber: these listed files are missing on disk: {0}": "번호를 매길 수 없습니다. 목록의 파일이 디스크에 없습니다: {0}",
   "Cannot renumber: these workflow files are not in the README list: {0}. Add them to the list or remove them, then try again.": "번호를 매길 수 없습니다. README 목록에 없는 워크플로 파일이 있습니다: {0}. 목록에 추가하거나 제거한 뒤 다시 시도하세요.",
+  "Cannot find a workflow file to delete. Open one and try again.": "삭제할 워크플로 파일을 찾을 수 없습니다. 워크플로 파일을 활성화한 뒤 다시 시도하세요.",
+  "Delete workflow \"{0}\"? The file will be moved to the trash.": "워크플로 \"{0}\"을(를) 삭제할까요? 파일은 휴지통으로 이동됩니다.",
+  "Failed to delete workflow: {0}": "워크플로 삭제 실패: {0}",
+  "Workflow deleted: {0}": "워크플로를 삭제했습니다: {0}",
 
   "Cannot open file: {0}": "파일을 열 수 없습니다: {0}",
   "Workflow file not found: {0}": "워크플로 파일을 찾을 수 없습니다: {0}",

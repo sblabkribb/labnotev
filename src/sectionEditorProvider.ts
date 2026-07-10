@@ -611,6 +611,21 @@ export class SectionEditorProvider implements vscode.CustomTextEditorProvider {
           break;
         }
 
+        case 'deleteWorkflow': {
+          const { link } = message.data || {};
+          if (!link) break;
+          const docDir = path.dirname(document.uri.fsPath);
+          const wfPath = resolveContainedPath(docDir, link);
+          if (wfPath && fs.existsSync(wfPath)) {
+            await vscode.commands.executeCommand('labnotev.deleteWorkflow', vscode.Uri.file(wfPath));
+          } else {
+            vscode.window.showWarningMessage(
+              vscode.l10n.t('Workflow file not found: {0}', link)
+            );
+          }
+          break;
+        }
+
         case 'pasteImage': {
           const { imageBase64, mimeType } = message.data || {};
           if (!imageBase64) break;

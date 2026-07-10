@@ -115,3 +115,22 @@ describe('WorkflowChecklist renumber button', () => {
     expect(screen.queryByRole('button', { name: 'Renumber workflows to match order' })).toBeNull();
   });
 });
+
+describe('WorkflowChecklist delete button', () => {
+  it('renders one delete button per workflow item', () => {
+    render(<WorkflowChecklist items={items} onChange={vi.fn()} />, { wrapper });
+    expect(screen.getAllByRole('button', { name: 'Delete workflow' })).toHaveLength(items.length);
+  });
+
+  it('posts a deleteWorkflow message with the item link when clicked', () => {
+    const spy = vi.spyOn(vscodeApi, 'postMessage').mockImplementation(() => {});
+    render(<WorkflowChecklist items={items} onChange={vi.fn()} />, { wrapper });
+    const deleteButtons = screen.getAllByRole('button', { name: 'Delete workflow' });
+    fireEvent.click(deleteButtons[1]);
+    expect(spy).toHaveBeenCalledWith({
+      type: 'deleteWorkflow',
+      data: { link: './002_WT010_Test.labnote.md' },
+    });
+    spy.mockRestore();
+  });
+});

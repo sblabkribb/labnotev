@@ -35,6 +35,9 @@ import {
 } from '../lib/workflowStructure';
 import { planRenameWorkflow, type RenameWorkflowErrorCode } from '../lib/workflowRename';
 import { planRenumberWorkflows, type RenumberError } from '../lib/workflowRenumber';
+import { removeWorkflowFromReadme } from '../lib/workflowDelete';
+import { removeSourcesForDocument, getGlobalLabsamplesFolder } from '../lib/sampleStorage';
+import { showOrphanRemovedNotice } from './utilityCommands';
 import { buildSwUnitOpMarkdown, buildHwUnitOpMarkdown } from '../lib/unitOpTemplate';
 import { getSeoulDateTimeString as getDateTime } from '../lib/dateUtils';
 import {
@@ -624,6 +627,116 @@ export function registerWorkflowCommands(
         vscode.window.showErrorMessage(
           vscode.l10n.t('Failed to renumber workflows: {0}', String(error))
         );
+      }
+    })
+  );
+
+  // Issue #38 follow-up: delete a workflow file. Moves the file to the trash,
+  // removes its README checklist entry, and cleans up samples defined only in
+  // this document. Attachments/images live in folder-shared `resources/` and
+  // `images/` dirs so they are intentionally left untouched. Offers to
+  // renumber the remaining workflows afterwards.
+  context.subscriptions.push(
+    vscode.commands.registerCommand('labnotev.deleteWorkflow', async (uri?: vscode.Uri) => {
+      const targetUri = uri ?? resolveActiveWorkflowUri(sectionEditorProvider);
+      if (!targetUri) {
+        vscode.window.showWarningMessage(
+          vscode.l10n.t('Cannot find a workflow file to delete. Open one and try again.')
+        );
+        return;
+      }
+      if (!isValidWorkflowPath(targetUri.fsPath)) {
+        vscode.window.showWarningMessage(vscode.l10n.t('This file is not a workflow file.'));
+        return;
+      }
+
+      const fileName = path.basename(targetUri.fsPath);
+      const deleteLabel = vscode.l10n.t('Delete');
+      const confirm = await vscode.window.showWarningMessage(
+        vscode.l10n.t('Delete workflow "{0}"? The file will be moved to the trash.', fileName),
+        { modal: true },
+        deleteLabel
+      );
+      if (confirm !== deleteLabel) return;
+
+      // Clean up samples defined only in this document (best-effort; a failure
+      // here must not block the actual file deletion).
+      try {
+        const workspaceRoot = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath;
+        const globalLabsamplesFolder = workspaceRoot
+          ? getGlobalLabsamplesFolder(workspaceRoot)
+          : undefined;
+        const customTypes = vscode.workspace
+          .getConfiguration('labnotev')
+          .get<string[]>('customSampleTypes', []);
+        const removed = removeSourcesForDocument(targetUri.fsPath, '', globalLabsamplesFolder, customTypes);
+        if (removed.length > 0) {
+          showOrphanRemovedNotice(removed);
+          await vscode.commands.executeCommand('labnotev.refreshSampleTree');
+          sectionEditorProvider?.broadcastSampleDefsUpdated();
+        }
+      } catch (error) {
+        console.warn('[labnotev] Sample cleanup during workflow delete failed:', error);
+      }
+
+      // Close any open tabs for the file so a custom editor (Section Editor)
+      // does not linger in a broken state once the file is gone.
+      try {
+        for (const group of vscode.window.tabGroups.all) {
+          for (const tab of group.tabs) {
+            const input = tab.input as { uri?: vscode.Uri } | undefined;
+            if (input?.uri && input.uri.fsPath === targetUri.fsPath) {
+              await vscode.window.tabGroups.close(tab);
+            }
+          }
+        }
+      } catch {
+        // best-effort; ignore tab-close failures
+      }
+
+      try {
+        await vscode.workspace.fs.delete(targetUri, { useTrash: true });
+      } catch (error) {
+        vscode.window.showErrorMessage(
+          vscode.l10n.t('Failed to delete workflow: {0}', String(error))
+        );
+        return;
+      }
+
+      // Remove the sibling README checklist entry last (a mid-flight failure
+      // here only leaves a stale link, recoverable manually).
+      const readmePath = path.join(path.dirname(targetUri.fsPath), 'README.labnote.md');
+      const readmeUri = vscode.Uri.file(readmePath);
+      if (fs.existsSync(readmePath)) {
+        try {
+          const readmeDoc = await vscode.workspace.openTextDocument(readmeUri);
+          if (readmeDoc.isDirty) {
+            await readmeDoc.save();
+          }
+          const oldText = readmeDoc.getText();
+          const { changed, content } = removeWorkflowFromReadme(oldText, fileName);
+          if (changed) {
+            const edit = new vscode.WorkspaceEdit();
+            edit.replace(
+              readmeUri,
+              new vscode.Range(readmeDoc.positionAt(0), readmeDoc.positionAt(oldText.length)),
+              content
+            );
+            await vscode.workspace.applyEdit(edit);
+            await readmeDoc.save();
+          }
+        } catch (error) {
+          console.warn('[labnotev] README update during workflow delete failed:', error);
+        }
+      }
+
+      const renumberLabel = vscode.l10n.t('Renumber');
+      const choice = await vscode.window.showInformationMessage(
+        vscode.l10n.t('Workflow deleted: {0}', fileName),
+        renumberLabel
+      );
+      if (choice === renumberLabel && fs.existsSync(readmePath)) {
+        await vscode.commands.executeCommand('labnotev.renumberWorkflows', readmeUri);
       }
     })
   );

@@ -22,6 +22,7 @@
   "labnotev.cmd.createWorkflowFromTree.title": "Labnote: 워크플로 생성",
   "labnotev.cmd.renameWorkflow.title": "Labnote: 워크플로 이름 변경",
   "labnotev.cmd.renumberWorkflows.title": "Labnote: 워크플로 번호 재정렬",
+  "labnotev.cmd.deleteWorkflow.title": "Labnote: 워크플로 삭제",
   "labnotev.cmd.addWorkflowItem.title": "Labnote: 워크플로 추가",
   "labnotev.cmd.insertUnitOperation.title": "Labnote: 유닛 오퍼레이션 삽입",
   "labnotev.cmd.addUnitOperationItem.title": "Labnote: 유닛 오퍼레이션 추가",

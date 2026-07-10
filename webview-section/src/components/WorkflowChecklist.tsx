@@ -41,6 +41,10 @@ export const WorkflowChecklist = memo(function WorkflowChecklist({ items, onChan
     postMessage({ type: 'renumberWorkflows' });
   };
 
+  const handleDeleteWorkflow = (link: string) => {
+    postMessage({ type: 'deleteWorkflow', data: { link } });
+  };
+
   return (
     <Paper p="sm" withBorder>
       <Stack gap="xs">
@@ -102,6 +106,17 @@ export const WorkflowChecklist = memo(function WorkflowChecklist({ items, onChan
                   <ChevronDownIcon />
                 </ActionIcon>
               </Tooltip>
+              <Tooltip label="Delete workflow" position="top" withArrow>
+                <ActionIcon
+                  size="sm"
+                  variant="subtle"
+                  color="red"
+                  aria-label="Delete workflow"
+                  onClick={() => handleDeleteWorkflow(item.link)}
+                >
+                  <TrashIcon />
+                </ActionIcon>
+              </Tooltip>
             </Group>
           </Group>
         ))}
@@ -131,6 +146,14 @@ function RenumberIcon() {
     <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.6" aria-hidden>
       <path d="M4 3v8M4 11l-2-2M4 11l2-2" strokeLinecap="round" strokeLinejoin="round" />
       <path d="M9 4h5M9 8h5M9 12h5" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  );
+}
+
+function TrashIcon() {
+  return (
+    <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.6" aria-hidden>
+      <path d="M2.5 4h11M6 4V2.5h4V4M5 4l.5 9h5l.5-9M6.5 6.5v4.5M9.5 6.5v4.5" strokeLinecap="round" strokeLinejoin="round" />
     </svg>
   );
 }
