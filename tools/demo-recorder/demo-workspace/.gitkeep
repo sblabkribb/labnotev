@@ -1,0 +1,2 @@
+# 스냅샷 녹화용 데모 워크스페이스.
+# 실행 시 labnote/ 하위가 초기화됩니다 (lib/host.mjs resetDemoWorkspace).

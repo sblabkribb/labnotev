@@ -5,6 +5,14 @@
 형식은 [Keep a Changelog](https://keepachangelog.com/ko/1.1.0/)를 기반으로 하며,
 이 프로젝트는 [유의적 버전 관리](https://semver.org/lang/ko/)를 따릅니다.
 
+## [0.68.2] - 2026-07-10
+
+### Added
+- **매뉴얼 스냅샷/PDF 자동화 도구**: 사용자 매뉴얼(`docs/manual`)의 스크린샷을 정품 VS Code에서 자동 캡처하고 한/영 PDF를 생성하는 독립 도구 `tools/demo-recorder`를 추가함. 챕터 1~7 시나리오를 순차 실행(`capture:all`)하며, 격리된 Extension Development Host를 사용해 실제 편집기 세션에 영향을 주지 않음. OS 네이티브 파일 다이얼로그 등 자동화가 불가능한 소수 장면은 수동 캡처 가이드(`docs/manual/CAPTURE.ko.md`)를 제공함
+
+### Changed
+- **패키지 제외 목록**: 개발 전용 도구 `tools/**`를 `.vscodeignore`에 추가해 배포 VSIX에 포함되지 않도록 함
+
 ## [0.68.1] - 2026-07-10
 
 ### Security

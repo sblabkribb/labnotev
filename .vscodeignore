@@ -6,6 +6,7 @@
 .github/**
 docs/**
 docs2/**
+tools/**
 src/**
 webview-section/src/**
 webview-section/node_modules/**

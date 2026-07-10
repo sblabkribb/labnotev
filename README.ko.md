@@ -342,6 +342,7 @@ npm test
 - `cd webview-section && npm test`: 웹뷰 측 Vitest 컴포넌트 테스트
 - `npm run build`: esbuild로 호스트 번들 생성 + Vite로 웹뷰 번들 생성
 - 영문/한국어 UI 전환은 VS Code의 표시 언어 설정에 따라 자동 적용됩니다. 한국어 번역을 추가/수정하려면 워크스페이스 루트의 `l10n/bundle.l10n.ko.json` 및 `package.nls.ko.json`을 편집하세요.
+- `tools/demo-recorder`: 사용자 매뉴얼 스크린샷을 자동 캡처하고 한/영 PDF를 생성하는 독립 도구입니다. 배포 VSIX에는 포함되지 않습니다. 자세한 내용은 `tools/demo-recorder/README.md`를 참고하세요.
 
 ## 라이선스
 

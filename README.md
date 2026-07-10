@@ -341,6 +341,7 @@ npm test
 - `cd webview-section && npm test`: webview-side Vitest component tests.
 - `npm run build`: bundles the host with esbuild and the webview with Vite.
 - The English/Korean UI is switched automatically based on VS Code's display language. To add or modify Korean translations, edit `l10n/bundle.l10n.ko.json` and `package.nls.ko.json` in the workspace root.
+- `tools/demo-recorder`: standalone pipeline that auto-captures the user-manual screenshots and generates the Korean/English PDFs. It is excluded from the published VSIX. See `tools/demo-recorder/README.md`.
 
 ## License
 

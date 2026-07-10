@@ -1,0 +1,22 @@
+{
+  "name": "labnotev-demo-recorder",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "description": "Automated snapshot/PDF pipeline for the Labnote Assistant manual. Not part of the published extension.",
+  "scripts": {
+    "capture:all": "node scenarios/all.mjs",
+    "capture:ch1": "node scenarios/ch1-create-folder.mjs",
+    "capture:ch2": "node scenarios/ch2-section-editor.mjs",
+    "capture:ch3": "node scenarios/ch3-workflows.mjs",
+    "capture:ch4": "node scenarios/ch4-unit-operations.mjs",
+    "capture:ch5": "node scenarios/ch5-samples.mjs",
+    "capture:ch6": "node scenarios/ch6-tables.mjs",
+    "capture:ch7": "node scenarios/ch7-extras.mjs",
+    "export:pdf": "node export-pdf.mjs",
+    "clean": "powershell -NoProfile -ExecutionPolicy Bypass -File cleanup-edh.ps1"
+  },
+  "devDependencies": {
+    "playwright": "^1.49.0"
+  }
+}
