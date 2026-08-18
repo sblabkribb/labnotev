@@ -5,6 +5,12 @@
 형식은 [Keep a Changelog](https://keepachangelog.com/ko/1.1.0/)를 기반으로 하며,
 이 프로젝트는 [유의적 버전 관리](https://semver.org/lang/ko/)를 따릅니다.
 
+## [0.69.0] - 2026-08-18
+
+### Added
+- **연구노트 PDF 내보내기 (`Labnote: Export Research Notebook PDF`)**: 실험 폴더와 포함할 파일(README + 연결된 워크플로)을 QuickPick으로 선택하면, 표지(제목/작성자/생성일/최종 수정일)와 본문을 담은 인쇄용 HTML을 만들어 OS 기본 브라우저로 엶. 브라우저 인쇄(Ctrl/Cmd+P → PDF로 저장)로 PDF를 생성. 표/이미지/코드 블록이 페이지 중간에서 끊기지 않도록 인쇄용 CSS 적용
+- **표 CSV 내보내기 (`Labnote: Export Tables as CSV`)**: 동일한 파일 선택 UX를 재사용해 선택한 파일들의 마크다운 표를 표마다 하나씩 CSV로 저장
+
 ## [0.68.2] - 2026-07-10
 
 ### Added

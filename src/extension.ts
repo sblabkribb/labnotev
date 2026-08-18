@@ -8,6 +8,7 @@ import {
   registerWorkflowCommands,
   registerUtilityCommands,
   registerCreationCommands,
+  registerExportCommands,
 } from './commands';
 import { SectionEditorProvider } from './sectionEditorProvider';
 import { disposeDecorations } from './lib/sampleDecorations';
@@ -175,6 +176,8 @@ export async function activate(context: vscode.ExtensionContext) {
   });
 
   registerCreationCommands(context, { sectionEditorProvider });
+
+  registerExportCommands(context, { sectionEditorProvider });
 
   // Watch `resources/labsamples/*.json` for any change/create/delete and
   // refresh both the TreeView and every live Section Editor. This catches

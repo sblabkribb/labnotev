@@ -215,6 +215,14 @@ When a regular `.md` file is opened in the text editor:
   - Zoom controls (+, -, Reset).
   - Keyboard shortcuts: Esc (close), +/- (zoom), 0 (reset).
 
+### Export (PDF / CSV)
+
+- **`Labnote: Export Research Notebook PDF`**: builds a printable report and opens it in your OS default browser so you can use the browser's own Print dialog (`Ctrl/Cmd+P` → *Save as PDF*) to produce the PDF. The extension does not generate the PDF itself — no bundled PDF engine, so there is nothing extra to install.
+  - **Scope selection**: pick the experiment folder (auto-detected from the active editor when possible, otherwise a QuickPick over the workspace), then choose which files to include — `README.labnote.md` plus any of its linked workflows — via a multi-select QuickPick. Files already checked in the Related Workflows checklist are pre-selected.
+  - **Cover info**: the report opens with a cover showing the first selected file's title, author, created date, and last-updated date, taken verbatim from the front matter (no recomputation). Every additional file included gets its own heading with its own created/last-updated dates, so multi-file reports stay accurate per file.
+  - **Formatting**: Markdown is rendered via VS Code's built-in Markdown renderer for proper styling (falls back to a minimal built-in renderer if unavailable), images are resolved to absolute paths so they display correctly outside the workspace, and print CSS keeps tables/images/code blocks from splitting across a page break.
+- **`Labnote: Export Tables as CSV`**: reuses the same file-selection QuickPick, then extracts every Markdown table (`| ... |`) from the selected files and writes one `.csv` per table into a folder you choose.
+
 ### Experiment folder structure
 
 - **Create a new experiment**: `Labnote: Create New Labnote Folder` prompts for title and author.
@@ -271,6 +279,8 @@ When a regular `.md` file is opened in the text editor:
 | `Labnote: Open with Section Editor` | Open the current Markdown file in the Section Editor |
 | `Labnote: Open as Markdown Editor` | Open the current file in the text editor |
 | `Labnote: Open Preview` | Open the Markdown preview for the current file |
+| `Labnote: Export Research Notebook PDF` | Open a printable HTML report in your browser (Print → Save as PDF) |
+| `Labnote: Export Tables as CSV` | Extract Markdown tables from selected files as CSV |
 
 ## Troubleshooting
 
