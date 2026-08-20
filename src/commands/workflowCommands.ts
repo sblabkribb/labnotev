@@ -536,7 +536,7 @@ export function registerWorkflowCommands(
       const readmeContent = readmeDoc.getText();
       const items = parseWorkflowChecklistFromReadme(readmeContent);
 
-      let diskWorkflowFiles: string[] = [];
+      let diskWorkflowFiles: string[];
       try {
         diskWorkflowFiles = fs
           .readdirSync(dirPath)

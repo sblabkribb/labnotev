@@ -34,5 +34,16 @@ export default tseslint.config(
         { argsIgnorePattern: '^_', varsIgnorePattern: '^_' },
       ],
     },
+  },
+  {
+    // This file's exported function returns source that Playwright injects
+    // into a page via page.evaluate(), so it runs in a browser, not Node.
+    files: ['tools/demo-recorder/lib/highlight.js'],
+    languageOptions: {
+      globals: {
+        window: 'readonly',
+        document: 'readonly',
+      },
+    },
   }
 );

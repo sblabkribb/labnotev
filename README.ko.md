@@ -216,6 +216,14 @@ VS Code에서 실험 노트를 마크다운으로 작성할 수 있도록 돕는
   - 줌 컨트롤 (+, -, Reset)
   - 키보드 단축키: Esc(닫기), +/-(줌), 0(리셋)
 
+### 내보내기 (PDF / CSV)
+
+- **`Labnote: Export Research Notebook PDF`**: 인쇄용 보고서 HTML을 만들어 OS 기본 브라우저로 열어줍니다. 브라우저의 인쇄 기능(`Ctrl/Cmd+P` → *PDF로 저장*)으로 PDF를 저장하면 됩니다. 확장 프로그램 자체는 PDF를 직접 생성하지 않으므로 별도로 설치할 것이 없습니다.
+  - **범위 선택**: 실험 폴더를 고른 뒤(가능하면 현재 열린 편집기에서 자동 감지, 아니면 워크스페이스 전체를 대상으로 QuickPick), `README.labnote.md`와 그에 연결된 워크플로 중 포함할 파일을 다중 선택 QuickPick으로 고릅니다. Related Workflows 체크리스트에 체크된 항목은 기본으로 선택되어 있습니다.
+  - **표지 정보**: 보고서는 첫 번째로 선택한 파일의 제목/작성자/생성일/최종 수정일을 표지로 보여줍니다(front matter 값을 그대로 사용, 재계산하지 않음). 추가로 포함된 파일마다 각자의 소제목과 생성일/최종 수정일이 함께 표시되어, 여러 파일을 함께 내보내도 파일별 날짜가 정확합니다.
+  - **서식**: VS Code 내장 마크다운 렌더러로 본문을 렌더링해 보기 좋게 표시하고(사용할 수 없으면 최소한의 내장 렌더러로 대체), 이미지는 워크스페이스 밖에서도 제대로 보이도록 절대 경로로 변환되며, 인쇄용 CSS로 표/이미지/코드 블록이 페이지 중간에서 끊기지 않도록 합니다.
+- **`Labnote: Export Tables as CSV`**: 동일한 파일 선택 QuickPick을 재사용한 뒤, 선택한 파일들에서 마크다운 표(`| ... |`)를 모두 찾아 표마다 하나씩 `.csv` 파일로 지정한 폴더에 저장합니다.
+
 ### 실험 노트 폴더 구조
 
 - **새 실험 생성**: `Labnote: Create New Labnote Folder` 명령으로 실험 제목과 작성자 입력
@@ -272,6 +280,8 @@ VS Code에서 실험 노트를 마크다운으로 작성할 수 있도록 돕는
 | `Labnote: Open with Section Editor` | 현재 마크다운 파일을 Section Editor로 열기 |
 | `Labnote: Open as Markdown Editor` | 현재 파일을 텍스트 에디터로 열기 |
 | `Labnote: Open Preview` | 현재 파일의 마크다운 미리보기 열기 |
+| `Labnote: Export Research Notebook PDF` | 인쇄용 HTML 보고서를 브라우저로 열기 (인쇄 → PDF로 저장) |
+| `Labnote: Export Tables as CSV` | 선택한 파일에서 마크다운 표를 CSV로 추출 |
 
 ## 문제 해결
 

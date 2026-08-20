@@ -30,5 +30,7 @@
   "labnotev.cmd.moveSampleToLocal.title": "Labnote: 로컬로 이동",
   "labnotev.cmd.openWithSectionEditor.title": "Labnote: Section Editor로 열기",
   "labnotev.cmd.openAsTextEditor.title": "Labnote: Markdown 편집기로 열기",
-  "labnotev.cmd.openPreview.title": "Labnote: 미리보기 열기"
+  "labnotev.cmd.openPreview.title": "Labnote: 미리보기 열기",
+  "labnotev.cmd.exportPdf.title": "Labnote: 연구노트 PDF 내보내기",
+  "labnotev.cmd.exportTablesCsv.title": "Labnote: 표 CSV로 내보내기"
 }

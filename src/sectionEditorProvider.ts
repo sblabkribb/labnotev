@@ -4,7 +4,7 @@ import * as fs from 'fs';
 import { parseLabNoteMd, serializeLabNoteMd } from './lib/labnoteSectionParser';
 import { parseWorkflowMd, serializeWorkflowMd } from './lib/workflowSectionParser';
 import type { UnitOperationBlock, WorkflowReference } from './lib/sectionTypes';
-import { getSeoulDateTimeString } from './lib/dateUtils';
+import { getSeoulDateString, getSeoulDateTimeString } from './lib/dateUtils';
 import { isValidSectionEditorMessage } from './lib/webviewMessage';
 import { generateSampleId, getSampleDisplayMeta, buildSampleDefSuffix, type SampleDisplayMeta } from './lib/sampleUtils';
 import { findSampleDefinitionOnlyMatch } from './lib/sampleStorage';
@@ -921,7 +921,7 @@ export class SectionEditorProvider implements vscode.CustomTextEditorProvider {
     this._suppressedDocs.add(docKey);
     try {
       if (mode === 'labnote' && data.labNote) {
-        data.labNote.frontMatter.last_updated_date = new Date().toISOString().split('T')[0];
+        data.labNote.frontMatter.last_updated_date = getSeoulDateString();
         const newContent = serializeLabNoteMd(data.labNote);
         const edit = new vscode.WorkspaceEdit();
         const fullRange = new vscode.Range(
@@ -936,7 +936,7 @@ export class SectionEditorProvider implements vscode.CustomTextEditorProvider {
           await this.writeChangedWorkflows(document, data.changedWorkflows);
         }
       } else if (mode === 'workflow' && data.workflow) {
-        data.workflow.frontMatter.last_updated_date = new Date().toISOString().split('T')[0];
+        data.workflow.frontMatter.last_updated_date = getSeoulDateString();
         const newContent = serializeWorkflowMd(data.workflow);
         const edit = new vscode.WorkspaceEdit();
         const fullRange = new vscode.Range(

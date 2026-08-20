@@ -30,5 +30,7 @@
   "labnotev.cmd.moveSampleToLocal.title": "Labnote: Move to Local",
   "labnotev.cmd.openWithSectionEditor.title": "Labnote: Open with Section Editor",
   "labnotev.cmd.openAsTextEditor.title": "Labnote: Open as Markdown Editor",
-  "labnotev.cmd.openPreview.title": "Labnote: Open Preview"
+  "labnotev.cmd.openPreview.title": "Labnote: Open Preview",
+  "labnotev.cmd.exportPdf.title": "Labnote: Export Research Notebook PDF",
+  "labnotev.cmd.exportTablesCsv.title": "Labnote: Export Tables as CSV"
 }

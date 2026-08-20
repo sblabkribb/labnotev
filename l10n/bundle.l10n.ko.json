@@ -137,5 +137,19 @@
 
   "Insert to Editor only works in the Section Editor. In text mode, use the search icon in the Lab Samples view (Labnote: Search Sample) to insert at the cursor.": "Insert to Editor는 Section Editor에서만 동작합니다. 텍스트 모드에서는 Lab Samples 뷰의 돋보기 아이콘(Labnote: Search Sample 명령)을 사용해 커서 위치에 삽입하세요.",
   "Open a .labnote.md file with the Section Editor, then click Insert to Editor on a sample.": ".labnote.md 파일을 Section Editor로 연 뒤, 샘플의 Insert to Editor를 클릭하세요.",
-  "No {0} products found. Add a catalog at resources/labsamples/{0}_*.json.": "검색할 {0} 제품이 없습니다. resources/labsamples/{0}_*.json 카탈로그 파일을 추가하세요."
+  "No {0} products found. Add a catalog at resources/labsamples/{0}_*.json.": "검색할 {0} 제품이 없습니다. resources/labsamples/{0}_*.json 카탈로그 파일을 추가하세요.",
+
+  "Select an experiment folder to export": "내보낼 실험 폴더를 선택하세요",
+  "No lab note experiment folder was found in this workspace.": "이 워크스페이스에서 실험 폴더를 찾을 수 없습니다.",
+  "Select the lab note files to include": "포함할 랩노트 파일을 선택하세요",
+  "Select at least one file to export.": "내보낼 파일을 하나 이상 선택하세요.",
+  "No exportable lab note files were found.": "내보낼 수 있는 랩노트 파일이 없습니다.",
+  "Author": "작성자",
+  "Created": "생성일",
+  "Last updated": "최종 수정일",
+  "Report opened in your browser. Use Print (Ctrl/Cmd+P) to save it as a PDF.": "보고서를 브라우저에서 열었습니다. 인쇄(Ctrl/Cmd+P)로 PDF로 저장하세요.",
+  "Could not open the report automatically. Open {0} in a browser and print it as a PDF.": "보고서를 자동으로 열지 못했습니다. {0} 파일을 브라우저에서 열어 PDF로 인쇄하세요.",
+  "No Markdown tables were found in the selected files.": "선택한 파일에서 Markdown 표를 찾을 수 없습니다.",
+  "Choose Folder": "폴더 선택",
+  "Exported {0} table(s) as CSV to {1}.": "표 {0}개를 CSV로 {1}에 내보냈습니다."
 }
