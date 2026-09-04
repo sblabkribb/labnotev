@@ -17,6 +17,10 @@ import { buildSampleDefMap } from './lib/dataLoader';
 import { openFileInOsDefaultApp } from './lib/openInOs';
 import { buildSwUnitOpSections, buildHwUnitOpSections } from './lib/unitOpTemplate';
 import { generateNonce } from './lib/nonce';
+import { NodeFileSystem } from '@labnotev/core/node';
+
+/** Shared Node file-system adapter for the sample-def map loader. */
+const nodeFs = new NodeFileSystem();
 
 export type MdFileType = 'labnote' | 'workflow' | 'unknown';
 
@@ -276,13 +280,14 @@ export class SectionEditorProvider implements vscode.CustomTextEditorProvider {
    * Called after TreeView commands (edit/add/delete/move), document save,
    * and the labsamples JSON file watcher.
    */
-  public broadcastSampleDefsUpdated(): void {
+  public async broadcastSampleDefsUpdated(): Promise<void> {
     if (this._allEditors.size === 0) return;
     const types = getAvailableTypes();
     for (const editor of this._allEditors) {
+      const sampleDefs = await buildSampleDefMap(nodeFs, editor.document.uri, types);
       editor.webviewPanel.webview.postMessage({
         type: 'sampleDefsUpdated',
-        data: { sampleDefs: buildSampleDefMap(editor.document.uri, types) },
+        data: { sampleDefs },
       });
     }
   }
@@ -553,7 +558,7 @@ export class SectionEditorProvider implements vscode.CustomTextEditorProvider {
           });
           webviewPanel.webview.postMessage({
             type: 'sampleDefsUpdated',
-            data: { sampleDefs: buildSampleDefMap(document.uri, getAvailableTypes()) },
+            data: { sampleDefs: await buildSampleDefMap(nodeFs, document.uri, getAvailableTypes()) },
           });
           break;
         }
@@ -888,7 +893,7 @@ export class SectionEditorProvider implements vscode.CustomTextEditorProvider {
           docBaseUri,
           availableTypes: meta.types,
           sampleTypeColors: meta.colors,
-          sampleDefs: buildSampleDefMap(document.uri, meta.types),
+          sampleDefs: await buildSampleDefMap(nodeFs, document.uri, meta.types),
         },
       });
     } else if (mode === 'workflow') {
@@ -906,7 +911,7 @@ export class SectionEditorProvider implements vscode.CustomTextEditorProvider {
           docBaseUri,
           availableTypes: meta.types,
           sampleTypeColors: meta.colors,
-          sampleDefs: buildSampleDefMap(document.uri, meta.types),
+          sampleDefs: await buildSampleDefMap(nodeFs, document.uri, meta.types),
         },
       });
     }

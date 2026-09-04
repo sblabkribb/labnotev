@@ -135,16 +135,18 @@ describe('Create Labnote Command', () => {
     });
 
     it('should return structure with correct folder paths', async () => {
-      const path = await import('path');
       const { createLabnoteStructure } = await import('../lib/labnoteStructure');
       
       const result = createLabnoteStructure('/workspace', 'Test Experiment', [], 'Author');
       
-      // Use path.join to handle platform-specific path separators
-      expect(result.labnoteFolder).toBe(path.join('/workspace', 'labnote', '001_Test_Experiment'));
-      expect(result.readmePath).toBe(path.join('/workspace', 'labnote', '001_Test_Experiment', 'README.labnote.md'));
-      expect(result.imagesFolder).toBe(path.join('/workspace', 'labnote', '001_Test_Experiment', 'images'));
-      expect(result.resourcesFolder).toBe(path.join('/workspace', 'labnote', '001_Test_Experiment', 'resources'));
+      // Core now emits POSIX-style (`/`-separated) paths on every platform so
+      // the same logic works in an Obsidian vault; Node fs accepts `/` on
+      // Windows too.
+      const base = '/workspace/labnote/001_Test_Experiment';
+      expect(result.labnoteFolder).toBe(base);
+      expect(result.readmePath).toBe(`${base}/README.labnote.md`);
+      expect(result.imagesFolder).toBe(`${base}/images`);
+      expect(result.resourcesFolder).toBe(`${base}/resources`);
     });
   });
 });

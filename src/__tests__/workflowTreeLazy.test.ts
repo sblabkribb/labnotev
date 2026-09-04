@@ -82,8 +82,8 @@ describe('WorkflowTreeViewProvider lazy loading (Phase 3)', () => {
     vi.clearAllMocks();
     const { loadWorkflows, loadUnitOperations, groupWorkflowsByCategory } =
       await import('../lib/workflowDataLoader');
-    vi.mocked(loadWorkflows).mockReturnValue(emptyWorkflows);
-    vi.mocked(loadUnitOperations).mockReturnValue(emptyOps);
+    vi.mocked(loadWorkflows).mockResolvedValue(emptyWorkflows);
+    vi.mocked(loadUnitOperations).mockResolvedValue(emptyOps);
     vi.mocked(groupWorkflowsByCategory).mockReturnValue({});
   });
 

@@ -5,6 +5,22 @@
 형식은 [Keep a Changelog](https://keepachangelog.com/ko/1.1.0/)를 기반으로 하며,
 이 프로젝트는 [유의적 버전 관리](https://semver.org/lang/ko/)를 따릅니다.
 
+## [v0.70.0] - 2026-09-05
+
+### Added
+- **Obsidian 플러그인 (`packages/obsidian-plugin`)**: VS Code 확장과 동일한 연구노트 워크플로를 Obsidian에서 사용할 수 있는 "Labnote Assistant" 플러그인을 추가함. 실험 폴더/워크플로 생성, 단위작업 삽입(커서 삽입 + `## Related Unit Operations` TOC 비손실 갱신), 샘플 자동완성(`@dna:` 등)과 편집/읽기 모드 ID 하이라이팅, 저장 시 `resources/labsamples/{Type}.json` 동기화, 워크플로·샘플 사이드바 뷰(컨텍스트 메뉴 포함), 설정 탭, CSV 내보내기를 지원함. PDF는 Obsidian 내장 Export를 사용함
+- **`@labnotev/core` 공용 패키지**: 파서·섹션 타입·카탈로그·트리 모델·도메인 커맨드 등 플랫폼 중립 로직을 별도 패키지로 분리해 VS Code 확장과 Obsidian 플러그인이 공유하도록 함. 플랫폼 추상화를 위한 `LabnoteFs`(파일시스템), `LabnoteHost`/`EditTarget`(호스트 UI), `Translator`(i18n) 인터페이스와 POSIX 경로 유틸을 제공함
+- **LLM/MCP 통합 (Obsidian)**: Ollama/OpenAI 호환 엔드포인트용 프로바이더(`requestUrl` 기반), 데스크톱 전용 in-process MCP 서버(loopback + bearer 토큰 + 쓰기 확인), 편집 밀착 AI 커맨드(Method 초안·Results 요약·샘플 정의 추출)를 추가함
+- **도메인 툴셋 (`packages/core/tools`)**: `get_sample`/`create_sample`/`get_unit_operation`/`update_section`/`create_workflow` 등 전송 무관 순수 함수 + JSON Schema 툴셋을 추가해 MCP/LLM에서 재사용함
+
+### Changed
+- **모노레포화**: npm workspaces 기반으로 `@labnotev/core`·VS Code 확장·`webview-section`을 하나의 저장소에서 관리하도록 재구성함. 파일시스템 접근을 async `LabnoteFs`로 통일하고 트리/커맨드/자동완성이 이를 사용하도록 파급 반영함
+- **비손실 섹션 편집**: 단위작업 TOC 갱신을 전체 재직렬화 대신 append 헬퍼로 처리하고, 섹션 본문 교체(`replaceSectionBody`)를 비손실 방식으로 수행하도록 개선함
+
+### Fixed
+- **Windows export 테스트**: `exportMarkdown` 테스트 2건의 하드코딩된 `file://` 기대값을 `pathToFileURL(path.resolve(...))` 기반 플랫폼 중립 값으로 변경해 Windows에서도 통과하도록 수정함
+- **docs 스크립트 lint**: 문서용 정적 JS(`docs/**/*.js`)에 대해 브라우저 전역으로 인한 `no-undef` 등 오탐 규칙을 완화해 `lint:all`이 녹색이 되도록 함
+
 ## [0.69.0] - 2026-08-18
 
 ### Added

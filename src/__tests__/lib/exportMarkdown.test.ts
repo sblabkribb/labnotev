@@ -2,6 +2,7 @@ import * as fs from 'fs';
 import * as os from 'os';
 import * as path from 'path';
 import { pathToFileURL } from 'url';
+import { NodeFileSystem } from '@labnotev/core/node';
 import {
   buildExportCandidates,
   collectExportSources,
@@ -12,6 +13,8 @@ import {
   buildExportHtml,
   type RenderedSource,
 } from '../../lib/exportMarkdown';
+
+const nfs = new NodeFileSystem();
 
 describe('buildExportCandidates', () => {
   const readmeAbsPath = '/ws/labnote/001_X/README.labnote.md';
@@ -88,7 +91,7 @@ describe('collectExportSources', () => {
     fs.rmSync(dir, { recursive: true, force: true });
   });
 
-  it('reads front matter fields verbatim and strips them from the body', () => {
+  it('reads front matter fields verbatim and strips them from the body', async () => {
     const filePath = path.join(dir, 'README.labnote.md');
     fs.writeFileSync(
       filePath,
@@ -96,7 +99,7 @@ describe('collectExportSources', () => {
       'utf8'
     );
 
-    const [source] = collectExportSources([filePath]);
+    const [source] = await collectExportSources(nfs, [filePath]);
 
     expect(source.coverTitle).toBe('pmid_39169056');
     expect(source.coverAuthor).toBe('Sebin Heo');
@@ -106,7 +109,7 @@ describe('collectExportSources', () => {
     expect(source.body).not.toContain('---');
   });
 
-  it('falls back to experimenter when author is absent (workflow files)', () => {
+  it('falls back to experimenter when author is absent (workflow files)', async () => {
     const filePath = path.join(dir, '001_WL050.labnote.md');
     fs.writeFileSync(
       filePath,
@@ -114,17 +117,17 @@ describe('collectExportSources', () => {
       'utf8'
     );
 
-    const [source] = collectExportSources([filePath]);
+    const [source] = await collectExportSources(nfs, [filePath]);
 
     expect(source.coverAuthor).toBe('Sebin Heo');
     expect(source.createdDate).toBe('2026-08-04 14:25'); // date+time preserved verbatim
   });
 
-  it('dedupes by resolved absolute path and skips missing files', () => {
+  it('dedupes by resolved absolute path and skips missing files', async () => {
     const filePath = path.join(dir, 'a.labnote.md');
     fs.writeFileSync(filePath, '---\ntitle: A\n---\nBody\n', 'utf8');
 
-    const result = collectExportSources([filePath, filePath, path.join(dir, 'missing.labnote.md')]);
+    const result = await collectExportSources(nfs, [filePath, filePath, path.join(dir, 'missing.labnote.md')]);
 
     expect(result).toHaveLength(1);
   });
@@ -158,7 +161,10 @@ describe('rewriteImageSources', () => {
   it('rewrites a relative src to an absolute file:// URI', () => {
     const html = '<img src="images/x.png" alt="" />';
     const result = rewriteImageSources(html, '/ws/labnote/001_X');
-    expect(result).toBe('<img src="file:///ws/labnote/001_X/images/x.png" alt="" />');
+    // Compute the expected href the same way the source does so the assertion
+    // is platform-neutral (path.resolve anchors to the current drive on Windows).
+    const expectedHref = pathToFileURL(path.resolve('/ws/labnote/001_X', 'images/x.png')).href;
+    expect(result).toBe(`<img src="${expectedHref}" alt="" />`);
   });
 
   it('leaves absolute http/data/file srcs untouched', () => {
@@ -178,7 +184,10 @@ describe('postProcessBodyHtml', () => {
   it('converts attachment image links then absolutizes their src in one pass', () => {
     const html = '<a href="resources/attachments/fig.png">fig.png</a>';
     const result = postProcessBodyHtml(html, '/ws/exp');
-    expect(result).toBe('<img src="file:///ws/exp/resources/attachments/fig.png" alt="fig.png" />');
+    const expectedHref = pathToFileURL(
+      path.resolve('/ws/exp', 'resources/attachments/fig.png')
+    ).href;
+    expect(result).toBe(`<img src="${expectedHref}" alt="fig.png" />`);
   });
 });
 

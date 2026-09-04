@@ -5,89 +5,59 @@
  */
 
 import * as vscode from 'vscode';
-import * as fs from 'fs';
-import * as path from 'path';
+import { NodeFileSystem } from '@labnotev/core/node';
 import { SAMPLE_TYPES, SampleType } from '../lib/dataLoader';
 import { getLabsamplesFolder, getGlobalLabsamplesFolder, loadSamplesByType, loadReferenceSamplesByType } from '../lib/sampleStorage';
 
+/** Shared Node file-system adapter for the sample JSON loaders. */
+const nodeFs = new NodeFileSystem();
+
 /**
- * Phase D-1: mtime-based in-memory cache for `loadSampleIdsAndRecords`.
+ * In-memory cache for `loadSampleIdsAndRecords`, keyed by
+ * `<localFolder>|<globalFolder>|<type>`.
  *
- * The completion provider was re-reading `*.json` from disk on every keystroke
- * (trigger chars include every alphanumeric character), which made typing
- * sample ids noticeably janky on cold NTFS folders. We cache the parsed result
- * by `<localFolder>|<globalFolder>|<type>` and invalidate the entry when the
- * `mtimeMs` of any underlying JSON file changes. `refreshSampleRecordsCache`
- * is exported so TreeView's explicit refresh can proactively invalidate too.
+ * The completion provider runs while the user types after `@`, so re-reading
+ * `*.json` from disk on every keystroke was noticeably janky on cold folders.
+ * Previously freshness was tracked via `fs.statSync().mtimeMs`, but the
+ * platform-neutral `LabnoteFs` port exposes no `stat`, so the cache is now
+ * invalidated *explicitly* by {@link refreshSampleRecordsCache}. Every code
+ * path that writes a sample JSON (tree add/edit/delete/move, the save-time
+ * sync, the resources file-watcher) calls it, so the cache can never serve a
+ * value staler than the last write we performed or observed.
  */
-type SampleRecordsCacheEntry = {
-  files: Array<{ path: string; mtimeMs: number }>;
-  value: Array<{ id: string; alias: string | null; description: string | null }>;
-};
-const sampleRecordsCache = new Map<string, SampleRecordsCacheEntry>();
+type RecordsList = Array<{ id: string; alias: string | null; description: string | null }>;
+const sampleRecordsCache = new Map<string, RecordsList>();
 
 export function refreshSampleRecordsCache(): void {
   sampleRecordsCache.clear();
-}
-
-function fileMtime(filePath: string): number | null {
-  try {
-    const st = fs.statSync(filePath);
-    return st.mtimeMs;
-  } catch {
-    return null;
-  }
 }
 
 function cacheKeyFor(localFolder: string, globalFolder: string, type: string): string {
   return `${localFolder}|${globalFolder}|${type}`;
 }
 
-function sampleRecordsFilesFor(
-  localFolder: string,
-  globalFolder: string,
-  type: string
-): string[] {
-  // Must mirror the exact paths `loadSampleIdsAndRecords` reads via
-  // `loadSamplesByType` (which uses `${type}.json`, e.g. `DNA.json`). Using a
-  // different casing here makes the tracked files non-existent on
-  // case-sensitive filesystems, so the cache never invalidates.
-  return [
-    path.join(localFolder, `${type}.json`),
-    path.join(globalFolder, `${type}.json`),
-  ];
-}
-
 /** Load sample IDs and record info (alias, description) from same paths as Sample TreeView (sampleStorage) */
-function loadSampleIdsAndRecords(
+async function loadSampleIdsAndRecords(
   type: string,
   documentUri: vscode.Uri
-): { id: string; alias: string | null; description: string | null }[] {
+): Promise<RecordsList> {
   // 1. Local: document folder's resources/labsamples (same as Sample TreeView)
   const localFolder = getLabsamplesFolder(documentUri.fsPath);
-  // Resolve global folder early so we can derive a cache key before hitting
-  // disk. `getWorkspaceFolder` on a missing document returns undefined; in
-  // that case we still cache keyed by the empty string so repeat lookups are
-  // cheap.
   const workspaceFolderEarly = vscode.workspace.getWorkspaceFolder(documentUri);
-  const workspaceRootEarly = workspaceFolderEarly?.uri.fsPath;
-  const globalFolderForKey = workspaceRootEarly ? getGlobalLabsamplesFolder(workspaceRootEarly) : '';
+  const workspaceRoot = workspaceFolderEarly?.uri.fsPath;
+  const globalFolderForKey = workspaceRoot ? getGlobalLabsamplesFolder(workspaceRoot) : '';
 
-  // Phase D-1: return the cached list if the underlying JSON mtimes haven't
-  // moved. Return a shallow copy so callers mutating the result array don't
-  // poison the cache.
+  // Return a shallow copy of the cached list so callers mutating the result
+  // array don't poison the cache.
   const cacheKey = cacheKeyFor(localFolder, globalFolderForKey, type);
   const cached = sampleRecordsCache.get(cacheKey);
   if (cached) {
-    const stillFresh = cached.files.every(f => fileMtime(f.path) === f.mtimeMs);
-    if (stillFresh) {
-      return [...cached.value];
-    }
+    return [...cached];
   }
 
-  const result: { id: string; alias: string | null; description: string | null }[] = [];
+  const result: RecordsList = [];
   const seenIds = new Set<string>();
-  const localSamples = loadSamplesByType(localFolder, type);
+  const localSamples = await loadSamplesByType(nodeFs, localFolder, type);
   for (const id of Object.keys(localSamples)) {
     if (!seenIds.has(id)) {
       seenIds.add(id);
@@ -101,10 +71,9 @@ function loadSampleIdsAndRecords(
   }
 
   // 2. Global: workspace root's resources/labsamples
-  const workspaceRoot = workspaceRootEarly;
   if (workspaceRoot) {
     const globalFolder = getGlobalLabsamplesFolder(workspaceRoot);
-    const globalSamples = loadSamplesByType(globalFolder, type);
+    const globalSamples = await loadSamplesByType(nodeFs, globalFolder, type);
     for (const id of Object.keys(globalSamples)) {
       if (!seenIds.has(id)) {
         seenIds.add(id);
@@ -120,7 +89,7 @@ function loadSampleIdsAndRecords(
 
   // 3. Equip only: add reference DB (local + global Equip_*.json) so @equip: list shows them
   if (type === 'Equip') {
-    const refLocal = loadReferenceSamplesByType(localFolder, type);
+    const refLocal = await loadReferenceSamplesByType(nodeFs, localFolder, type);
     for (const id of Object.keys(refLocal)) {
       if (!seenIds.has(id)) {
         seenIds.add(id);
@@ -134,7 +103,7 @@ function loadSampleIdsAndRecords(
     }
     if (workspaceRoot) {
       const globalFolder = getGlobalLabsamplesFolder(workspaceRoot);
-      const refGlobal = loadReferenceSamplesByType(globalFolder, type);
+      const refGlobal = await loadReferenceSamplesByType(nodeFs, globalFolder, type);
       for (const id of Object.keys(refGlobal)) {
         if (!seenIds.has(id)) {
           seenIds.add(id);
@@ -149,13 +118,8 @@ function loadSampleIdsAndRecords(
     }
   }
 
-  // Phase D-1: snapshot everything from disk into the cache.
-  const cacheFiles = sampleRecordsFilesFor(localFolder, globalFolderForKey, type)
-    .map(p => ({ path: p, mtimeMs: fileMtime(p) ?? 0 }));
-  sampleRecordsCache.set(cacheKey, {
-    files: cacheFiles,
-    value: result.map(r => ({ ...r })),
-  });
+  // Snapshot into the cache (own copy so later callers can't mutate it).
+  sampleRecordsCache.set(cacheKey, result.map(r => ({ ...r })));
 
   return result;
 }
@@ -269,24 +233,45 @@ export class SampleCompletionProvider implements vscode.CompletionItemProvider {
       return undefined;
     }
 
-    const completionItems: vscode.CompletionItem[] = [];
-    const documentUri = document.uri;
-
-    // Determine which types to search
+    // Everything above is a synchronous cheap-exit guard (so the "no `@`"
+    // fast-path returns `undefined`, not a resolved promise). The disk-hitting
+    // work is delegated to an async builder; VS Code's ProviderResult accepts
+    // the returned Thenable.
     const specificType = matchSampleType(fullPrefix);
     const typesToSearch = isSamplePrefix(fullPrefix) ? [...SAMPLE_TYPES] : (specificType ? [specificType] : []);
-
-    // Range to replace: from @ to cursor (match.index so it works with or without colon in document)
     const replaceRange = new vscode.Range(
       position.line,
       matchIndex,
       position.line,
       position.character
     );
-    
+
+    return this.buildCompletions(document, {
+      fullPrefix,
+      searchTerm,
+      specificType,
+      typesToSearch,
+      replaceRange,
+    });
+  }
+
+  private async buildCompletions(
+    document: vscode.TextDocument,
+    ctx: {
+      fullPrefix: string;
+      searchTerm: string;
+      specificType: SampleType | null;
+      typesToSearch: SampleType[];
+      replaceRange: vscode.Range;
+    }
+  ): Promise<vscode.CompletionList> {
+    const { fullPrefix, searchTerm, specificType, typesToSearch, replaceRange } = ctx;
+    const completionItems: vscode.CompletionItem[] = [];
+    const documentUri = document.uri;
+
     // Add sample ID completions (use sampleStorage so paths match Sample TreeView local/global)
     for (const type of typesToSearch) {
-      const records = loadSampleIdsAndRecords(type, documentUri);
+      const records = await loadSampleIdsAndRecords(type, documentUri);
       if (specificType && records.length === 0) {
         logCompletionDebug(`${fullPrefix} type=${type} loadSampleIdsAndRecords returned 0 (doc=${documentUri.fsPath})`);
       }

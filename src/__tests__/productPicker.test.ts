@@ -75,18 +75,18 @@ describe('getProductCandidates — Equip reference DB (issue #28)', () => {
 
     // Local folder returns one Equip record; global folder is empty.
     vi.mocked(loadReferenceSamplesByType).mockImplementation(
-      (folder: string, type: string) => {
+      (_fs: any, folder: string, type: string) => {
         if (type === 'Equip' && folder.includes('local')) {
-          return {
+          return Promise.resolve({
             'Equip-001': { alias: 'Centrifuge', descriptions: ['5424 R'] },
-          } as any;
+          } as any);
         }
-        return {} as any;
+        return Promise.resolve({} as any);
       }
     );
 
     const { getProductCandidates } = await import('../lib/productPicker');
-    const candidates = getProductCandidates('Equip', documentUri);
+    const candidates = await getProductCandidates('Equip', documentUri);
 
     expect(candidates).toEqual([
       { id: 'Equip-001', alias: 'Centrifuge', description: '5424 R' },

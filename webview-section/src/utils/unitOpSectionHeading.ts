@@ -1,16 +1,11 @@
+import { normalizeWorkflowUnitSectionHeading } from '@labnotev/core/headings';
+
 /**
  * Normalizes unit-operation H4 section titles for UI and sample-button rules.
- * Keep in sync with `normalizeWorkflowUnitSectionHeading` in `src/lib/workflowSectionParser.ts`.
+ * Single source of truth is `normalizeWorkflowUnitSectionHeading` in
+ * `@labnotev/core`; this is a named alias for the webview call sites/tests.
  */
-export function normalizeUnitOpSectionHeading(heading: string): string {
-  if (heading === 'Reagen') return 'Reagent';
-  // Pre-v0.54.8 unit-op templates used the short heading "Consumables".
-  // Newer templates rename it to "Labware and Consumables" so the section
-  // also covers plates/tips/tubes; the alias keeps existing notebooks
-  // rendering with the new label and a single sample-button rule.
-  if (heading === 'Consumables') return 'Labware and Consumables';
-  return heading;
-}
+export const normalizeUnitOpSectionHeading = normalizeWorkflowUnitSectionHeading;
 
 const SECTIONS_WITH_SAMPLE_BUTTON = new Set([
   'Input',

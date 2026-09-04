@@ -1,6 +1,6 @@
 # Labnote Assistant (LabnoteV)
 
-**v0.69.0** · [English → README.md](README.md)
+**v0.70.0** · [English → README.md](README.md)
 
 VS Code에서 실험 노트를 마크다운으로 작성할 수 있도록 돕는 확장입니다. `.labnote.md` 파일을 Section Editor(웹뷰 기반 구조화 편집기)로 열어 Front Matter 폼, 워크플로 체크리스트, 유닛 오퍼레이션 아코디언, 샘플 정의 버튼, 이미지 붙여넣기/썸네일 등 실험 기록에 최적화된 UI를 제공합니다.
 
@@ -263,6 +263,16 @@ VS Code에서 실험 노트를 마크다운으로 작성할 수 있도록 돕는
 2. VS Code에서 `Ctrl+Shift+P` → `Extensions: Install from VSIX...`
 3. 다운로드한 `.vsix` 파일 선택
 4. 설치 후 VS Code를 다시 열고, 워크스페이스에서 `F1`을 눌러 `Labnote`로 시작하는 명령어를 실행
+
+### Obsidian 플러그인 (Labnote Assistant)
+
+v0.70.0부터 동일한 연구노트 워크플로를 `packages/obsidian-plugin`에서 빌드되는 Obsidian 플러그인으로도 사용할 수 있습니다(공통 로직은 `@labnotev/core` 패키지에 있음).
+
+1. [Releases](https://github.com/sblabkribb/labnotev/releases) 페이지에서 `main.js`, `manifest.json`, `versions.json`을 다운로드(또는 `npm run build:obsidian`으로 로컬 빌드).
+2. 세 파일을 `<vault>/.obsidian/plugins/labnotev/`에 복사.
+3. Obsidian에서 **설정 → 커뮤니티 플러그인**을 열고 **제한 모드(Restricted mode)**를 해제한 뒤 **"Labnote Assistant"**를 켭니다.
+
+Obsidian 플러그인은 실험/워크플로 생성, 단위작업 삽입(TOC 비손실 갱신), 샘플 자동완성·하이라이팅, 워크플로/샘플 사이드바 뷰, CSV 내보내기, 그리고 선택적 로컬 LLM/MCP 연동(데스크톱 전용)을 지원합니다. PDF는 Obsidian 내장 Export to PDF를 사용합니다.
 
 ## 주요 명령어
 

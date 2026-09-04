@@ -112,4 +112,24 @@ describe('removeWorkflowFromReadme', () => {
     expect(result.content).not.toContain('002_WD020_설계.labnote.md');
     expect(result.content).toContain('[001 WD010 Design](./001_WD010_Design.labnote.md)');
   });
+
+  it('removes a standard `- [ ]` task-list checklist entry', async () => {
+    const { removeWorkflowFromReadme } = await import('../lib/workflowDelete');
+
+    const standard = `# 001_Exp
+
+## Related Workflows
+
+- [ ] [001 WD010 Design](./001_WD010_Design.labnote.md)
+- [x] [002 WT010 Test](./002_WT010_Test.labnote.md)
+
+## Other Section
+`;
+
+    const result = removeWorkflowFromReadme(standard, '002_WT010_Test.labnote.md');
+
+    expect(result.changed).toBe(true);
+    expect(result.content).not.toContain('002_WT010_Test.labnote.md');
+    expect(result.content).toContain('- [ ] [001 WD010 Design](./001_WD010_Design.labnote.md)');
+  });
 });

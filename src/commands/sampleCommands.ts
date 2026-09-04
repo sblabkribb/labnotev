@@ -52,7 +52,7 @@ export async function resolveDefinitionDocument(
   const baseDir = active
     ? path.dirname(active.uri.fsPath)
     : (plain ? path.dirname(plain.document.uri.fsPath) : undefined);
-  const sources = sampleTreeProvider.getSampleSources(item.scope, sampleType, sampleId);
+  const sources = await sampleTreeProvider.getSampleSources(item.scope, sampleType, sampleId);
   if (sources && sources.length > 0 && baseDir) {
     const candidate = path.join(baseDir, sources[0]);
     if (fs.existsSync(candidate)) {
@@ -98,8 +98,8 @@ export async function findCustomTypeUsage(
   type: string
 ): Promise<string | undefined> {
   const registered =
-    sampleTreeProvider.getSampleIds('local', type).length +
-    sampleTreeProvider.getSampleIds('global', type).length;
+    (await sampleTreeProvider.getSampleIds('local', type)).length +
+    (await sampleTreeProvider.getSampleIds('global', type)).length;
   if (registered > 0) {
     return vscode.l10n.t('{0} registered sample(s) use this type.', registered);
   }
@@ -489,7 +489,7 @@ export function registerSampleCommands(
   // Register search sample command (QuickPick)
   context.subscriptions.push(
     vscode.commands.registerCommand('labnotev.searchSample', async () => {
-      const allSamples = sampleTreeProvider.getAllSamplesForSearch();
+      const allSamples = await sampleTreeProvider.getAllSamplesForSearch();
 
       if (allSamples.length === 0) {
         vscode.window.showInformationMessage(vscode.l10n.t('No samples to search.'));

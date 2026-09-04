@@ -1,32 +1,34 @@
 /**
  * Tests for workflowDataLoader
- * Handles loading, saving, and copying workflow/unit operation JSON files
+ * Handles loading, saving, and seeding workflow/unit operation JSON files.
+ *
+ * I/O now flows through the injected `LabnoteFs` port, so these tests use an
+ * in-memory `MemFileSystem` instead of mocking `node:fs`. That is exactly the
+ * payoff the adapter was introduced for.
  */
-import * as fs from 'fs';
+import { MemFileSystem } from '@labnotev/core';
+import {
+  ensureWorkflowResources,
+  loadWorkflows,
+  loadUnitOperations,
+  saveWorkflows,
+  saveUnitOperations,
+  addWorkflow,
+  addUnitOperation,
+  groupWorkflowsByCategory,
+  generateNextWorkflowId,
+  generateNextUnitOpId,
+  getWorkflowFilePath,
+} from '../lib/workflowDataLoader';
 
-// Mock fs module
-vi.mock('fs', () => ({
-  existsSync: vi.fn(),
-  readFileSync: vi.fn(),
-  writeFileSync: vi.fn(),
-  renameSync: vi.fn(),
-  unlinkSync: vi.fn(),
-  mkdirSync: vi.fn(),
-  copyFileSync: vi.fn(),
-}));
-
-// Mock vscode
+// Mock vscode (imported transitively by some sibling modules under the same
+// setup); keep it minimal so this file needs no real extension host.
 vi.mock('vscode', () => ({
   workspace: {
     workspaceFolders: [{ uri: { fsPath: '/workspace' } }],
-    getConfiguration: vi.fn(() => ({
-      get: vi.fn(),
-    })),
+    getConfiguration: vi.fn(() => ({ get: vi.fn() })),
   },
-  window: {
-    showErrorMessage: vi.fn(),
-    showInformationMessage: vi.fn(),
-  },
+  window: { showErrorMessage: vi.fn(), showInformationMessage: vi.fn() },
 }));
 
 describe('workflowDataLoader', () => {
@@ -35,18 +37,8 @@ describe('workflowDataLoader', () => {
     language: 'English',
     lastUpdated: '2025-08-15',
     workflows: [
-      {
-        id: 'WD010',
-        name: 'General Design of Experiment',
-        description: 'This workflow provides a general-purpose approach...',
-        category: 'Design',
-      },
-      {
-        id: 'WB010',
-        name: 'DNA Oligomer Assembly',
-        description: 'This workflow focuses on assembling DNA...',
-        category: 'Build',
-      },
+      { id: 'WD010', name: 'General Design of Experiment', description: 'This workflow provides a general-purpose approach...', category: 'Design' },
+      { id: 'WB010', name: 'DNA Oligomer Assembly', description: 'This workflow focuses on assembling DNA...', category: 'Build' },
     ],
   };
 
@@ -55,18 +47,8 @@ describe('workflowDataLoader', () => {
     language: 'English',
     lastUpdated: '2025-08-15',
     unitOperations: [
-      {
-        id: 'UHW010',
-        name: 'Liquid Handling',
-        equipment: 'Multiple dispenser system',
-        description: 'Basic liquid sample operations...',
-      },
-      {
-        id: 'UHW020',
-        name: '96 Channel Liquid Handling',
-        equipment: 'NGS library preparation system',
-        description: 'High-throughput liquid handling...',
-      },
+      { id: 'UHW010', name: 'Liquid Handling', equipment: 'Multiple dispenser system', description: 'Basic liquid sample operations...' },
+      { id: 'UHW020', name: '96 Channel Liquid Handling', equipment: 'NGS library preparation system', description: 'High-throughput liquid handling...' },
     ],
   };
 
@@ -75,113 +57,79 @@ describe('workflowDataLoader', () => {
     language: 'English',
     lastUpdated: '2025-08-15',
     unitOperations: [
-      {
-        id: 'USW010',
-        name: 'DNA Oligomer Pool Design',
-        software: 'Dsembler, DNAWorks',
-        description: 'Software that designs DNA oligomers...',
-      },
-      {
-        id: 'USW020',
-        name: 'Primer Design',
-        software: 'SnapGene, Primer3',
-        description: 'Designing primers...',
-      },
+      { id: 'USW010', name: 'DNA Oligomer Pool Design', software: 'Dsembler, DNAWorks', description: 'Software that designs DNA oligomers...' },
+      { id: 'USW020', name: 'Primer Design', software: 'SnapGene, Primer3', description: 'Designing primers...' },
     ],
   };
 
-  beforeEach(() => {
-    vi.clearAllMocks();
-  });
-
-  afterEach(() => {
-    vi.restoreAllMocks();
-  });
-
   describe('ensureWorkflowResources', () => {
-    it('should create resources/workflows folder if not exists', async () => {
-      const { ensureWorkflowResources } = await import('../lib/workflowDataLoader');
-      
-      vi.mocked(fs.existsSync).mockReturnValue(false);
-      
-      ensureWorkflowResources('/extension/path', '/workspace');
-      
-      expect(fs.mkdirSync).toHaveBeenCalledWith(
-        expect.stringContaining('workflows'),
-        { recursive: true }
-      );
+    it('seeds catalog JSON files from the bundle when they do not exist', async () => {
+      const fs = new MemFileSystem();
+
+      await ensureWorkflowResources(fs, '/workspace');
+
+      // Three catalog files are seeded under resources/workflows.
+      const wfPath = getWorkflowFilePath('/workspace', 'workflows');
+      const hwPath = getWorkflowFilePath('/workspace', 'unitoperations_hw');
+      const swPath = getWorkflowFilePath('/workspace', 'unitoperations_sw');
+      expect(await fs.exists(wfPath)).toBe(true);
+      expect(await fs.exists(hwPath)).toBe(true);
+      expect(await fs.exists(swPath)).toBe(true);
+      // The seeded content is valid serialized JSON of the bundle.
+      const seeded = await fs.read(wfPath);
+      expect(() => JSON.parse(seeded)).not.toThrow();
+      const written = Object.keys(fs.snapshot()).filter((p) => p.endsWith('.json'));
+      expect(written).toHaveLength(3);
     });
 
-    it('should copy JSON files from extension to workspace if not exist', async () => {
-      const { ensureWorkflowResources } = await import('../lib/workflowDataLoader');
-      
-      // Mock existsSync based on path
-      vi.mocked(fs.existsSync).mockImplementation((filePath: fs.PathLike) => {
-        const pathStr = filePath.toString().replace(/\\/g, '/');
-        // Workspace folder exists
-        if (pathStr.includes('/workspace') && pathStr.includes('workflows') && !pathStr.endsWith('.json')) {
-          return true;
-        }
-        // Workspace JSON files don't exist
-        if (pathStr.includes('/workspace') && pathStr.endsWith('.json')) {
-          return false;
-        }
-        // Extension JSON files exist
-        if (pathStr.includes('/extension/path') && pathStr.endsWith('.json')) {
-          return true;
-        }
-        return false;
-      });
-      
-      ensureWorkflowResources('/extension/path', '/workspace');
-      
-      expect(fs.copyFileSync).toHaveBeenCalledTimes(3);
+    it('does not overwrite catalog files that already exist', async () => {
+      const fs = new MemFileSystem();
+      const wfPath = getWorkflowFilePath('/workspace', 'workflows');
+      const hwPath = getWorkflowFilePath('/workspace', 'unitoperations_hw');
+      const swPath = getWorkflowFilePath('/workspace', 'unitoperations_sw');
+      await fs.write(wfPath, 'SENTINEL_WF');
+      await fs.write(hwPath, 'SENTINEL_HW');
+      await fs.write(swPath, 'SENTINEL_SW');
+
+      await ensureWorkflowResources(fs, '/workspace');
+
+      expect(await fs.read(wfPath)).toBe('SENTINEL_WF');
+      expect(await fs.read(hwPath)).toBe('SENTINEL_HW');
+      expect(await fs.read(swPath)).toBe('SENTINEL_SW');
     });
 
-    it('should not copy files if they already exist in workspace', async () => {
-      const { ensureWorkflowResources } = await import('../lib/workflowDataLoader');
-      
-      vi.mocked(fs.existsSync).mockReturnValue(true);
-      
-      ensureWorkflowResources('/extension/path', '/workspace');
-      
-      expect(fs.copyFileSync).not.toHaveBeenCalled();
+    it('does nothing when workspaceRoot is empty', async () => {
+      const fs = new MemFileSystem();
+      await ensureWorkflowResources(fs, '');
+      expect(Object.keys(fs.snapshot())).toHaveLength(0);
     });
   });
 
   describe('loadWorkflows', () => {
-    it('should load workflows from JSON file', async () => {
-      const { loadWorkflows } = await import('../lib/workflowDataLoader');
-      
-      vi.mocked(fs.existsSync).mockReturnValue(true);
-      vi.mocked(fs.readFileSync).mockReturnValue(JSON.stringify(mockWorkflowsJson));
-      
-      const result = loadWorkflows('/workspace');
-      
+    it('loads workflows from the JSON file', async () => {
+      const fs = new MemFileSystem();
+      await fs.write(getWorkflowFilePath('/workspace', 'workflows'), JSON.stringify(mockWorkflowsJson));
+
+      const result = await loadWorkflows(fs, '/workspace');
+
       expect(result).toEqual(mockWorkflowsJson);
       expect(result.workflows).toHaveLength(2);
       expect(result.workflows[0].id).toBe('WD010');
     });
 
-    it('should return empty structure if file not found', async () => {
-      const { loadWorkflows } = await import('../lib/workflowDataLoader');
-      
-      vi.mocked(fs.existsSync).mockReturnValue(false);
-      
-      const result = loadWorkflows('/workspace');
-      
+    it('returns an empty structure if the file is not found', async () => {
+      const fs = new MemFileSystem();
+      const result = await loadWorkflows(fs, '/workspace');
       expect(result.workflows).toEqual([]);
     });
 
-    it('should group workflows by category', async () => {
-      const { loadWorkflows, groupWorkflowsByCategory } = await import('../lib/workflowDataLoader');
-      
-      vi.mocked(fs.existsSync).mockReturnValue(true);
-      vi.mocked(fs.readFileSync).mockReturnValue(JSON.stringify(mockWorkflowsJson));
-      
-      const data = loadWorkflows('/workspace');
+    it('groups workflows by category', async () => {
+      const fs = new MemFileSystem();
+      await fs.write(getWorkflowFilePath('/workspace', 'workflows'), JSON.stringify(mockWorkflowsJson));
+
+      const data = await loadWorkflows(fs, '/workspace');
       const grouped = groupWorkflowsByCategory(data.workflows);
-      
+
       expect(grouped['Design']).toHaveLength(1);
       expect(grouped['Build']).toHaveLength(1);
       expect(grouped['Design'][0].id).toBe('WD010');
@@ -189,239 +137,150 @@ describe('workflowDataLoader', () => {
   });
 
   describe('loadUnitOperations', () => {
-    it('should load HW unit operations from JSON file', async () => {
-      const { loadUnitOperations } = await import('../lib/workflowDataLoader');
-      
-      vi.mocked(fs.existsSync).mockReturnValue(true);
-      vi.mocked(fs.readFileSync).mockReturnValue(JSON.stringify(mockHwUnitOpsJson));
-      
-      const result = loadUnitOperations('/workspace', 'hw');
-      
+    it('loads HW unit operations from the JSON file', async () => {
+      const fs = new MemFileSystem();
+      await fs.write(getWorkflowFilePath('/workspace', 'unitoperations_hw'), JSON.stringify(mockHwUnitOpsJson));
+
+      const result = await loadUnitOperations(fs, '/workspace', 'hw');
+
       expect(result).toEqual(mockHwUnitOpsJson);
-      expect(result.unitOperations).toHaveLength(2);
       expect(result.unitOperations[0].id).toBe('UHW010');
     });
 
-    it('should load SW unit operations from JSON file', async () => {
-      const { loadUnitOperations } = await import('../lib/workflowDataLoader');
-      
-      vi.mocked(fs.existsSync).mockReturnValue(true);
-      vi.mocked(fs.readFileSync).mockReturnValue(JSON.stringify(mockSwUnitOpsJson));
-      
-      const result = loadUnitOperations('/workspace', 'sw');
-      
+    it('loads SW unit operations from the JSON file', async () => {
+      const fs = new MemFileSystem();
+      await fs.write(getWorkflowFilePath('/workspace', 'unitoperations_sw'), JSON.stringify(mockSwUnitOpsJson));
+
+      const result = await loadUnitOperations(fs, '/workspace', 'sw');
+
       expect(result).toEqual(mockSwUnitOpsJson);
-      expect(result.unitOperations).toHaveLength(2);
       expect(result.unitOperations[0].id).toBe('USW010');
     });
 
-    it('should return empty structure if file not found', async () => {
-      const { loadUnitOperations } = await import('../lib/workflowDataLoader');
-      
-      vi.mocked(fs.existsSync).mockReturnValue(false);
-      
-      const result = loadUnitOperations('/workspace', 'hw');
-      
+    it('returns an empty structure if the file is not found', async () => {
+      const fs = new MemFileSystem();
+      const result = await loadUnitOperations(fs, '/workspace', 'hw');
       expect(result.unitOperations).toEqual([]);
     });
   });
 
   describe('saveWorkflows', () => {
-    it('should save workflows to JSON file', async () => {
-      const { saveWorkflows } = await import('../lib/workflowDataLoader');
-      
-      vi.mocked(fs.existsSync).mockReturnValue(true);
-      
-      saveWorkflows('/workspace', mockWorkflowsJson);
-      
-      expect(fs.writeFileSync).toHaveBeenCalledWith(
-        expect.stringContaining('workflows_en.json'),
-        JSON.stringify(mockWorkflowsJson, null, 2),
-        'utf-8'
-      );
-    });
+    it('saves workflows to the JSON file (creating dirs on demand)', async () => {
+      const fs = new MemFileSystem();
+      await saveWorkflows(fs, '/workspace', structuredClone(mockWorkflowsJson));
 
-    it('should create folder if not exists before saving', async () => {
-      const { saveWorkflows } = await import('../lib/workflowDataLoader');
-      
-      vi.mocked(fs.existsSync).mockReturnValue(false);
-      
-      saveWorkflows('/workspace', mockWorkflowsJson);
-      
-      expect(fs.mkdirSync).toHaveBeenCalledWith(
-        expect.stringContaining('workflows'),
-        { recursive: true }
-      );
+      const path = getWorkflowFilePath('/workspace', 'workflows');
+      expect(await fs.exists(path)).toBe(true);
+      const stored = JSON.parse(await fs.read(path));
+      expect(stored.workflows).toEqual(mockWorkflowsJson.workflows);
     });
   });
 
   describe('saveUnitOperations', () => {
-    it('should save HW unit operations to JSON file', async () => {
-      const { saveUnitOperations } = await import('../lib/workflowDataLoader');
-      
-      vi.mocked(fs.existsSync).mockReturnValue(true);
-      
-      saveUnitOperations('/workspace', 'hw', mockHwUnitOpsJson);
-      
-      expect(fs.writeFileSync).toHaveBeenCalledWith(
-        expect.stringContaining('unitoperations_hw_en.json'),
-        JSON.stringify(mockHwUnitOpsJson, null, 2),
-        'utf-8'
-      );
+    it('saves HW unit operations to the JSON file', async () => {
+      const fs = new MemFileSystem();
+      await saveUnitOperations(fs, '/workspace', 'hw', structuredClone(mockHwUnitOpsJson));
+
+      const stored = JSON.parse(await fs.read(getWorkflowFilePath('/workspace', 'unitoperations_hw')));
+      expect(stored.unitOperations).toEqual(mockHwUnitOpsJson.unitOperations);
     });
 
-    it('should save SW unit operations to JSON file', async () => {
-      const { saveUnitOperations } = await import('../lib/workflowDataLoader');
-      
-      vi.mocked(fs.existsSync).mockReturnValue(true);
-      
-      saveUnitOperations('/workspace', 'sw', mockSwUnitOpsJson);
-      
-      expect(fs.writeFileSync).toHaveBeenCalledWith(
-        expect.stringContaining('unitoperations_sw_en.json'),
-        JSON.stringify(mockSwUnitOpsJson, null, 2),
-        'utf-8'
-      );
+    it('saves SW unit operations to the JSON file', async () => {
+      const fs = new MemFileSystem();
+      await saveUnitOperations(fs, '/workspace', 'sw', structuredClone(mockSwUnitOpsJson));
+
+      const stored = JSON.parse(await fs.read(getWorkflowFilePath('/workspace', 'unitoperations_sw')));
+      expect(stored.unitOperations).toEqual(mockSwUnitOpsJson.unitOperations);
     });
   });
 
   describe('addWorkflow', () => {
-    it('should add a new workflow to the list', async () => {
-      const { loadWorkflows, addWorkflow } = await import('../lib/workflowDataLoader');
-      
-      vi.mocked(fs.existsSync).mockReturnValue(true);
-      vi.mocked(fs.readFileSync).mockReturnValue(JSON.stringify(mockWorkflowsJson));
-      
-      const newWorkflow = {
-        id: 'WD030',
-        name: 'New Workflow',
-        description: 'A new workflow',
-        category: 'Design',
-      };
-      
-      const data = loadWorkflows('/workspace');
-      const updated = addWorkflow(data, newWorkflow);
-      
+    it('adds a new workflow to the list', async () => {
+      const fs = new MemFileSystem();
+      await fs.write(getWorkflowFilePath('/workspace', 'workflows'), JSON.stringify(mockWorkflowsJson));
+
+      const data = await loadWorkflows(fs, '/workspace');
+      const updated = addWorkflow(data, { id: 'WD030', name: 'New Workflow', description: 'A new workflow', category: 'Design' });
+
       expect(updated.workflows).toHaveLength(3);
-      expect(updated.workflows.find(w => w.id === 'WD030')).toBeDefined();
+      expect(updated.workflows.find((w) => w.id === 'WD030')).toBeDefined();
     });
 
-    it('should auto-generate ID if not provided', async () => {
-      const { loadWorkflows, addWorkflow } = await import('../lib/workflowDataLoader');
-      
-      vi.mocked(fs.existsSync).mockReturnValue(true);
-      vi.mocked(fs.readFileSync).mockReturnValue(JSON.stringify(mockWorkflowsJson));
-      
-      const newWorkflow = {
-        name: 'New Workflow',
-        description: 'A new workflow',
-        category: 'Design',
-      };
-      
-      const data = loadWorkflows('/workspace');
-      const updated = addWorkflow(data, newWorkflow);
-      
-      const addedWorkflow = updated.workflows[updated.workflows.length - 1];
-      expect(addedWorkflow.id).toMatch(/^WD\d{3}$/);
+    it('auto-generates an ID if not provided', async () => {
+      const fs = new MemFileSystem();
+      await fs.write(getWorkflowFilePath('/workspace', 'workflows'), JSON.stringify(mockWorkflowsJson));
+
+      const data = await loadWorkflows(fs, '/workspace');
+      const updated = addWorkflow(data, { name: 'New Workflow', description: 'A new workflow', category: 'Design' });
+
+      const added = updated.workflows[updated.workflows.length - 1];
+      expect(added.id).toMatch(/^WD\d{3}$/);
     });
   });
 
   describe('addUnitOperation', () => {
-    it('should add a new HW unit operation', async () => {
-      const { loadUnitOperations, addUnitOperation } = await import('../lib/workflowDataLoader');
-      
-      vi.mocked(fs.existsSync).mockReturnValue(true);
-      vi.mocked(fs.readFileSync).mockReturnValue(JSON.stringify(mockHwUnitOpsJson));
-      
-      const newOp = {
-        id: 'UHW030',
-        name: 'New Operation',
-        equipment: 'New Equipment',
-        description: 'A new unit operation',
-      };
-      
-      const data = loadUnitOperations('/workspace', 'hw');
-      const updated = addUnitOperation(data, newOp);
-      
+    it('adds a new HW unit operation', async () => {
+      const fs = new MemFileSystem();
+      await fs.write(getWorkflowFilePath('/workspace', 'unitoperations_hw'), JSON.stringify(mockHwUnitOpsJson));
+
+      const data = await loadUnitOperations(fs, '/workspace', 'hw');
+      const updated = addUnitOperation(data, { id: 'UHW030', name: 'New Operation', equipment: 'New Equipment', description: 'A new unit operation' });
+
       expect(updated.unitOperations).toHaveLength(3);
-      expect(updated.unitOperations.find(op => op.id === 'UHW030')).toBeDefined();
+      expect(updated.unitOperations.find((op) => op.id === 'UHW030')).toBeDefined();
     });
   });
 
   describe('generateNextWorkflowId', () => {
-    it('should generate next ID for Design category', async () => {
-      const { generateNextWorkflowId } = await import('../lib/workflowDataLoader');
-      
+    it('generates the next ID for the Design category', () => {
       const workflows = [
         { id: 'WD010', name: 'Test', description: '', category: 'Design' },
         { id: 'WD020', name: 'Test', description: '', category: 'Design' },
       ];
-      
-      const nextId = generateNextWorkflowId(workflows, 'Design');
-      expect(nextId).toBe('WD030');
+      expect(generateNextWorkflowId(workflows, 'Design')).toBe('WD030');
     });
 
-    it('should generate next ID for Build category', async () => {
-      const { generateNextWorkflowId } = await import('../lib/workflowDataLoader');
-      
+    it('generates the next ID for the Build category', () => {
       const workflows = [
         { id: 'WB010', name: 'Test', description: '', category: 'Build' },
         { id: 'WB025', name: 'Test', description: '', category: 'Build' },
       ];
-      
-      const nextId = generateNextWorkflowId(workflows, 'Build');
-      expect(nextId).toBe('WB030');
+      expect(generateNextWorkflowId(workflows, 'Build')).toBe('WB030');
     });
   });
 
   describe('generateNextUnitOpId', () => {
-    it('should generate next ID for HW unit operations', async () => {
-      const { generateNextUnitOpId } = await import('../lib/workflowDataLoader');
-      
+    it('generates the next ID for HW unit operations', () => {
       const ops = [
         { id: 'UHW010', name: 'Test', description: '' },
         { id: 'UHW020', name: 'Test', description: '' },
       ];
-      
-      const nextId = generateNextUnitOpId(ops, 'hw');
-      expect(nextId).toBe('UHW030');
+      expect(generateNextUnitOpId(ops, 'hw')).toBe('UHW030');
     });
 
-    it('should generate next ID for SW unit operations', async () => {
-      const { generateNextUnitOpId } = await import('../lib/workflowDataLoader');
-      
+    it('generates the next ID for SW unit operations', () => {
       const ops = [
         { id: 'USW010', name: 'Test', description: '' },
         { id: 'USW025', name: 'Test', description: '' },
       ];
-      
-      const nextId = generateNextUnitOpId(ops, 'sw');
-      expect(nextId).toBe('USW030');
+      expect(generateNextUnitOpId(ops, 'sw')).toBe('USW030');
     });
   });
 
   describe('getWorkflowFilePath', () => {
-    it('should return correct path for workflows JSON', async () => {
-      const { getWorkflowFilePath } = await import('../lib/workflowDataLoader');
-      
+    it('returns the correct path for the workflows JSON', () => {
       const filePath = getWorkflowFilePath('/workspace', 'workflows');
       expect(filePath).toContain('resources');
       expect(filePath).toContain('workflows');
       expect(filePath).toContain('workflows_en.json');
     });
 
-    it('should return correct path for HW unit operations JSON', async () => {
-      const { getWorkflowFilePath } = await import('../lib/workflowDataLoader');
-      
-      const filePath = getWorkflowFilePath('/workspace', 'unitoperations_hw');
-      expect(filePath).toContain('unitoperations_hw_en.json');
+    it('returns the correct path for the HW unit operations JSON', () => {
+      expect(getWorkflowFilePath('/workspace', 'unitoperations_hw')).toContain('unitoperations_hw_en.json');
     });
 
-    it('should return correct path for SW unit operations JSON', async () => {
-      const { getWorkflowFilePath } = await import('../lib/workflowDataLoader');
-      
-      const filePath = getWorkflowFilePath('/workspace', 'unitoperations_sw');
-      expect(filePath).toContain('unitoperations_sw_en.json');
+    it('returns the correct path for the SW unit operations JSON', () => {
+      expect(getWorkflowFilePath('/workspace', 'unitoperations_sw')).toContain('unitoperations_sw_en.json');
     });
   });
 });

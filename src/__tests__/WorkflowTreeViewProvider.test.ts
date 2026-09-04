@@ -1,7 +1,8 @@
 /**
  * Tests for WorkflowTreeViewProvider
  * Tree view for workflows and unit operations
- */// Mock vscode
+ */
+// Mock vscode
 vi.mock('vscode', () => ({
   TreeItem: class {
     label: string;
@@ -91,9 +92,10 @@ describe('WorkflowTreeViewProvider', () => {
     vi.clearAllMocks();
     
     const { loadWorkflows, loadUnitOperations, groupWorkflowsByCategory } = await import('../lib/workflowDataLoader');
-    vi.mocked(loadWorkflows).mockReturnValue(mockWorkflows);
-    vi.mocked(loadUnitOperations).mockImplementation((_, type) => 
-      type === 'hw' ? mockHwUnitOps : mockSwUnitOps
+    // Signatures now take a leading `LabnoteFs` arg: (fs, workspaceRoot[, type]).
+    vi.mocked(loadWorkflows).mockResolvedValue(mockWorkflows);
+    vi.mocked(loadUnitOperations).mockImplementation((_fs, _root, type) =>
+      Promise.resolve(type === 'hw' ? mockHwUnitOps : mockSwUnitOps)
     );
     vi.mocked(groupWorkflowsByCategory).mockReturnValue({
       'Design': mockWorkflows.workflows.filter(w => w.category === 'Design'),
@@ -304,17 +306,6 @@ describe('WorkflowTreeViewProvider', () => {
       
       const label = formatUnitOpLabel('UHW010', 'Liquid Handling');
       expect(label).toBe('UHW010: Liquid Handling');
-    });
-  });
-
-  describe('getWorkflowInsertText', () => {
-    it('should return workflow insert text for README', async () => {
-      const { getWorkflowInsertText } = await import('../views/WorkflowTreeViewProvider');
-      
-      const text = getWorkflowInsertText('WD010', 'General Design', '001');
-      expect(text).toContain('- [ ]');
-      expect(text).toContain('WD010');
-      expect(text).toContain('001');
     });
   });
 

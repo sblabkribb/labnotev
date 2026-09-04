@@ -18,17 +18,12 @@ jobs:
         with:
           node-version: '22'
           cache: 'npm'
-          # Two lock files exist (root + webview-section); include both so the
-          # npm cache key invalidates when either set of dependencies changes.
-          cache-dependency-path: |
-            package-lock.json
-            webview-section/package-lock.json
+          # Single root lock file now covers all workspaces
+          # (packages/*, webview-section) via npm workspaces.
+          cache-dependency-path: package-lock.json
 
-      - name: Install root dependencies
+      - name: Install dependencies (all workspaces)
         run: npm ci
-
-      - name: Install webview dependencies
-        run: cd webview-section && npm ci
 
       # Mandatory gates: a red result here fails the build.
       - name: Typecheck (host + webview)
@@ -39,6 +34,9 @@ jobs:
 
       - name: Build extension
         run: npm run build
+
+      - name: Build Obsidian plugin
+        run: npm run build:obsidian
 
       # Mandatory gate: fails on ESLint errors. Warnings are still allowed
       # (ESLint exits 0 on warnings) so the remaining advisory warnings do not

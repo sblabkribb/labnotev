@@ -15,12 +15,22 @@ export default tseslint.config(
       'esbuild.js',
       '**/*.mjs',
       '**/*.cjs',
+      // Bundled build artifacts (not source).
+      'packages/obsidian-plugin/main.js',
+      'packages/obsidian-plugin/main.js.map',
     ],
   },
   js.configs.recommended,
   ...tseslint.configs.recommended,
   {
-    files: ['src/**/*.ts'],
+    files: [
+      'src/**/*.ts',
+      'packages/core/src/**/*.ts',
+      // The Obsidian plugin runs in Electron/browser and uses DOM + CodeMirror
+      // globals; TS + its own tsconfig already type-check these, so the same
+      // no-undef relaxation applies here as to the rest of the codebase.
+      'packages/obsidian-plugin/src/**/*.ts',
+    ],
     rules: {
       // TypeScript already checks for undefined identifiers and unreachable
       // globals; ESLint's no-undef duplicates that and misfires on ambient
@@ -33,6 +43,17 @@ export default tseslint.config(
         'warn',
         { argsIgnorePattern: '^_', varsIgnorePattern: '^_' },
       ],
+    },
+  },
+  {
+    // Static docs assets run in the browser and are not part of the tsc
+    // program, so no-undef (DOM globals) and related stylistic rules misfire.
+    // Relax the rules rather than enumerating every browser global.
+    files: ['docs/**/*.js'],
+    rules: {
+      'no-undef': 'off',
+      'no-empty': 'off',
+      '@typescript-eslint/no-unused-vars': 'off',
     },
   },
   {

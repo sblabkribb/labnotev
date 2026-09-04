@@ -284,6 +284,29 @@ Content here
       expect(result[1].fileName).toBe('002_WD020_설계.labnote.md');
       expect(result[1].title).toBe('002 설계 노트');
     });
+
+    it('parses standard `- [ ]` task list items (and mixed with legacy)', async () => {
+      const { parseWorkflowChecklistFromReadme } = await import('../lib/workflowStructure');
+
+      const readmeContent = `# Test
+## Related Workflows
+
+- [ ] [001 WD010 Design](./001_WD010_Design.labnote.md)
+- [x] [002 WB010 Build](002_WB010_Build.labnote.md)
+[ ] [003 WT010 Test](./003_WT010_Test.labnote.md)
+
+## Other Section
+`;
+
+      const result = parseWorkflowChecklistFromReadme(readmeContent);
+
+      expect(result.length).toBe(3);
+      expect(result[0].fileName).toBe('001_WD010_Design.labnote.md');
+      expect(result[0].done).toBe(false);
+      expect(result[1].fileName).toBe('002_WB010_Build.labnote.md');
+      expect(result[1].done).toBe(true);
+      expect(result[2].fileName).toBe('003_WT010_Test.labnote.md');
+    });
   });
 
   describe('generateWorkflowChecklist', () => {
@@ -297,8 +320,12 @@ Content here
       
       const result = generateWorkflowChecklist(items);
       
-      expect(result).toContain('[ ] [001 WD010 General Design](./001_WD010_Design.labnote.md)');
-      expect(result).toContain('[x] [002 WB010 DNA Assembly](./002_WB010_Build.labnote.md)');
+      expect(result).toContain('- [ ] [001 WD010 General Design](./001_WD010_Design.labnote.md)');
+      expect(result).toContain('- [x] [002 WB010 DNA Assembly](./002_WB010_Build.labnote.md)');
+      // Every emitted line must be a standard task-list item.
+      for (const line of result.split('\n')) {
+        expect(line).toMatch(/^- \[[ x]\] /);
+      }
     });
 
     it('should return empty string for empty array', async () => {
@@ -334,6 +361,56 @@ Content here
       const lastBlockquoteInSection = relatedSection.lastIndexOf('> ');
       const checklistIndex = relatedSection.indexOf(newChecklist);
       expect(checklistIndex).toBeGreaterThan(lastBlockquoteInSection);
+    });
+
+    it('replaces an existing `- [ ]` checklist block without duplicating items', async () => {
+      const { updateReadmeWorkflowSection } = await import('../lib/workflowStructure');
+
+      const readmeContent = `# Test
+## 🗂️ Related Workflows
+
+> Instructions
+
+- [ ] [001 WD010 Design](./001_WD010_Design.labnote.md)
+- [x] [002 WB010 Build](./002_WB010_Build.labnote.md)
+
+## Other Section
+`;
+      const newChecklist =
+        '- [ ] [001 WD010 Design](./001_WD010_Design.labnote.md)\n' +
+        '- [x] [002 WB010 Build](./002_WB010_Build.labnote.md)\n' +
+        '- [ ] [003 WT010 Test](./003_WT010_Test.labnote.md)';
+
+      const result = updateReadmeWorkflowSection(readmeContent, newChecklist);
+
+      // The old block must be replaced, not left above the new one.
+      const related = result.split('## Other Section')[0];
+      expect((related.match(/\[001 WD010 Design\]/g) || []).length).toBe(1);
+      expect(related).toContain('003 WT010 Test');
+    });
+
+    it('replaces a legacy `[ ]` checklist block (migration path)', async () => {
+      const { updateReadmeWorkflowSection } = await import('../lib/workflowStructure');
+
+      const readmeContent = `# Test
+## 🗂️ Related Workflows
+
+> Instructions
+
+[ ] [001 WD010 Design](./001_WD010_Design.labnote.md)
+
+## Other Section
+`;
+      const newChecklist =
+        '- [ ] [001 WD010 Design](./001_WD010_Design.labnote.md)\n' +
+        '- [ ] [002 WB010 Build](./002_WB010_Build.labnote.md)';
+
+      const result = updateReadmeWorkflowSection(readmeContent, newChecklist);
+
+      const related = result.split('## Other Section')[0];
+      // The legacy marker-less line must not survive alongside the new block.
+      expect(related).not.toMatch(/^\[ \] \[001 WD010 Design\]/m);
+      expect((related.match(/\[001 WD010 Design\]/g) || []).length).toBe(1);
     });
   });
 

@@ -18,7 +18,10 @@
 import * as fs from 'fs';
 import * as path from 'path';
 import * as os from 'os';
+import { NodeFileSystem } from '@labnotev/core/node';
 import { removeSourcesForDocument, SampleRecord } from '../lib/sampleStorage';
+
+const nodeFs = new NodeFileSystem();
 
 let tmpRoot: string;
 
@@ -54,14 +57,15 @@ function makeRecord(overrides: Partial<SampleRecord> = {}): SampleRecord {
 }
 
 describe('removeSourcesForDocument', () => {
-  it('keeps the record when the document still defines the token', () => {
+  it('keeps the record when the document still defines the token', async () => {
     const docPath = path.join(tmpRoot, 'a.labnote.md');
     const localFolder = path.join(tmpRoot, 'resources', 'labsamples');
     writeRecords(localFolder, 'DNA', {
       'DNA-001': makeRecord({ sources: ['a.labnote.md'] }),
     });
 
-    const removed = removeSourcesForDocument(
+    const removed = await removeSourcesForDocument(
+      nodeFs,
       docPath,
       '@DNA;DNA-001;alias;desc',
       undefined,
@@ -74,7 +78,7 @@ describe('removeSourcesForDocument', () => {
     expect(samples['DNA-001'].sources).toEqual(['a.labnote.md']);
   });
 
-  it("drops only this document's basename from sources when other documents still define the token", () => {
+  it("drops only this document's basename from sources when other documents still define the token", async () => {
     const docPath = path.join(tmpRoot, 'a.labnote.md');
     const localFolder = path.join(tmpRoot, 'resources', 'labsamples');
     writeRecords(localFolder, 'DNA', {
@@ -83,7 +87,8 @@ describe('removeSourcesForDocument', () => {
 
     // The document no longer mentions DNA-001 — but b.labnote.md is still
     // listed in sources, so the record itself must stay.
-    const removed = removeSourcesForDocument(
+    const removed = await removeSourcesForDocument(
+      nodeFs,
       docPath,
       'unrelated body without any sample token',
       undefined,
@@ -96,7 +101,7 @@ describe('removeSourcesForDocument', () => {
     expect(samples['DNA-001'].sources).toEqual(['b.labnote.md']);
   });
 
-  it('deletes the record when the current document was the only source', () => {
+  it('deletes the record when the current document was the only source', async () => {
     const docPath = path.join(tmpRoot, 'a.labnote.md');
     const localFolder = path.join(tmpRoot, 'resources', 'labsamples');
     writeRecords(localFolder, 'DNA', {
@@ -104,7 +109,8 @@ describe('removeSourcesForDocument', () => {
       'DNA-002': makeRecord({ sources: ['a.labnote.md'] }),
     });
 
-    const removed = removeSourcesForDocument(
+    const removed = await removeSourcesForDocument(
+      nodeFs,
       docPath,
       // Only DNA-002 remains in the document.
       '@DNA;DNA-002;alias',
@@ -120,7 +126,7 @@ describe('removeSourcesForDocument', () => {
     expect(samples['DNA-002']).toBeDefined();
   });
 
-  it('protects records whose sources started empty (Add Sample flow)', () => {
+  it('protects records whose sources started empty (Add Sample flow)', async () => {
     const docPath = path.join(tmpRoot, 'a.labnote.md');
     const localFolder = path.join(tmpRoot, 'resources', 'labsamples');
     writeRecords(localFolder, 'DNA', {
@@ -128,7 +134,8 @@ describe('removeSourcesForDocument', () => {
       'DNA-tree': makeRecord({ alias: 'Manual', sources: [] }),
     });
 
-    const removed = removeSourcesForDocument(
+    const removed = await removeSourcesForDocument(
+      nodeFs,
       docPath,
       'document with no DNA tokens',
       undefined,
@@ -141,7 +148,7 @@ describe('removeSourcesForDocument', () => {
     expect(samples['DNA-tree'].sources).toEqual([]);
   });
 
-  it('processes both local and global folders when they differ', () => {
+  it('processes both local and global folders when they differ', async () => {
     const docPath = path.join(tmpRoot, 'exp', 'a.labnote.md');
     const localFolder = path.join(tmpRoot, 'exp', 'resources', 'labsamples');
     const globalFolder = path.join(tmpRoot, 'resources', 'labsamples');
@@ -153,7 +160,8 @@ describe('removeSourcesForDocument', () => {
       'RNA-global': makeRecord({ type: 'RNA', sources: ['a.labnote.md'] }),
     });
 
-    const removed = removeSourcesForDocument(
+    const removed = await removeSourcesForDocument(
+      nodeFs,
       docPath,
       'body without tokens',
       globalFolder,
@@ -170,7 +178,7 @@ describe('removeSourcesForDocument', () => {
     expect(readRecords(globalFolder, 'RNA')['RNA-global']).toBeUndefined();
   });
 
-  it('does not double-process when local and global folders resolve to the same path', () => {
+  it('does not double-process when local and global folders resolve to the same path', async () => {
     // workspaceRoot is the experiment folder → local labsamples == global
     // labsamples. The helper must visit the folder exactly once.
     const docPath = path.join(tmpRoot, 'note.labnote.md');
@@ -179,7 +187,8 @@ describe('removeSourcesForDocument', () => {
       'DNA-001': makeRecord({ sources: ['note.labnote.md'] }),
     });
 
-    const removed = removeSourcesForDocument(
+    const removed = await removeSourcesForDocument(
+      nodeFs,
       docPath,
       'no tokens here',
       sharedFolder,
@@ -192,14 +201,15 @@ describe('removeSourcesForDocument', () => {
     ]);
   });
 
-  it('includes custom (additional) sample types in the reconciliation', () => {
+  it('includes custom (additional) sample types in the reconciliation', async () => {
     const docPath = path.join(tmpRoot, 'a.labnote.md');
     const localFolder = path.join(tmpRoot, 'resources', 'labsamples');
     writeRecords(localFolder, 'CustomType', {
       'CustomType-001': makeRecord({ type: 'CustomType', sources: ['a.labnote.md'] }),
     });
 
-    const removed = removeSourcesForDocument(
+    const removed = await removeSourcesForDocument(
+      nodeFs,
       docPath,
       'body without any tokens',
       undefined,
@@ -212,10 +222,11 @@ describe('removeSourcesForDocument', () => {
     expect(readRecords(localFolder, 'CustomType')['CustomType-001']).toBeUndefined();
   });
 
-  it('is a no-op when neither folder exists', () => {
+  it('is a no-op when neither folder exists', async () => {
     // No fixtures written — exercises the existsSync guard.
     const docPath = path.join(tmpRoot, 'a.labnote.md');
-    const removed = removeSourcesForDocument(
+    const removed = await removeSourcesForDocument(
+      nodeFs,
       docPath,
       '',
       path.join(tmpRoot, 'nope'),

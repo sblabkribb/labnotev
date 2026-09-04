@@ -1,4 +1,5 @@
 {
+  "Yes": "예",
   "Failed to save the lab note: {0}": "랩노트를 저장하지 못했습니다: {0}",
   "Section Editor action failed: {0}": "Section Editor 작업이 실패했습니다: {0}",
   "Failed to open Chat. Ensure VS Code Chat is enabled.": "Chat을 열 수 없습니다. VS Code Chat이 활성화되어 있는지 확인하세요.",
@@ -56,9 +57,9 @@
   "Please run this command on a workflow file inside the labnote folder.": "labnote 폴더 내의 워크플로 파일에서 실행해주세요.",
   "Unit operation description (optional)": "유닛 오퍼레이션 설명 (선택 사항)",
   "Failed to insert unit operation: {0}": "유닛 오퍼레이션 삽입 실패: {0}",
-  "Workflow catalog (68 entries)": "워크플로 카탈로그 (68개)",
-  "HW unit operation catalog (50 entries)": "HW 유닛 오퍼레이션 카탈로그 (50개)",
-  "SW unit operation catalog (40 entries)": "SW 유닛 오퍼레이션 카탈로그 (40개)",
+  "Workflow catalog": "워크플로 카탈로그",
+  "HW unit operation catalog": "HW 유닛 오퍼레이션 카탈로그",
+  "SW unit operation catalog": "SW 유닛 오퍼레이션 카탈로그",
   "Select a template file to edit": "편집할 템플릿 파일을 선택하세요",
   "File not found: {0}": "파일을 찾을 수 없습니다: {0}",
 

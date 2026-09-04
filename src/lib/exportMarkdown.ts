@@ -3,9 +3,9 @@
  * unit tested directly. Command handlers in `commands/exportCommands.ts` do
  * the file-system and VS Code API calls and pass plain data in.
  */
-import * as fs from 'fs';
 import * as path from 'path';
 import { pathToFileURL } from 'url';
+import type { LabnoteFs } from '@labnotev/core';
 import { resolveContainedPath } from './isPathInsideDir';
 import { parseWorkflowChecklistFromReadme } from './workflowStructure';
 
@@ -97,15 +97,18 @@ function extractFrontMatterFields(raw: string): { fields: Record<string, string>
  * fields are read as plain strings from front matter and never recomputed —
  * created/last-updated dates must match exactly what is on disk.
  */
-export function collectExportSources(absPaths: string[]): ExportSource[] {
+export async function collectExportSources(
+  fs: LabnoteFs,
+  absPaths: string[]
+): Promise<ExportSource[]> {
   const seen = new Set<string>();
   const sources: ExportSource[] = [];
   for (const p of absPaths) {
     const resolved = path.resolve(p);
-    if (seen.has(resolved) || !fs.existsSync(resolved)) continue;
+    if (seen.has(resolved) || !(await fs.exists(resolved))) continue;
     seen.add(resolved);
 
-    const raw = fs.readFileSync(resolved, 'utf8');
+    const raw = await fs.read(resolved);
     const { fields, body } = extractFrontMatterFields(raw);
     sources.push({
       absPath: resolved,

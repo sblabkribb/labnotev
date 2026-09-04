@@ -1,21 +1,13 @@
 /**
- * Phase D-5: regression tests for the mtime-based cache in
- * SampleCompletionProvider (Phase D-1).
+ * Regression tests for the SampleCompletionProvider records cache.
  *
- * We mock `fs` so `statSync(...).mtimeMs` is test-controllable; the cache key
- * only depends on paths + type, so we never need the real filesystem.
+ * The cache used to be freshness-checked via `fs.statSync().mtimeMs`. The
+ * platform-neutral `LabnoteFs` port exposes no `stat`, so the cache is now
+ * keyed purely by `<localFolder>|<globalFolder>|<type>` and invalidated
+ * *explicitly* via {@link refreshSampleRecordsCache}. These tests pin that
+ * contract: repeated lookups reuse the cache, changed-on-disk data is NOT
+ * observed until an explicit refresh, and a refresh forces a re-read.
  */
-const statMtime = { value: 100 };
-
-vi.mock('fs', async () => {
-  const actual = await vi.importActual<typeof import('fs')>('fs');
-  return {
-    ...actual,
-    default: actual,
-    statSync: vi.fn((_p: string) => ({ mtimeMs: statMtime.value })),
-  };
-});
-
 vi.mock('vscode', () => ({
   languages: {
     registerCompletionItemProvider: vi.fn(() => ({ dispose: vi.fn() })),
@@ -35,6 +27,7 @@ vi.mock('vscode', () => ({
     command?: unknown;
     documentation?: unknown;
     range?: unknown;
+    filterText?: string;
     constructor(label: string, kind: number) {
       this.label = label;
       this.kind = kind;
@@ -78,8 +71,10 @@ vi.mock('../lib/sampleStorage', () => ({
     docPath.replace(/[^/\\]+$/, '').replace(/\\/g, '/') + 'resources/labsamples'
   ),
   getGlobalLabsamplesFolder: vi.fn((root: string) => root + '/resources/labsamples'),
-  loadSamplesByType: vi.fn(() => ({ 'DNA-1': { type: 'DNA', alias: 'A', descriptions: [], sources: [] } })),
-  loadReferenceSamplesByType: vi.fn(() => ({})),
+  loadSamplesByType: vi.fn(() =>
+    Promise.resolve({ 'DNA-1': { type: 'DNA', alias: 'A', descriptions: [], sources: [] } })
+  ),
+  loadReferenceSamplesByType: vi.fn(() => Promise.resolve({})),
 }));
 
 const createDoc = (text: string) => ({
@@ -89,41 +84,44 @@ const createDoc = (text: string) => ({
 });
 const createPos = (line: number, character: number) => ({ line, character });
 
-describe('SampleCompletionProvider mtime cache (Phase D-1)', () => {
+describe('SampleCompletionProvider records cache (explicit invalidation)', () => {
   beforeEach(async () => {
     vi.clearAllMocks();
-    statMtime.value = 100;
     const { refreshSampleRecordsCache } = await import('../providers/SampleCompletionProvider');
     refreshSampleRecordsCache();
   });
 
-  it('does not re-read JSON when mtime is unchanged', async () => {
+  it('does not re-read disk on a second call for the same key (cache hit)', async () => {
     const { SampleCompletionProvider } = await import('../providers/SampleCompletionProvider');
     const { loadSamplesByType } = await import('../lib/sampleStorage');
     const provider = new SampleCompletionProvider();
 
-    provider.provideCompletionItems(createDoc('@dna:') as any, createPos(0, 5) as any, {} as any, {} as any);
+    await provider.provideCompletionItems(createDoc('@dna:') as any, createPos(0, 5) as any, {} as any, {} as any);
     const firstCallCount = (loadSamplesByType as any).mock.calls.length;
 
-    provider.provideCompletionItems(createDoc('@dna:') as any, createPos(0, 5) as any, {} as any, {} as any);
+    await provider.provideCompletionItems(createDoc('@dna:') as any, createPos(0, 5) as any, {} as any, {} as any);
     const secondCallCount = (loadSamplesByType as any).mock.calls.length;
 
     expect(secondCallCount).toBe(firstCallCount);
   });
 
-  it('invalidates the cache when mtime of an underlying file changes', async () => {
+  it('keeps serving cached data when the underlying JSON changes but no refresh is issued', async () => {
     const { SampleCompletionProvider } = await import('../providers/SampleCompletionProvider');
     const { loadSamplesByType } = await import('../lib/sampleStorage');
     const provider = new SampleCompletionProvider();
 
-    provider.provideCompletionItems(createDoc('@dna:') as any, createPos(0, 5) as any, {} as any, {} as any);
+    await provider.provideCompletionItems(createDoc('@dna:') as any, createPos(0, 5) as any, {} as any, {} as any);
     const firstCallCount = (loadSamplesByType as any).mock.calls.length;
 
-    statMtime.value = 200;
-    provider.provideCompletionItems(createDoc('@dna:') as any, createPos(0, 5) as any, {} as any, {} as any);
+    // Simulate on-disk data changing. Without an explicit refresh the provider
+    // must NOT re-read — freshness is no longer tracked by mtime.
+    (loadSamplesByType as any).mockResolvedValue({
+      'DNA-2': { type: 'DNA', alias: 'B', descriptions: [], sources: [] },
+    });
+    await provider.provideCompletionItems(createDoc('@dna:') as any, createPos(0, 5) as any, {} as any, {} as any);
     const secondCallCount = (loadSamplesByType as any).mock.calls.length;
 
-    expect(secondCallCount).toBeGreaterThan(firstCallCount);
+    expect(secondCallCount).toBe(firstCallCount);
   });
 
   it('refreshSampleRecordsCache clears the cache so the next call re-reads disk', async () => {
@@ -133,11 +131,11 @@ describe('SampleCompletionProvider mtime cache (Phase D-1)', () => {
     const { loadSamplesByType } = await import('../lib/sampleStorage');
     const provider = new SampleCompletionProvider();
 
-    provider.provideCompletionItems(createDoc('@dna:') as any, createPos(0, 5) as any, {} as any, {} as any);
+    await provider.provideCompletionItems(createDoc('@dna:') as any, createPos(0, 5) as any, {} as any, {} as any);
     const firstCallCount = (loadSamplesByType as any).mock.calls.length;
 
     refreshSampleRecordsCache();
-    provider.provideCompletionItems(createDoc('@dna:') as any, createPos(0, 5) as any, {} as any, {} as any);
+    await provider.provideCompletionItems(createDoc('@dna:') as any, createPos(0, 5) as any, {} as any, {} as any);
     const secondCallCount = (loadSamplesByType as any).mock.calls.length;
 
     expect(secondCallCount).toBeGreaterThan(firstCallCount);
@@ -148,7 +146,7 @@ describe('SampleCompletionProvider mtime cache (Phase D-1)', () => {
     const { loadSamplesByType } = await import('../lib/sampleStorage');
     const provider = new SampleCompletionProvider();
 
-    const result = provider.provideCompletionItems(
+    const result = await provider.provideCompletionItems(
       createDoc('hello world') as any,
       createPos(0, 11) as any,
       {} as any,

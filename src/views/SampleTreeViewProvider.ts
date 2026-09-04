@@ -4,10 +4,14 @@
  */
 
 import * as vscode from 'vscode';
-import * as fs from 'fs';
 import * as path from 'path';
+import { NodeFileSystem } from '@labnotev/core/node';
 import { SAMPLE_TYPES, buildSampleDefSuffix } from '../lib/sampleUtils';
 import { SampleRecord, loadSamplesByType, saveSamplesByType, moveSampleToGlobal as moveSampleToGlobalFn, moveSampleToLocal as moveSampleToLocalFn } from '../lib/sampleStorage';
+import { refreshSampleRecordsCache } from '../providers/SampleCompletionProvider';
+
+/** Shared Node file-system adapter for the sample JSON loaders. */
+const nodeFs = new NodeFileSystem();
 
 /**
  * Tree item types
@@ -214,8 +218,8 @@ export const SAMPLE_TREE_DND_MIME = 'application/vnd.code.tree.labnotev.sampleTr
  * full provider (which requires extension context + workspace folders).
  */
 export interface SampleReorderProvider {
-  getSampleIds(scope: 'local' | 'global', sampleType: string): string[];
-  reorderSamples(scope: 'local' | 'global', sampleType: string, orderedIds: string[]): void;
+  getSampleIds(scope: 'local' | 'global', sampleType: string): Promise<string[]>;
+  reorderSamples(scope: 'local' | 'global', sampleType: string, orderedIds: string[]): Promise<void>;
 }
 
 interface DragSourcePayload {
@@ -303,7 +307,7 @@ export class SampleTreeDragAndDropController
     const sourceIds = sources.map(s => s.sampleId).filter((id): id is string => Boolean(id));
     if (sourceIds.length === 0) return;
 
-    const currentIds = this.provider.getSampleIds(bucketScope, bucketType);
+    const currentIds = await this.provider.getSampleIds(bucketScope, bucketType);
     const sourceSet = new Set(sourceIds);
     const remaining = currentIds.filter(id => !sourceSet.has(id));
 
@@ -327,7 +331,7 @@ export class SampleTreeDragAndDropController
       orderedIds.every((id, i) => id === currentIds[i]);
     if (sameOrder) return;
 
-    this.provider.reorderSamples(bucketScope, bucketType, orderedIds);
+    await this.provider.reorderSamples(bucketScope, bucketType, orderedIds);
   }
 }
 
@@ -364,6 +368,11 @@ export class SampleTreeViewProvider implements vscode.TreeDataProvider<SampleTre
    * Refresh the tree view
    */
   public refresh(): void {
+    // The completion provider caches sample records in-memory (no more mtime
+    // polling). Every tree mutation and the save-time sync route through
+    // refresh(), so invalidating here keeps `@id` completions consistent with
+    // what the tree shows after add/edit/delete/move/reorder and document save.
+    refreshSampleRecordsCache();
     this._onDidChangeTreeData.fire();
   }
 
@@ -435,11 +444,11 @@ export class SampleTreeViewProvider implements vscode.TreeDataProvider<SampleTre
   /**
    * Get type items (DNA, RNA, etc.) for a scope
    */
-  private getTypeItems(scope: 'local' | 'global'): SampleTreeItem[] {
+  private async getTypeItems(scope: 'local' | 'global'): Promise<SampleTreeItem[]> {
     const folder = scope === 'local' ? this.localFolder : this.globalFolder;
-    
-    return this.getAllTypes().map(type => {
-      const samples = this.loadSamples(folder, type);
+
+    return Promise.all(this.getAllTypes().map(async type => {
+      const samples = await this.loadSamples(folder, type);
       const count = Object.keys(samples).length;
       const isCustom = !(SAMPLE_TYPES as readonly string[]).includes(type);
       return new SampleTreeItem(
@@ -447,15 +456,15 @@ export class SampleTreeViewProvider implements vscode.TreeDataProvider<SampleTre
         SampleTreeItemType.Type,
         { scope, sampleType: type, isCustom }
       );
-    });
+    }));
   }
 
   /**
    * Get sample items for a type
    */
-  private getSampleItems(scope: 'local' | 'global', sampleType: string): SampleTreeItem[] {
+  private async getSampleItems(scope: 'local' | 'global', sampleType: string): Promise<SampleTreeItem[]> {
     const folder = scope === 'local' ? this.localFolder : this.globalFolder;
-    const samples = this.loadSamples(folder, sampleType);
+    const samples = await this.loadSamples(folder, sampleType);
     const entries = Object.entries(samples);
 
     // Phase B-4: keep a single neutral placeholder so an empty type node
@@ -510,23 +519,19 @@ export class SampleTreeViewProvider implements vscode.TreeDataProvider<SampleTre
   }
 
   /**
-   * Load samples from JSON file
+   * Load samples from JSON file. Missing folders/files resolve to `{}` inside
+   * the loader, so no existence pre-check is needed.
    */
-  private loadSamples(folder: string, type: string): Record<string, SampleRecord> {
-    if (!fs.existsSync(folder)) {
-      return {};
-    }
-    return loadSamplesByType(folder, type);
+  private loadSamples(folder: string, type: string): Promise<Record<string, SampleRecord>> {
+    return loadSamplesByType(nodeFs, folder, type);
   }
 
   /**
-   * Save samples to JSON file
+   * Save samples to JSON file. The adapter creates parent directories on
+   * demand and owns atomicity.
    */
-  private saveSamples(folder: string, type: string, samples: Record<string, SampleRecord>): void {
-    if (!fs.existsSync(folder)) {
-      fs.mkdirSync(folder, { recursive: true });
-    }
-    saveSamplesByType(folder, type, samples);
+  private saveSamples(folder: string, type: string, samples: Record<string, SampleRecord>): Promise<void> {
+    return saveSamplesByType(nodeFs, folder, type, samples);
   }
 
   /**
@@ -540,7 +545,7 @@ export class SampleTreeViewProvider implements vscode.TreeDataProvider<SampleTre
     description: string | null
   ): Promise<void> {
     const folder = scope === 'local' ? this.localFolder : this.globalFolder;
-    const samples = this.loadSamples(folder, sampleType);
+    const samples = await this.loadSamples(folder, sampleType);
 
     samples[sampleId] = {
       type: sampleType,
@@ -549,7 +554,7 @@ export class SampleTreeViewProvider implements vscode.TreeDataProvider<SampleTre
       sources: [],
     };
 
-    this.saveSamples(folder, sampleType, samples);
+    await this.saveSamples(folder, sampleType, samples);
     this.refresh();
   }
 
@@ -562,11 +567,11 @@ export class SampleTreeViewProvider implements vscode.TreeDataProvider<SampleTre
     sampleId: string
   ): Promise<void> {
     const folder = scope === 'local' ? this.localFolder : this.globalFolder;
-    const samples = this.loadSamples(folder, sampleType);
+    const samples = await this.loadSamples(folder, sampleType);
 
     if (samples[sampleId]) {
       delete samples[sampleId];
-      this.saveSamples(folder, sampleType, samples);
+      await this.saveSamples(folder, sampleType, samples);
       this.refresh();
     }
   }
@@ -582,7 +587,7 @@ export class SampleTreeViewProvider implements vscode.TreeDataProvider<SampleTre
     description: string | null
   ): Promise<void> {
     const folder = scope === 'local' ? this.localFolder : this.globalFolder;
-    const samples = this.loadSamples(folder, sampleType);
+    const samples = await this.loadSamples(folder, sampleType);
 
     if (samples[sampleId]) {
       samples[sampleId].alias = alias;
@@ -592,7 +597,7 @@ export class SampleTreeViewProvider implements vscode.TreeDataProvider<SampleTre
       // and the InfoPanel/TreeView keep showing a history list the user
       // cannot clear. Clearing the field also clears the array now.
       samples[sampleId].descriptions = description ? [description] : [];
-      this.saveSamples(folder, sampleType, samples);
+      await this.saveSamples(folder, sampleType, samples);
       this.refresh();
     }
   }
@@ -602,9 +607,9 @@ export class SampleTreeViewProvider implements vscode.TreeDataProvider<SampleTre
    * order they appear in the underlying JSON file. Used by the drag-and-drop
    * controller to compute a new key order before persisting it.
    */
-  public getSampleIds(scope: 'local' | 'global', sampleType: string): string[] {
+  public async getSampleIds(scope: 'local' | 'global', sampleType: string): Promise<string[]> {
     const folder = scope === 'local' ? this.localFolder : this.globalFolder;
-    const samples = this.loadSamples(folder, sampleType);
+    const samples = await this.loadSamples(folder, sampleType);
     return Object.keys(samples);
   }
 
@@ -614,13 +619,13 @@ export class SampleTreeViewProvider implements vscode.TreeDataProvider<SampleTre
    * `@type;id;...` definition when the active webview's text does not match.
    * Returns `undefined` if the (scope, type, id) record is absent.
    */
-  public getSampleSources(
+  public async getSampleSources(
     scope: 'local' | 'global',
     sampleType: string,
     sampleId: string
-  ): string[] | undefined {
+  ): Promise<string[] | undefined> {
     const folder = scope === 'local' ? this.localFolder : this.globalFolder;
-    const samples = this.loadSamples(folder, sampleType);
+    const samples = await this.loadSamples(folder, sampleType);
     const rec = samples[sampleId];
     return rec ? rec.sources : undefined;
   }
@@ -632,13 +637,13 @@ export class SampleTreeViewProvider implements vscode.TreeDataProvider<SampleTre
    * ids that were omitted from `orderedIds` (e.g. because they were added
    * concurrently) are appended at the end so we never silently drop data.
    */
-  public reorderSamples(
+  public async reorderSamples(
     scope: 'local' | 'global',
     sampleType: string,
     orderedIds: string[]
-  ): void {
+  ): Promise<void> {
     const folder = scope === 'local' ? this.localFolder : this.globalFolder;
-    const samples = this.loadSamples(folder, sampleType);
+    const samples = await this.loadSamples(folder, sampleType);
 
     const reordered: Record<string, SampleRecord> = {};
     for (const id of orderedIds) {
@@ -652,7 +657,7 @@ export class SampleTreeViewProvider implements vscode.TreeDataProvider<SampleTre
       }
     }
 
-    this.saveSamples(folder, sampleType, reordered);
+    await this.saveSamples(folder, sampleType, reordered);
     this.refresh();
   }
 
@@ -660,8 +665,8 @@ export class SampleTreeViewProvider implements vscode.TreeDataProvider<SampleTre
    * Move a sample from local to global folder
    */
   public async moveSampleToGlobal(sampleType: string, sampleId: string): Promise<void> {
-    const localSamples = this.loadSamples(this.localFolder, sampleType);
-    const globalSamples = this.loadSamples(this.globalFolder, sampleType);
+    const localSamples = await this.loadSamples(this.localFolder, sampleType);
+    const globalSamples = await this.loadSamples(this.globalFolder, sampleType);
     
     const { newLocalDb, newGlobalDb } = moveSampleToGlobalFn(
       sampleId, 
@@ -670,8 +675,8 @@ export class SampleTreeViewProvider implements vscode.TreeDataProvider<SampleTre
       { [sampleType]: globalSamples }
     );
     
-    this.saveSamples(this.localFolder, sampleType, newLocalDb[sampleType] || {});
-    this.saveSamples(this.globalFolder, sampleType, newGlobalDb[sampleType] || {});
+    await this.saveSamples(this.localFolder, sampleType, newLocalDb[sampleType] || {});
+    await this.saveSamples(this.globalFolder, sampleType, newGlobalDb[sampleType] || {});
     this.refresh();
   }
 
@@ -679,8 +684,8 @@ export class SampleTreeViewProvider implements vscode.TreeDataProvider<SampleTre
    * Move a sample from global to local folder
    */
   public async moveSampleToLocal(sampleType: string, sampleId: string): Promise<void> {
-    const localSamples = this.loadSamples(this.localFolder, sampleType);
-    const globalSamples = this.loadSamples(this.globalFolder, sampleType);
+    const localSamples = await this.loadSamples(this.localFolder, sampleType);
+    const globalSamples = await this.loadSamples(this.globalFolder, sampleType);
     
     const { newLocalDb, newGlobalDb } = moveSampleToLocalFn(
       sampleId, 
@@ -689,8 +694,8 @@ export class SampleTreeViewProvider implements vscode.TreeDataProvider<SampleTre
       { [sampleType]: globalSamples }
     );
     
-    this.saveSamples(this.localFolder, sampleType, newLocalDb[sampleType] || {});
-    this.saveSamples(this.globalFolder, sampleType, newGlobalDb[sampleType] || {});
+    await this.saveSamples(this.localFolder, sampleType, newLocalDb[sampleType] || {});
+    await this.saveSamples(this.globalFolder, sampleType, newGlobalDb[sampleType] || {});
     this.refresh();
   }
 
@@ -698,13 +703,13 @@ export class SampleTreeViewProvider implements vscode.TreeDataProvider<SampleTre
    * Get all samples for search (QuickPick)
    * Returns flat list of all samples from both local and global folders
    */
-  public getAllSamplesForSearch(): Array<{
+  public async getAllSamplesForSearch(): Promise<Array<{
     sampleId: string;
     sampleType: string;
     alias: string | null;
     description: string | null;
     scope: 'local' | 'global';
-  }> {
+  }>> {
     const results: Array<{
       sampleId: string;
       sampleType: string;
@@ -720,7 +725,7 @@ export class SampleTreeViewProvider implements vscode.TreeDataProvider<SampleTre
 
     for (const { scope, folder } of scopes) {
       for (const type of this.getAllTypes()) {
-        const samples = this.loadSamples(folder, type);
+        const samples = await this.loadSamples(folder, type);
         for (const [id, record] of Object.entries(samples)) {
           results.push({
             sampleId: id,

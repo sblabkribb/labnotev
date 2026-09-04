@@ -1,4 +1,4 @@
-import { parseWorkflowMd, serializeWorkflowMd, validateWorkflowDocument } from '../lib/workflowSectionParser';
+import { parseWorkflowMd, serializeWorkflowMd, validateWorkflowDocument } from '../sections/workflowSectionParser';
 
 const SAMPLE_WORKFLOW = `---
 title: WD010 Sample Preparation

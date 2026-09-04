@@ -14,6 +14,10 @@ import {
 import { extractMarkdownTables, tableToCsv } from '../lib/exportTablesCsv';
 import { openFileInOsDefaultApp } from '../lib/openInOs';
 import type { SectionEditorProvider } from '../sectionEditorProvider';
+import { NodeFileSystem } from '@labnotev/core/node';
+
+/** Shared Node file-system adapter for pure-logic helpers that take a LabnoteFs. */
+const nodeFs = new NodeFileSystem();
 
 export interface ExportCommandDeps {
   sectionEditorProvider?: SectionEditorProvider;
@@ -109,7 +113,7 @@ export function registerExportCommands(context: vscode.ExtensionContext, deps?: 
       const paths = await pickExportSources(sectionEditorProvider);
       if (!paths) return;
 
-      const collected = collectExportSources(paths);
+      const collected = await collectExportSources(nodeFs, paths);
       if (collected.length === 0) {
         vscode.window.showWarningMessage(vscode.l10n.t('No exportable lab note files were found.'));
         return;
@@ -158,7 +162,7 @@ export function registerExportCommands(context: vscode.ExtensionContext, deps?: 
       const paths = await pickExportSources(sectionEditorProvider);
       if (!paths) return;
 
-      const collected = collectExportSources(paths);
+      const collected = await collectExportSources(nodeFs, paths);
       const entries = collected.flatMap((source) =>
         extractMarkdownTables(source.body).map((table) => ({ source, table }))
       );

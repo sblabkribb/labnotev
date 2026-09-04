@@ -40,7 +40,7 @@ describe('SectionEditorProvider broadcastSampleDefsUpdated', () => {
     (provider as any)._allEditors.add(a);
     (provider as any)._allEditors.add(b);
 
-    provider.broadcastSampleDefsUpdated();
+    await provider.broadcastSampleDefsUpdated();
 
     expect(a.webviewPanel.webview.postMessage).toHaveBeenCalledTimes(1);
     expect(b.webviewPanel.webview.postMessage).toHaveBeenCalledTimes(1);

@@ -1,7 +1,10 @@
 import './setup';
 
-// Mock fs module
-vi.mock('fs', () => ({
+// Shared mock fns so the sync `fs` API and the async `node:fs/promises` API
+// (used by @labnotev/core NodeFileSystem) are driven by the SAME spies. Tests
+// keep configuring `fs.readFileSync`/`existsSync`/… and the promise-based
+// adapter forwards to those, so per-test setup needs no changes.
+const fsMocks = vi.hoisted(() => ({
   existsSync: vi.fn(),
   readdirSync: vi.fn(),
   readFileSync: vi.fn(),
@@ -9,6 +12,41 @@ vi.mock('fs', () => ({
   renameSync: vi.fn(),
   unlinkSync: vi.fn(),
   mkdirSync: vi.fn(),
+}));
+
+// Mock fs module (sync API — used by legacy call sites still on `fs`).
+vi.mock('fs', () => ({ ...fsMocks }));
+
+// Mock node:fs so NodeFileSystem's `fs.constants.F_OK` resolves.
+vi.mock('node:fs', () => ({ ...fsMocks, constants: { F_OK: 0 } }));
+
+// Mock node:fs/promises by forwarding to the same sync spies. This lets the
+// LabnoteFs NodeFileSystem adapter observe the data the tests inject via the
+// sync mocks, and lets write assertions on `writeFileSync`/`renameSync` fire.
+vi.mock('node:fs/promises', () => ({
+  readFile: vi.fn((...args: any[]) => Promise.resolve(fsMocks.readFileSync(...args))),
+  writeFile: vi.fn((...args: any[]) => {
+    fsMocks.writeFileSync(...args);
+    return Promise.resolve();
+  }),
+  mkdir: vi.fn((...args: any[]) => {
+    fsMocks.mkdirSync(...args);
+    return Promise.resolve();
+  }),
+  readdir: vi.fn((...args: any[]) => Promise.resolve(fsMocks.readdirSync(...args) ?? [])),
+  access: vi.fn((p: any) =>
+    fsMocks.existsSync(p)
+      ? Promise.resolve()
+      : Promise.reject(Object.assign(new Error('ENOENT'), { code: 'ENOENT' }))
+  ),
+  rename: vi.fn((...args: any[]) => {
+    fsMocks.renameSync(...args);
+    return Promise.resolve();
+  }),
+  unlink: vi.fn((...args: any[]) => {
+    fsMocks.unlinkSync(...args);
+    return Promise.resolve();
+  }),
 }));
 
 describe('SampleTreeViewProvider', () => {
@@ -866,7 +904,7 @@ describe('SampleTreeViewProvider', () => {
       });
       
       const provider = new SampleTreeViewProvider(mockContext as any, '/test/workspace', '/test/document/folder');
-      const samples = provider.getAllSamplesForSearch();
+      const samples = await provider.getAllSamplesForSearch();
       
       expect(samples.length).toBeGreaterThanOrEqual(2);
       expect(samples.some(s => s.sampleId === 'DNA-111')).toBe(true);
@@ -893,7 +931,7 @@ describe('SampleTreeViewProvider', () => {
       });
       
       const provider = new SampleTreeViewProvider(mockContext as any, '/test/workspace', '/test/document/folder');
-      const samples = provider.getAllSamplesForSearch();
+      const samples = await provider.getAllSamplesForSearch();
       
       const localSample = samples.find(s => s.sampleId === 'DNA-111');
       expect(localSample?.scope).toBe('local');
@@ -911,7 +949,7 @@ describe('SampleTreeViewProvider', () => {
       vi.mocked(fs.existsSync).mockReturnValue(false);
       
       const provider = new SampleTreeViewProvider(mockContext as any, '/test/workspace', '/test/document/folder');
-      const samples = provider.getAllSamplesForSearch();
+      const samples = await provider.getAllSamplesForSearch();
       
       expect(samples).toEqual([]);
     });

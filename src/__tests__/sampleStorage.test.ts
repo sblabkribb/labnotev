@@ -1,6 +1,9 @@
 import * as fs from 'fs';
 import * as path from 'path';
 import * as os from 'os';
+import { NodeFileSystem } from '@labnotev/core/node';
+
+const nodeFs = new NodeFileSystem();
 
 describe('Sample Storage', () => {
   describe('extractSampleInfoFromText', () => {
@@ -421,8 +424,8 @@ Sample Tracking: YES
       const globalFolder = getGlobalLabsamplesFolder(workspaceRoot);
       const text = '@dna;DNA-1;myAlias';
 
-      saveSamplesFromDocument(docPath, text, globalFolder);
-      saveSamplesFromDocument(docPath, text, globalFolder);
+      await saveSamplesFromDocument(nodeFs, docPath, text, globalFolder);
+      await saveSamplesFromDocument(nodeFs, docPath, text, globalFolder);
 
       const dnaPath = path.join(globalFolder, 'DNA.json');
       expect(fs.existsSync(dnaPath)).toBe(true);
@@ -448,8 +451,8 @@ Sample Tracking: YES
 
       // First write with one casing, second with the other. If the case check
       // doesn't normalise, we'd see duplicate local/global writes.
-      saveSamplesFromDocument(docPath, '@dna;DNA-1;first', globalFolderLower);
-      saveSamplesFromDocument(docPath, '@dna;DNA-1;second', globalFolderUpper);
+      await saveSamplesFromDocument(nodeFs, docPath, '@dna;DNA-1;first', globalFolderLower);
+      await saveSamplesFromDocument(nodeFs, docPath, '@dna;DNA-1;second', globalFolderUpper);
 
       const dnaPath = path.join(globalFolderLower, 'DNA.json');
       expect(fs.existsSync(dnaPath)).toBe(true);
@@ -481,7 +484,7 @@ Sample Tracking: YES
         'utf8'
       );
 
-      saveSamplesFromDocument(docPath, '@dna;DNA-1;localAlias', globalFolder);
+      await saveSamplesFromDocument(nodeFs, docPath, '@dna;DNA-1;localAlias', globalFolder);
 
       const localDnaPath = path.join(tmpRoot, 'exp', 'resources', 'labsamples', 'DNA.json');
       expect(fs.existsSync(localDnaPath)).toBe(true);
@@ -493,13 +496,13 @@ Sample Tracking: YES
   describe('loadReferenceSamplesByType', () => {
     it('should return empty object when folder does not exist', async () => {
       const { loadReferenceSamplesByType } = await import('../lib/sampleStorage');
-      const result = loadReferenceSamplesByType('/nonexistent/folder/path', 'Reagent');
+      const result = await loadReferenceSamplesByType(nodeFs, '/nonexistent/folder/path', 'Reagent');
       expect(result).toEqual({});
     });
 
     it('should return empty object for non Reagent/Labware type when folder is empty', async () => {
       const { loadReferenceSamplesByType } = await import('../lib/sampleStorage');
-      const result = loadReferenceSamplesByType('/nonexistent/folder', 'DNA');
+      const result = await loadReferenceSamplesByType(nodeFs, '/nonexistent/folder', 'DNA');
       expect(result).toEqual({});
     });
   });

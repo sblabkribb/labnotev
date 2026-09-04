@@ -5,7 +5,11 @@
  */
 
 import * as vscode from 'vscode';
+import { NodeFileSystem } from '@labnotev/core/node';
 import { getLabsamplesFolder, getGlobalLabsamplesFolder, loadReferenceSamplesByType } from './sampleStorage';
+
+/** Shared Node file-system adapter for the reference-DB loaders. */
+const nodeFs = new NodeFileSystem();
 
 export interface ProductCandidate {
   id: string;
@@ -18,10 +22,10 @@ const REFERENCE_DB_TYPES = ['Reagent', 'Labware', 'Equip'];
 /**
  * Get all product candidates for a type from the reference DB (local + global).
  */
-export function getProductCandidates(
+export async function getProductCandidates(
   type: string,
   documentUri: vscode.Uri
-): ProductCandidate[] {
+): Promise<ProductCandidate[]> {
   if (!REFERENCE_DB_TYPES.includes(type)) {
     return [];
   }
@@ -29,7 +33,7 @@ export function getProductCandidates(
   const seenIds = new Set<string>();
 
   const localFolder = getLabsamplesFolder(documentUri.fsPath);
-  const refLocal = loadReferenceSamplesByType(localFolder, type);
+  const refLocal = await loadReferenceSamplesByType(nodeFs, localFolder, type);
   for (const id of Object.keys(refLocal)) {
     if (!seenIds.has(id)) {
       seenIds.add(id);
@@ -46,7 +50,7 @@ export function getProductCandidates(
   const workspaceRoot = workspaceFolder?.uri.fsPath;
   if (workspaceRoot) {
     const globalFolder = getGlobalLabsamplesFolder(workspaceRoot);
-    const refGlobal = loadReferenceSamplesByType(globalFolder, type);
+    const refGlobal = await loadReferenceSamplesByType(nodeFs, globalFolder, type);
     for (const id of Object.keys(refGlobal)) {
       if (!seenIds.has(id)) {
         seenIds.add(id);
@@ -70,7 +74,7 @@ export async function showProductPicker(
   type: string,
   documentUri: vscode.Uri
 ): Promise<{ alias: string | null; description: string | null } | null> {
-  const candidates = getProductCandidates(type, documentUri);
+  const candidates = await getProductCandidates(type, documentUri);
   if (candidates.length === 0) {
     // Issue #22 Q2: surface the empty-catalog state so the Search product
     // button never looks like a silent no-op.

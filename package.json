@@ -2,7 +2,7 @@
   "name": "labnotev",
   "displayName": "Labnote Assistant",
   "description": "Markdown-based lab notebook with sample tracking, workflow checklists, and a structured Section Editor for biology and bioinformatics experiments.",
-  "version": "0.69.0",
+  "version": "0.70.0",
   "license": "MIT",
   "publisher": "korea-biofoundry",
   "icon": "resources/icons/labnotev-128.png",
@@ -409,22 +409,31 @@
       }
     ]
   },
+  "workspaces": [
+    "packages/*",
+    "webview-section"
+  ],
   "scripts": {
     "vscode:prepublish": "npm run build",
     "build": "node esbuild.js --production && npm run build:webview",
     "build:extension": "node esbuild.js --production",
-    "build:webview": "cd webview-section && npm run build",
+    "build:webview": "npm run build -w labnotev-section-editor",
+    "build:obsidian": "npm run build -w @labnotev/obsidian-plugin",
+    "build:all": "npm run build && npm run build:obsidian",
     "watch": "node esbuild.js --watch",
     "dev": "npm run watch",
-    "install:all": "npm install && cd webview-section && npm install",
+    "install:all": "npm install",
     "test": "vitest run",
     "test:watch": "vitest",
-    "test:all": "npm test && cd webview-section && npm test",
+    "test:all": "npm test && npm run test -w labnotev-section-editor",
     "typecheck": "tsc --noEmit -p tsconfig.json",
-    "typecheck:webview": "cd webview-section && npm run typecheck",
-    "typecheck:all": "npm run typecheck && npm run typecheck:webview",
+    "typecheck:core": "tsc --noEmit -p packages/core/tsconfig.json",
+    "typecheck:webview": "npm run typecheck -w labnotev-section-editor",
+    "typecheck:obsidian": "npm run typecheck -w @labnotev/obsidian-plugin",
+    "typecheck:all": "npm run typecheck && npm run typecheck:core && npm run typecheck:webview && npm run typecheck:obsidian",
+    "sync:versions": "node scripts/syncVersions.mjs",
     "lint": "eslint .",
-    "lint:webview": "cd webview-section && npm run lint",
+    "lint:webview": "npm run lint -w labnotev-section-editor",
     "lint:all": "npm run lint && npm run lint:webview"
   },
   "devDependencies": {

@@ -18,7 +18,11 @@ import {
   removeSourcesForDocument,
   RemovedSampleRef,
 } from '../lib/sampleStorage';
+import { NodeFileSystem } from '@labnotev/core/node';
 import { SampleTreeViewProvider } from '../views/SampleTreeViewProvider';
+
+/** Shared Node file-system adapter for the sample storage helpers. */
+const nodeFs = new NodeFileSystem();
 import { findResourcesFolder, ensureResourcesFolder, saveSampleToResources } from '../lib/dataLoader';
 import { showProductPicker } from '../lib/productPicker';
 import type { SectionEditorProvider } from '../sectionEditorProvider';
@@ -204,9 +208,10 @@ export function registerUtilityCommands(
       }
 
       // Save to resources
-      const resourcesPath = findResourcesFolder(documentUri);
+      const resourcesPath = await findResourcesFolder(nodeFs, documentUri);
       if (resourcesPath) {
-        saveSampleToResources(
+        await saveSampleToResources(
+          nodeFs,
           resourcesPath,
           sampleType,
           newId,
@@ -218,8 +223,9 @@ export function registerUtilityCommands(
         // Create resources folder if not exists
         const docDir = path.dirname(documentUri.fsPath);
         const newResourcesPath = path.join(docDir, 'resources', 'labsamples');
-        ensureResourcesFolder(newResourcesPath);
-        saveSampleToResources(
+        await ensureResourcesFolder(nodeFs, newResourcesPath);
+        await saveSampleToResources(
+          nodeFs,
           newResourcesPath,
           sampleType,
           newId,
@@ -289,9 +295,10 @@ export function registerUtilityCommands(
       });
 
       // Save to resources
-      const resourcesPath = findResourcesFolder(documentUri);
+      const resourcesPath = await findResourcesFolder(nodeFs, documentUri);
       if (resourcesPath) {
-        saveSampleToResources(
+        await saveSampleToResources(
+          nodeFs,
           resourcesPath,
           sampleType,
           sampleId,
@@ -302,8 +309,9 @@ export function registerUtilityCommands(
       } else {
         const docDir = path.dirname(documentUri.fsPath);
         const newResourcesPath = path.join(docDir, 'resources', 'labsamples');
-        ensureResourcesFolder(newResourcesPath);
-        saveSampleToResources(
+        await ensureResourcesFolder(nodeFs, newResourcesPath);
+        await saveSampleToResources(
+          nodeFs,
           newResourcesPath,
           sampleType,
           sampleId,
@@ -408,7 +416,12 @@ export function registerUtilityCommands(
 
   // Save sample info to JSON on document save
   context.subscriptions.push(
-    vscode.workspace.onDidSaveTextDocument(document => {
+    // The listener is async and AWAITS the JSON writes before refreshing the
+    // tree / broadcasting to webviews. This preserves the "save → persist →
+    // highlight refresh" ordering: with fire-and-forget the highlight update
+    // could race ahead of the on-disk `{Type}.json` write. VS Code ignores the
+    // returned promise, but sequencing *within* the handler is what matters.
+    vscode.workspace.onDidSaveTextDocument(async document => {
       // Only process markdown files
       if (document.languageId !== 'markdown') {
         return;
@@ -419,12 +432,13 @@ export function registerUtilityCommands(
         const globalLabsamplesFolder = workspaceRoot ? getGlobalLabsamplesFolder(workspaceRoot) : undefined;
         const customTypes = vscode.workspace.getConfiguration('labnotev').get<string[]>('customSampleTypes', []);
         const text = document.getText();
-        saveSamplesFromDocument(document.uri.fsPath, text, globalLabsamplesFolder, customTypes);
+        await saveSamplesFromDocument(nodeFs, document.uri.fsPath, text, globalLabsamplesFolder, customTypes);
         // Reconcile the other direction: any sample whose definition was
         // *removed* from this document since the last save is dropped from
         // the tree (when no other document still references it). Tree-only
         // records (sources === []) are protected, see removeSourcesForDocument.
-        const removed = removeSourcesForDocument(
+        const removed = await removeSourcesForDocument(
+          nodeFs,
           document.uri.fsPath,
           text,
           globalLabsamplesFolder,

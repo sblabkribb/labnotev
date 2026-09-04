@@ -2,10 +2,9 @@
  * Data Loader - Load sample data from Local JSON and Global JSON resource files.
  */
 
-import * as fs from 'fs';
 import * as path from 'path';
 import * as vscode from 'vscode';
-import { writeFileAtomic } from './atomicWrite';
+import type { LabnoteFs } from '@labnotev/core';
 
 // Import and re-export from sampleUtils.ts (single source of truth)
 import { SAMPLE_TYPES, SampleType } from './sampleUtils';
@@ -24,19 +23,19 @@ export interface JsonSampleRecord {
 /**
  * Find resources/labsamples folder from document path
  */
-export function findResourcesFolder(documentUri: vscode.Uri): string | null {
+export async function findResourcesFolder(fs: LabnoteFs, documentUri: vscode.Uri): Promise<string | null> {
   const docPath = documentUri.fsPath;
   const docDir = path.dirname(docPath);
 
   // Check current folder
   const localPath = path.join(docDir, 'resources', 'labsamples');
-  if (fs.existsSync(localPath)) {
+  if (await fs.exists(localPath)) {
     return localPath;
   }
 
   // Check parent folder (for workflow files)
   const parentPath = path.join(path.dirname(docDir), 'resources', 'labsamples');
-  if (fs.existsSync(parentPath)) {
+  if (await fs.exists(parentPath)) {
     return parentPath;
   }
 
@@ -70,12 +69,12 @@ function getWorkspaceRoot(documentUri?: vscode.Uri): string | null {
 /**
  * Load samples from JSON file
  */
-function loadSamplesFromJson(filePath: string): Record<string, JsonSampleRecord> {
+async function loadSamplesFromJson(fs: LabnoteFs, filePath: string): Promise<Record<string, JsonSampleRecord>> {
   try {
-    if (!fs.existsSync(filePath)) {
+    if (!(await fs.exists(filePath))) {
       return {};
     }
-    const content = fs.readFileSync(filePath, 'utf-8');
+    const content = await fs.read(filePath);
     return JSON.parse(content) as Record<string, JsonSampleRecord>;
   } catch (err) {
     console.error(`[labnotev] Failed to load samples from ${filePath}:`, err);
@@ -86,47 +85,44 @@ function loadSamplesFromJson(filePath: string): Record<string, JsonSampleRecord>
 /**
  * Load samples by type from local resources folder
  */
-export function loadSamplesByTypeFromResources(type: string, resourcesPath: string): Record<string, JsonSampleRecord> {
+export function loadSamplesByTypeFromResources(fs: LabnoteFs, type: string, resourcesPath: string): Promise<Record<string, JsonSampleRecord>> {
   const filePath = path.join(resourcesPath, `${type}.json`);
-  return loadSamplesFromJson(filePath);
+  return loadSamplesFromJson(fs, filePath);
 }
 
 /**
  * Load samples by type from global resources folder
  */
-export function loadSamplesByTypeFromGlobalResources(type: string, workspaceRoot: string): Record<string, JsonSampleRecord> {
+export function loadSamplesByTypeFromGlobalResources(fs: LabnoteFs, type: string, workspaceRoot: string): Promise<Record<string, JsonSampleRecord>> {
   const filePath = path.join(workspaceRoot, 'resources', 'labsamples', `${type}.json`);
-  return loadSamplesFromJson(filePath);
+  return loadSamplesFromJson(fs, filePath);
 }
 
 /**
  * Ensure resources folder exists
  */
-export function ensureResourcesFolder(resourcesPath: string): void {
-  if (!fs.existsSync(resourcesPath)) {
-    fs.mkdirSync(resourcesPath, { recursive: true });
-  }
+export async function ensureResourcesFolder(fs: LabnoteFs, resourcesPath: string): Promise<void> {
+  await fs.mkdir(resourcesPath);
 }
 
 /**
  * Save sample to resources JSON file
  */
-export function saveSampleToResources(
+export async function saveSampleToResources(
+  fs: LabnoteFs,
   resourcesPath: string,
   type: string,
   id: string,
   alias: string | null,
   description: string | null,
   sourceFile: string
-): void {
-  ensureResourcesFolder(resourcesPath);
-
+): Promise<void> {
   const filePath = path.join(resourcesPath, `${type}.json`);
   let samples: Record<string, JsonSampleRecord> = {};
 
-  if (fs.existsSync(filePath)) {
+  if (await fs.exists(filePath)) {
     try {
-      const content = fs.readFileSync(filePath, 'utf-8');
+      const content = await fs.read(filePath);
       samples = JSON.parse(content);
     } catch {
       samples = {};
@@ -155,29 +151,31 @@ export function saveSampleToResources(
     }
   }
 
-  writeFileAtomic(filePath, JSON.stringify(samples, null, 2), 'utf-8');
+  // The adapter creates parent directories on demand and owns atomicity.
+  await fs.write(filePath, JSON.stringify(samples, null, 2));
 }
 
 /** Flat map sampleId -> { alias, description } for webview hover (local JSON overrides global per id). */
-export function buildSampleDefMap(
+export async function buildSampleDefMap(
+  fs: LabnoteFs,
   documentUri: vscode.Uri,
   types: string[]
-): Record<string, { alias: string | null; description: string | null }> {
+): Promise<Record<string, { alias: string | null; description: string | null }>> {
   const out: Record<string, { alias: string | null; description: string | null }> = {};
 
-  let resourcesPath = findResourcesFolder(documentUri);
+  let resourcesPath = await findResourcesFolder(fs, documentUri);
   if (!resourcesPath) {
     const docDir = path.dirname(documentUri.fsPath);
     const candidatePath = path.join(docDir, 'resources', 'labsamples');
-    if (fs.existsSync(candidatePath)) {
+    if (await fs.exists(candidatePath)) {
       resourcesPath = candidatePath;
     }
   }
   const workspaceRoot = getWorkspaceRoot(documentUri);
 
   for (const type of types) {
-    const globalRec = workspaceRoot ? loadSamplesByTypeFromGlobalResources(type, workspaceRoot) : {};
-    const localRec = resourcesPath ? loadSamplesByTypeFromResources(type, resourcesPath) : {};
+    const globalRec = workspaceRoot ? await loadSamplesByTypeFromGlobalResources(fs, type, workspaceRoot) : {};
+    const localRec = resourcesPath ? await loadSamplesByTypeFromResources(fs, type, resourcesPath) : {};
     const ids = new Set([...Object.keys(globalRec), ...Object.keys(localRec)]);
     for (const id of ids) {
       const rec = localRec[id] ?? globalRec[id];

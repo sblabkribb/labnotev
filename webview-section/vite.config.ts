@@ -1,8 +1,18 @@
 import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
+import { fileURLToPath } from 'url';
+import { dirname, resolve } from 'path';
+
+const __dirname = dirname(fileURLToPath(import.meta.url));
 
 export default defineConfig({
   plugins: [react()],
+  resolve: {
+    alias: {
+      '@labnotev/core/headings': resolve(__dirname, '../packages/core/src/sections/unitOpHeading.ts'),
+      '@labnotev/core': resolve(__dirname, '../packages/core/src/index.ts'),
+    },
+  },
   build: {
     outDir: 'dist',
     cssCodeSplit: false,

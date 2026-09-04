@@ -20,57 +20,30 @@ import {
 } from '../lib/workflowStructure';
 import { getSeoulDateTimeString as getDateTime } from '../lib/dateUtils';
 import { buildSwUnitOpMarkdown, buildHwUnitOpMarkdown } from '../lib/unitOpTemplate';
+import {
+  ensureWorkflowResources,
+  loadWorkflows,
+  loadUnitOperations,
+  getWorkflowFilePath,
+} from '../lib/workflowDataLoader';
+import { CATALOG_FILE_NAMES } from '@labnotev/core';
+import { NodeFileSystem } from '@labnotev/core/node';
 import type { SectionEditorProvider } from '../sectionEditorProvider';
+
+/** Shared Node file-system adapter for the workflow catalog loaders. */
+const nodeFs = new NodeFileSystem();
 
 export interface CreationCommandDeps {
   sectionEditorProvider?: SectionEditorProvider;
 }
 
-// Workflow and Unit Operation types from JSON resources
-interface WorkflowJson {
-  id: string;
-  name: string;
-  description: string;
-  category: string;
-}
-
-interface UnitOperationJson {
-  id: string;
-  name: string;
-  description: string;
-  equipment?: string;
-  software?: string;
-}
-
-// Load workflows from JSON
-function loadWorkflows(extensionPath: string): WorkflowJson[] {
-  const filePath = path.join(extensionPath, 'resources', 'workflows', 'workflows_en.json');
-  try {
-    if (fs.existsSync(filePath)) {
-      const content = fs.readFileSync(filePath, 'utf8');
-      const data = JSON.parse(content);
-      return data.workflows || [];
-    }
-  } catch (error) {
-    console.error('[LabNoteV] Failed to load workflows:', error);
-  }
-  return [];
-}
-
-// Load unit operations from JSON
-function loadUnitOperations(extensionPath: string, type: 'hw' | 'sw'): UnitOperationJson[] {
-  const fileName = type === 'hw' ? 'unitoperations_hw_en.json' : 'unitoperations_sw_en.json';
-  const filePath = path.join(extensionPath, 'resources', 'workflows', fileName);
-  try {
-    if (fs.existsSync(filePath)) {
-      const content = fs.readFileSync(filePath, 'utf8');
-      const data = JSON.parse(content);
-      return data.unitOperations || [];
-    }
-  } catch (error) {
-    console.error(`[LabNoteV] Failed to load ${type} unit operations:`, error);
-  }
-  return [];
+/**
+ * Resolve the workspace root that owns the seeded catalog copy. Uses the same
+ * `workspaceFolders[0]` convention as the workflow tree view so that commands
+ * and the tree read the identical `resources/workflows` files.
+ */
+function getCatalogWorkspaceRoot(): string {
+  return vscode.workspace.workspaceFolders?.[0]?.uri.fsPath ?? '';
 }
 
 export function registerCreationCommands(
@@ -168,7 +141,9 @@ export function registerCreationCommands(
         return;
       }
 
-      const workflows = loadWorkflows(context.extensionPath);
+      const workspaceRoot = getCatalogWorkspaceRoot();
+      await ensureWorkflowResources(nodeFs, workspaceRoot);
+      const workflows = (await loadWorkflows(nodeFs, workspaceRoot)).workflows;
       if (workflows.length === 0) {
         vscode.window.showErrorMessage(vscode.l10n.t('Failed to load workflow catalog.'));
         return;
@@ -276,8 +251,10 @@ export function registerCreationCommands(
       const category = categoryChoice.label as 'Hardware' | 'Software';
       const opType = category === 'Hardware' ? 'hw' : 'sw';
 
-      // Load unit operations from JSON resources
-      const operations = loadUnitOperations(context.extensionPath, opType);
+      // Load unit operations from the seeded workspace catalog copy
+      const workspaceRoot = getCatalogWorkspaceRoot();
+      await ensureWorkflowResources(nodeFs, workspaceRoot);
+      const operations = (await loadUnitOperations(nodeFs, workspaceRoot, opType)).unitOperations;
 
       if (operations.length === 0) {
         vscode.window.showErrorMessage(vscode.l10n.t('Failed to load unit operation catalog.'));
@@ -384,12 +361,20 @@ export function registerCreationCommands(
   // Register manage templates command
   context.subscriptions.push(
     vscode.commands.registerCommand('labnotev.manageTemplates', async () => {
-      const workflowsPath = path.join(context.extensionPath, 'resources', 'workflows');
+      // Edit the EDITABLE workspace copy (seeded from the bundled core catalog),
+      // not the read-only extension install directory. Edits there are picked up
+      // by the workflow tree view and survive extension updates.
+      const workspaceRoot = getCatalogWorkspaceRoot();
+      if (!workspaceRoot) {
+        vscode.window.showErrorMessage(vscode.l10n.t('Please open a folder first.'));
+        return;
+      }
+      await ensureWorkflowResources(nodeFs, workspaceRoot);
 
       const files = [
-        { label: 'workflows_en.json', description: vscode.l10n.t('Workflow catalog (68 entries)') },
-        { label: 'unitoperations_hw_en.json', description: vscode.l10n.t('HW unit operation catalog (50 entries)') },
-        { label: 'unitoperations_sw_en.json', description: vscode.l10n.t('SW unit operation catalog (40 entries)') },
+        { label: CATALOG_FILE_NAMES.workflows, description: vscode.l10n.t('Workflow catalog') },
+        { label: CATALOG_FILE_NAMES.unitOperationsHw, description: vscode.l10n.t('HW unit operation catalog') },
+        { label: CATALOG_FILE_NAMES.unitOperationsSw, description: vscode.l10n.t('SW unit operation catalog') },
       ];
 
       const selected = await vscode.window.showQuickPick(files, {
@@ -397,7 +382,13 @@ export function registerCreationCommands(
       });
 
       if (selected) {
-        const filePath = path.join(workflowsPath, selected.label);
+        const fileType =
+          selected.label === CATALOG_FILE_NAMES.workflows
+            ? 'workflows'
+            : selected.label === CATALOG_FILE_NAMES.unitOperationsHw
+            ? 'unitoperations_hw'
+            : 'unitoperations_sw';
+        const filePath = getWorkflowFilePath(workspaceRoot, fileType);
         if (fs.existsSync(filePath)) {
           const document = await vscode.workspace.openTextDocument(filePath);
           await vscode.window.showTextDocument(document);

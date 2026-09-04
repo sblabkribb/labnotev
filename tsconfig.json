@@ -9,8 +9,14 @@
     "forceConsistentCasingInFileNames": true,
     "moduleResolution": "node",
     "resolveJsonModule": true,
-    "types": ["vitest/globals", "node"]
+    "types": ["vitest/globals", "node"],
+    "baseUrl": ".",
+    "paths": {
+      "@labnotev/core": ["packages/core/src/index.ts"],
+      "@labnotev/core/node": ["packages/core/src/node/index.ts"],
+      "@labnotev/core/lib/*": ["packages/core/src/lib/*"]
+    }
   },
   "include": ["src/**/*"],
-  "exclude": ["node_modules", "dist", "webview"]
+  "exclude": ["node_modules", "dist", "webview", "packages"]
 }

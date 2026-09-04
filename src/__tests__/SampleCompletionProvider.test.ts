@@ -1,7 +1,7 @@
 /**
  * Tests for SampleCompletionProvider
  */
-import { SampleCompletionProvider } from '../providers/SampleCompletionProvider';
+import { SampleCompletionProvider, refreshSampleRecordsCache } from '../providers/SampleCompletionProvider';
 
 // Mock vscode
 vi.mock('vscode', () => ({
@@ -88,6 +88,10 @@ describe('SampleCompletionProvider', () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
+    // The records cache is module-level and no longer mtime-invalidated, so
+    // clear it between tests to avoid one test's mocked data (or empty result)
+    // leaking into the next via a shared cache key.
+    refreshSampleRecordsCache();
     provider = new SampleCompletionProvider();
   });
 
@@ -110,11 +114,11 @@ describe('SampleCompletionProvider', () => {
       character,
     });
 
-    it('should return undefined for non-matching prefix', () => {
+    it('should return undefined for non-matching prefix', async () => {
       const document = createMockDocument('Hello world');
       const position = createMockPosition(0, 11);
 
-      const result = provider.provideCompletionItems(
+      const result = await provider.provideCompletionItems(
         document as any,
         position as any,
         {} as any,
@@ -124,11 +128,11 @@ describe('SampleCompletionProvider', () => {
       expect(result).toBeUndefined();
     });
 
-    it('should return undefined for text without @ prefix', () => {
+    it('should return undefined for text without @ prefix', async () => {
       const document = createMockDocument('dna:test');
       const position = createMockPosition(0, 8);
 
-      const result = provider.provideCompletionItems(
+      const result = await provider.provideCompletionItems(
         document as any,
         position as any,
         {} as any,
@@ -138,11 +142,11 @@ describe('SampleCompletionProvider', () => {
       expect(result).toBeUndefined();
     });
 
-    it('should handle @dna: prefix', () => {
+    it('should handle @dna: prefix', async () => {
       const document = createMockDocument('@dna:');
       const position = createMockPosition(0, 5);
 
-      const result = provider.provideCompletionItems(
+      const result = await provider.provideCompletionItems(
         document as any,
         position as any,
         {} as any,
@@ -154,11 +158,11 @@ describe('SampleCompletionProvider', () => {
       expect(Array.isArray(result)).toBe(true);
     });
 
-    it('should handle @dna without colon (trigger before colon inserted)', () => {
+    it('should handle @dna without colon (trigger before colon inserted)', async () => {
       const document = createMockDocument('@dna');
       const position = createMockPosition(0, 4);
 
-      const result = provider.provideCompletionItems(
+      const result = await provider.provideCompletionItems(
         document as any,
         position as any,
         {} as any,
@@ -169,11 +173,11 @@ describe('SampleCompletionProvider', () => {
       expect(Array.isArray(result)).toBe(true);
     });
 
-    it('should handle @sample: prefix for all types', () => {
+    it('should handle @sample: prefix for all types', async () => {
       const document = createMockDocument('@sample:');
       const position = createMockPosition(0, 8);
 
-      const result = provider.provideCompletionItems(
+      const result = await provider.provideCompletionItems(
         document as any,
         position as any,
         {} as any,
@@ -184,11 +188,11 @@ describe('SampleCompletionProvider', () => {
       expect(Array.isArray(result)).toBe(true);
     });
 
-    it('should handle @item: as Labware alias', () => {
+    it('should handle @item: as Labware alias', async () => {
       const document = createMockDocument('@item:');
       const position = createMockPosition(0, 6);
 
-      const result = provider.provideCompletionItems(
+      const result = await provider.provideCompletionItems(
         document as any,
         position as any,
         {} as any,
@@ -199,11 +203,11 @@ describe('SampleCompletionProvider', () => {
       expect(Array.isArray(result)).toBe(true);
     });
 
-    it('should return undefined for unknown prefix', () => {
+    it('should return undefined for unknown prefix', async () => {
       const document = createMockDocument('@unknown:');
       const position = createMockPosition(0, 9);
 
-      const result = provider.provideCompletionItems(
+      const result = await provider.provideCompletionItems(
         document as any,
         position as any,
         {} as any,
@@ -229,7 +233,7 @@ describe('SampleCompletionProvider', () => {
     it('should exclude description from insertText when referencing existing sample', async () => {
       // Mock sampleStorage (completion uses same paths as Sample TreeView)
       const { loadSamplesByType } = await import('../lib/sampleStorage');
-      vi.mocked(loadSamplesByType).mockReturnValue({
+      vi.mocked(loadSamplesByType).mockResolvedValue({
         'DNA-123': {
           type: 'DNA',
           alias: 'SampleA',
@@ -241,7 +245,7 @@ describe('SampleCompletionProvider', () => {
       const document = createMockDocument('@dna:');
       const position = createMockPosition(0, 5);
 
-      const result = provider.provideCompletionItems(
+      const result = await provider.provideCompletionItems(
         document as any,
         position as any,
         {} as any,
@@ -260,7 +264,7 @@ describe('SampleCompletionProvider', () => {
 
     it('should include only ID when sample has no alias', async () => {
       const { loadSamplesByType } = await import('../lib/sampleStorage');
-      vi.mocked(loadSamplesByType).mockReturnValue({
+      vi.mocked(loadSamplesByType).mockResolvedValue({
         'DNA-456': {
           type: 'DNA',
           alias: null,
@@ -272,7 +276,7 @@ describe('SampleCompletionProvider', () => {
       const document = createMockDocument('@dna:');
       const position = createMockPosition(0, 5);
 
-      const result = provider.provideCompletionItems(
+      const result = await provider.provideCompletionItems(
         document as any,
         position as any,
         {} as any,
@@ -298,11 +302,11 @@ describe('SampleCompletionProvider', () => {
       character,
     });
 
-    it('should NOT include "Generate New ID" option for Equip type', () => {
+    it('should NOT include "Generate New ID" option for Equip type', async () => {
       const document = createMockDocument('@equip:');
       const position = createMockPosition(0, 7);
 
-      const result = provider.provideCompletionItems(
+      const result = await provider.provideCompletionItems(
         document as any,
         position as any,
         {} as any,
@@ -317,11 +321,11 @@ describe('SampleCompletionProvider', () => {
       expect(newIdOption).toBeUndefined();
     });
 
-    it('should include "Enter info" option for Equip type so @equip: works', () => {
+    it('should include "Enter info" option for Equip type so @equip: works', async () => {
       const document = createMockDocument('@equip:');
       const position = createMockPosition(0, 7);
 
-      const result = provider.provideCompletionItems(
+      const result = await provider.provideCompletionItems(
         document as any,
         position as any,
         {} as any,
@@ -333,11 +337,11 @@ describe('SampleCompletionProvider', () => {
       expect(manualOption?.command?.command).toBe('labnotev.inputSampleInfo');
     });
 
-    it('should include "Generate New ID" option for Labware type', () => {
+    it('should include "Generate New ID" option for Labware type', async () => {
       const document = createMockDocument('@labware:');
       const position = createMockPosition(0, 9);
 
-      const result = provider.provideCompletionItems(
+      const result = await provider.provideCompletionItems(
         document as any,
         position as any,
         {} as any,
@@ -351,11 +355,11 @@ describe('SampleCompletionProvider', () => {
       expect(newIdOption).toBeDefined();
     });
 
-    it('should include "Generate New ID" option for DNA type', () => {
+    it('should include "Generate New ID" option for DNA type', async () => {
       const document = createMockDocument('@dna:');
       const position = createMockPosition(0, 5);
 
-      const result = provider.provideCompletionItems(
+      const result = await provider.provideCompletionItems(
         document as any,
         position as any,
         {} as any,
@@ -369,11 +373,11 @@ describe('SampleCompletionProvider', () => {
       expect(newIdOption).toBeDefined();
     });
 
-    it('should NOT include "Generate New ID" option for @sample: prefix', () => {
+    it('should NOT include "Generate New ID" option for @sample: prefix', async () => {
       const document = createMockDocument('@sample:');
       const position = createMockPosition(0, 8);
 
-      const result = provider.provideCompletionItems(
+      const result = await provider.provideCompletionItems(
         document as any,
         position as any,
         {} as any,

@@ -4,6 +4,7 @@
  */
 
 import * as vscode from 'vscode';
+import { NodeFileSystem } from '@labnotev/core/node';
 import {
   loadWorkflows,
   loadUnitOperations,
@@ -12,6 +13,9 @@ import {
   WorkflowItem,
   UnitOperationItem,
 } from '../lib/workflowDataLoader';
+
+/** Shared Node file-system adapter for the workflow catalog loaders. */
+const nodeFs = new NodeFileSystem();
 
 /**
  * Tree item types
@@ -52,17 +56,6 @@ export function formatWorkflowLabel(id: string, name: string): string {
  */
 export function formatUnitOpLabel(id: string, name: string): string {
   return `${id}: ${name}`;
-}
-
-/**
- * Get workflow insert text for README checklist
- */
-export function getWorkflowInsertText(
-  id: string,
-  name: string,
-  sequence: string
-): string {
-  return `- [ ] [${sequence}_${id}_${name.replace(/\s+/g, '_')}.md](${sequence}_${id}_${name.replace(/\s+/g, '_')}.md)`;
 }
 
 /**
@@ -219,29 +212,29 @@ export class WorkflowTreeViewProvider implements vscode.TreeDataProvider<Workflo
   /**
    * Load data from JSON files
    */
-  private loadData(): void {
+  private async loadData(): Promise<void> {
     try {
-      // Ensure resources are copied from extension
-      ensureWorkflowResources(this.extensionPath, this.workspaceRoot);
+      // Ensure the editable workspace copy exists (seeded from the core bundle)
+      await ensureWorkflowResources(nodeFs, this.workspaceRoot);
 
       // Load workflows
-      const workflowData = loadWorkflows(this.workspaceRoot);
+      const workflowData = await loadWorkflows(nodeFs, this.workspaceRoot);
       this.workflows = workflowData.workflows;
 
       // Load unit operations
-      const hwData = loadUnitOperations(this.workspaceRoot, 'hw');
+      const hwData = await loadUnitOperations(nodeFs, this.workspaceRoot, 'hw');
       this.hwUnitOps = hwData.unitOperations;
 
-      const swData = loadUnitOperations(this.workspaceRoot, 'sw');
+      const swData = await loadUnitOperations(nodeFs, this.workspaceRoot, 'sw');
       this.swUnitOps = swData.unitOperations;
     } catch (error) {
       console.error('[WorkflowTreeViewProvider] Error loading data:', error);
     }
   }
 
-  private ensureLoaded(): void {
+  private async ensureLoaded(): Promise<void> {
     if (this.loaded) return;
-    this.loadData();
+    await this.loadData();
     this.loaded = true;
   }
 
@@ -255,20 +248,12 @@ export class WorkflowTreeViewProvider implements vscode.TreeDataProvider<Workflo
     this._onDidChangeTreeData.fire();
   }
 
-  /**
-   * Update workspace root
-   */
-  updateWorkspaceRoot(workspaceRoot: string): void {
-    this.workspaceRoot = workspaceRoot;
-    this.refresh();
-  }
-
   getTreeItem(element: WorkflowTreeItem): vscode.TreeItem {
     return element;
   }
 
   async getChildren(element?: WorkflowTreeItem): Promise<WorkflowTreeItem[]> {
-    this.ensureLoaded();
+    await this.ensureLoaded();
     if (!element) {
       // Return root items
       return this.getRootItems();

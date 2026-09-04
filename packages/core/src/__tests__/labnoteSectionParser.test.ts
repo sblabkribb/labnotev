@@ -1,4 +1,4 @@
-import { parseLabNoteMd, serializeLabNoteMd } from '../lib/labnoteSectionParser';
+import { parseLabNoteMd, serializeLabNoteMd } from '../sections/labnoteSectionParser';
 
 const SAMPLE_README = `---
 title: Protein Folding Experiment
@@ -142,11 +142,40 @@ custom_field: custom_value
       expect(md).toContain('author: 홍길동');
     });
 
-    it('should serialize workflow references correctly', () => {
+    it('should serialize workflow references as standard `- [ ]` task list items', () => {
       const doc = parseLabNoteMd(SAMPLE_README);
       const md = serializeLabNoteMd(doc);
-      expect(md).toContain('[ ] [001 WD010 Sample Prep](./001_WD010_Sample_Prep.labnote.md)');
-      expect(md).toContain('[x] [002 WD020 Analysis](./002_WD020_Analysis.labnote.md)');
+      expect(md).toContain('- [ ] [001 WD010 Sample Prep](./001_WD010_Sample_Prep.labnote.md)');
+      expect(md).toContain('- [x] [002 WD020 Analysis](./002_WD020_Analysis.labnote.md)');
+      // Must not emit the legacy marker-less form.
+      expect(md).not.toMatch(/^\[ \] \[001 WD010/m);
+    });
+
+    it('parses both legacy `[ ]` and standard `- [ ]` workflow items', () => {
+      const mixed = `---
+title: Mixed
+author: A
+experiment_type: labnote
+sample_tracking: no
+created_date: 2026-01-01
+last_updated_date: 2026-01-01
+---
+
+## 🗂️ Related Workflows
+
+- [ ] [001 New Style](./001_WD010_New.labnote.md)
+[x] [002 Legacy Style](./002_WD020_Legacy.labnote.md)
+`;
+      const doc = parseLabNoteMd(mixed);
+      const wf = doc.sections.find(s => s.type === 'workflows');
+      expect(wf?.type).toBe('workflows');
+      if (wf?.type === 'workflows') {
+        expect(wf.items).toHaveLength(2);
+        expect(wf.items[0].title).toBe('001 New Style');
+        expect(wf.items[0].checked).toBe(false);
+        expect(wf.items[1].title).toBe('002 Legacy Style');
+        expect(wf.items[1].checked).toBe(true);
+      }
     });
 
     it('should preserve inline markdown formatting', () => {

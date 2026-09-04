@@ -18,6 +18,10 @@ import {
   WorkflowItem,
   UnitOperationItem,
 } from '../lib/workflowDataLoader';
+import { NodeFileSystem } from '@labnotev/core/node';
+
+/** Shared Node file-system adapter for the workflow catalog loaders. */
+const nodeFs = new NodeFileSystem();
 import {
   isValidWorkflowPath,
   isValidReadmePath,
@@ -236,7 +240,7 @@ export function registerWorkflowCommands(
 
       if (description === undefined) return;
 
-      const data = loadWorkflowsFromJson(workflowTreeProvider.getWorkspaceRoot());
+      const data = await loadWorkflowsFromJson(nodeFs, workflowTreeProvider.getWorkspaceRoot());
       const newId = generateNextWorkflowId(data.workflows, category);
 
       const updated = addWorkflowToJson(data, {
@@ -246,7 +250,7 @@ export function registerWorkflowCommands(
         category,
       });
 
-      saveWorkflows(workflowTreeProvider.getWorkspaceRoot(), updated);
+      await saveWorkflows(nodeFs, workflowTreeProvider.getWorkspaceRoot(), updated);
       workflowTreeProvider.refresh();
 
       vscode.window.showInformationMessage(vscode.l10n.t('New workflow added: {0}', newId));
@@ -370,7 +374,7 @@ export function registerWorkflowCommands(
         placeHolder: opType === 'hw' ? 'e.g., Centrifuge' : 'e.g., Python, R',
       });
 
-      const data = loadUnitOpsFromJson(workflowTreeProvider.getWorkspaceRoot(), opType);
+      const data = await loadUnitOpsFromJson(nodeFs, workflowTreeProvider.getWorkspaceRoot(), opType);
       const newId = generateNextUnitOpId(data.unitOperations, opType);
 
       const newOp: UnitOperationItem = {
@@ -381,7 +385,7 @@ export function registerWorkflowCommands(
       };
 
       const updated = addUnitOpToJson(data, newOp);
-      saveUnitOperations(workflowTreeProvider.getWorkspaceRoot(), opType, updated);
+      await saveUnitOperations(nodeFs, workflowTreeProvider.getWorkspaceRoot(), opType, updated);
       workflowTreeProvider.refresh();
 
       vscode.window.showInformationMessage(vscode.l10n.t('New unit operation added: {0}', newId));
@@ -696,7 +700,7 @@ export function registerWorkflowCommands(
         const customTypes = vscode.workspace
           .getConfiguration('labnotev')
           .get<string[]>('customSampleTypes', []);
-        const removed = removeSourcesForDocument(targetUri.fsPath, '', globalLabsamplesFolder, customTypes);
+        const removed = await removeSourcesForDocument(nodeFs, targetUri.fsPath, '', globalLabsamplesFolder, customTypes);
         if (removed.length > 0) {
           showOrphanRemovedNotice(removed);
           await vscode.commands.executeCommand('labnotev.refreshSampleTree');
