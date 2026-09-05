@@ -11,6 +11,7 @@ import { Plugin, Notice, TFile } from 'obsidian';
 import type { LabnoteHost, Translator } from '@labnotev/core';
 import { getSeoulDateString, getSeoulDateTimeString } from '@labnotev/core/lib/dateUtils';
 import { getSampleDisplayMeta } from '@labnotev/core/lib/sampleUtils';
+import { isValidWorkflowPath } from '@labnotev/core/lib/workflowStructure';
 import { saveSamplesFromDocument } from '@labnotev/core/lib/sampleStorage';
 import { VaultFileSystem } from './vaultFileSystem';
 import { createObsidianTranslator } from './i18n';
@@ -182,6 +183,16 @@ export default class LabnotePlugin extends Plugin {
             .setIcon('git-branch-plus')
             .onClick(() => this.run(() => insertWorkflowLinkCommand(this.app, this.host, editor)))
         );
+        // Unit operations only belong in a workflow file (not the README nor a
+        // non-`NNN_` note), so gate this item on isValidWorkflowPath.
+        if (isValidWorkflowPath(file.path)) {
+          menu.addItem(item =>
+            item
+              .setTitle(this.t('Insert unit operation'))
+              .setIcon('plus')
+              .onClick(() => this.run(() => insertUnitOperationCommand(this.app, this.host)))
+          );
+        }
       })
     );
   }

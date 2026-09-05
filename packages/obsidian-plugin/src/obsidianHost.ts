@@ -30,7 +30,16 @@ export function createObsidianHost(
   t: Translator
 ): LabnoteHost {
   function editTarget(): EditTarget | undefined {
-    const view = app.workspace.getActiveViewOfType(MarkdownView);
+    // Prefer the focused markdown view (editor right-click / command palette).
+    let view = app.workspace.getActiveViewOfType(MarkdownView);
+    if (!view) {
+      // A sidebar/tree is focused (e.g. the workflow or sample tree context
+      // menu): fall back to the most recently active main-area leaf, which is
+      // the editor the user was last in — including its live cursor position.
+      // getMostRecentLeaf() excludes sidebars, so this is exactly that editor.
+      const leaf = app.workspace.getMostRecentLeaf();
+      if (leaf?.view instanceof MarkdownView) view = leaf.view;
+    }
     const file = view?.file;
     if (!view || !file) return undefined;
     const editor = view.editor;
