@@ -20,7 +20,8 @@ import type {
 } from '@labnotev/core';
 import {
   insertUnitOperationAtCursor,
-  appendUnitOpToWorkflowToc,
+  rebuildUnitOpToc,
+  locateInsertedUnitOpHeading,
 } from '@labnotev/core';
 import * as posix from '@labnotev/core/posix';
 import { workflowAliasModal } from './modals';
@@ -255,22 +256,36 @@ export async function insertWorkflowLinkCommand(
 }
 
 /**
- * Insert a unit-operation block at the cursor, then non-lossily append its
- * entry to the `## Related Unit Operations` TOC. Shared by the command and the
- * workflow sidebar's context menu.
+ * Insert a unit-operation block at the cursor, then rebuild the
+ * `## Related Unit Operations` TOC so its entries follow the document order of
+ * the actual `### [..]` headings. Finally, move the cursor/focus to the
+ * just-inserted heading. Shared by the command and the workflow sidebar's
+ * context menu.
  */
 export async function insertUnitOpAndUpdateToc(
   host: LabnoteHost,
   input: InsertUnitOperationInput
 ): Promise<boolean> {
+  // Capture the cursor BEFORE inserting: the inserted block lands here, which
+  // lets us relocate the new heading after the whole-doc TOC rewrite.
+  const before = host.editTarget();
+  const cursorBefore = before?.getCursorOffset ? await before.getCursorOffset() : -1;
+
   const ok = await insertUnitOperationAtCursor(host, input);
   if (!ok) return false;
+
   const target = host.editTarget();
   if (target) {
     const md = await target.getText();
-    const updated = appendUnitOpToWorkflowToc(md, input.opId, input.opName);
+    const updated = rebuildUnitOpToc(md);
     if (updated !== md) {
       await target.replaceRange(0, md.length, updated);
+    }
+    // Whole-doc replaceRange resets the cursor, so explicitly move focus to the
+    // inserted unit-operation heading in the final (rebuilt) text.
+    if (target.revealOffset && cursorBefore >= 0) {
+      const off = locateInsertedUnitOpHeading(md, cursorBefore, updated);
+      if (off >= 0) await target.revealOffset(off);
     }
   }
   return true;

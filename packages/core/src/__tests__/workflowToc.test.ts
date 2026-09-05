@@ -1,7 +1,8 @@
-import { describe, it, expect } from 'vitest';
 import {
   buildUnitOpTocLine,
   appendUnitOpToWorkflowToc,
+  rebuildUnitOpToc,
+  locateInsertedUnitOpHeading,
 } from '../sections/workflowSectionParser';
 import { createWorkflowContent } from '../lib/workflowStructure';
 
@@ -83,5 +84,163 @@ describe('appendUnitOpToWorkflowToc', () => {
     const out = appendUnitOpToWorkflowToc(md, 'UHW010', 'X');
     expect(out).toContain('\r\n');
     expect(out).toContain('- [UHW010 X](#uhw010-x)');
+  });
+});
+
+describe('rebuildUnitOpToc', () => {
+  it('reorders the TOC to match document heading order (A, C, B)', () => {
+    const md = [
+      '## Related Unit Operations',
+      '',
+      '- [UHW010 A](#uhw010-a)',
+      '- [USW020 B](#usw020-b)',
+      '',
+      '---',
+      '',
+      '### [UHW010 A]',
+      '',
+      '> d',
+      '',
+      '---',
+      '',
+      '### [UHW030 C]',
+      '',
+      '> d',
+      '',
+      '---',
+      '',
+      '### [USW020 B]',
+      '',
+      '> d',
+      '',
+      '## Conclusions and Discussion',
+      '',
+    ].join('\n');
+
+    const out = rebuildUnitOpToc(md);
+    const a = out.indexOf('- [UHW010 A](#uhw010-a)');
+    const c = out.indexOf('- [UHW030 C](#uhw030-c)');
+    const b = out.indexOf('- [USW020 B](#usw020-b)');
+    expect(a).toBeGreaterThan(-1);
+    expect(c).toBeGreaterThan(a);
+    expect(b).toBeGreaterThan(c);
+    // The reordered entries stay inside the section (before Conclusions).
+    expect(b).toBeLessThan(out.indexOf('## Conclusions and Discussion'));
+  });
+
+  it('reflects reversed document order (B, A)', () => {
+    const md = [
+      '## Related Unit Operations',
+      '',
+      '- [UHW010 A](#uhw010-a)',
+      '- [USW020 B](#usw020-b)',
+      '',
+      '---',
+      '### [USW020 B]',
+      '---',
+      '### [UHW010 A]',
+    ].join('\n');
+
+    const out = rebuildUnitOpToc(md);
+    expect(out.indexOf('- [USW020 B]')).toBeLessThan(out.indexOf('- [UHW010 A]'));
+  });
+
+  it('includes the alias from an aliased heading', () => {
+    const md = [
+      '## Related Unit Operations',
+      '',
+      '- [USW010 Read Mapping](#usw010-read-mapping)',
+      '',
+      '---',
+      '### [USW010 Read Mapping] BWA',
+    ].join('\n');
+
+    const out = rebuildUnitOpToc(md);
+    expect(out).toContain('- [USW010 Read Mapping | BWA](#usw010-read-mapping-bwa)');
+  });
+
+  it('leaves a fresh template unchanged (no headings, hints preserved)', () => {
+    const fresh = createWorkflowContent({ id: 'WD010', name: 'Design', description: 'desc' }, 'Dr. Kim');
+    const out = rebuildUnitOpToc(fresh);
+    expect(out).toBe(fresh);
+    expect(out).toContain('> Unit operations are appended here automatically.');
+  });
+
+  it('returns the document unchanged when the section is absent', () => {
+    const md = '# Just a note\n\nNo TOC here.\n';
+    expect(rebuildUnitOpToc(md)).toBe(md);
+  });
+
+  it('preserves CRLF line endings', () => {
+    const md = [
+      '## Related Unit Operations',
+      '',
+      '- [UHW010 A](#uhw010-a)',
+      '',
+      '---',
+      '### [UHW010 A]',
+    ].join('\r\n');
+    const out = rebuildUnitOpToc(md);
+    expect(out).toContain('\r\n');
+    expect(out).toContain('- [UHW010 A](#uhw010-a)');
+  });
+});
+
+describe('locateInsertedUnitOpHeading', () => {
+  it('maps the inserted heading offset into the rebuilt text', () => {
+    const head = [
+      '## Related Unit Operations',
+      '',
+      '- [UHW010 A](#uhw010-a)',
+      '',
+      '---',
+      '',
+      '### [UHW010 A]',
+      '',
+      '> first',
+      '',
+    ].join('\n');
+    const inserted = ['', '---', '', '### [USW020 B]', '', '> second', ''].join('\n');
+    const tail = ['', '## Conclusions and Discussion', ''].join('\n');
+    const mdAfterInsert = head + inserted + tail;
+    const cursorBefore = head.length;
+
+    const rebuilt = rebuildUnitOpToc(mdAfterInsert);
+    const off = locateInsertedUnitOpHeading(mdAfterInsert, cursorBefore, rebuilt);
+
+    expect(off).toBeGreaterThan(-1);
+    expect(rebuilt.slice(off)).toMatch(/^### \[USW020 B\]/);
+    // TOC grew by one entry, yet the mapped offset still lands on the heading.
+    expect(rebuilt).toContain('- [USW020 B](#usw020-b)');
+  });
+
+  it('picks the inserted duplicate (by cursor), not the pre-existing one', () => {
+    const head = [
+      '## Related Unit Operations',
+      '',
+      '- [UHW010 A](#uhw010-a)',
+      '',
+      '---',
+      '',
+      '### [UHW010 A]',
+      '',
+      '> first',
+      '',
+    ].join('\n');
+    const inserted = ['', '---', '', '### [UHW010 A]', '', '> second', ''].join('\n');
+    const mdAfterInsert = head + inserted + '\n## Conclusions and Discussion\n';
+    const cursorBefore = head.length;
+
+    const rebuilt = rebuildUnitOpToc(mdAfterInsert);
+    const off = locateInsertedUnitOpHeading(mdAfterInsert, cursorBefore, rebuilt);
+    const firstOcc = rebuilt.indexOf('### [UHW010 A]');
+
+    expect(off).toBeGreaterThan(firstOcc);
+    expect(rebuilt.slice(off)).toMatch(/^### \[UHW010 A\][\s\S]*second/);
+  });
+
+  it('returns -1 when no heading exists at/after the cursor', () => {
+    const md = '## Related Unit Operations\n\n> hint\n\n## Conclusions and Discussion\n';
+    expect(locateInsertedUnitOpHeading(md, 0, md)).toBe(-1);
   });
 });

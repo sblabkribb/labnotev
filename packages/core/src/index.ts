@@ -31,6 +31,8 @@ export {
   validateWorkflowDocument,
   buildUnitOpTocLine,
   appendUnitOpToWorkflowToc,
+  rebuildUnitOpToc,
+  locateInsertedUnitOpHeading,
 } from './sections/workflowSectionParser';
 
 // Re-exported from the dependency-free heading module so browser consumers

@@ -54,6 +54,16 @@ export function createObsidianHost(
       async replaceRange(start: number, end: number, text: string) {
         editor.replaceRange(text, editor.offsetToPos(start), editor.offsetToPos(end));
       },
+      async getCursorOffset() {
+        return editor.posToOffset(editor.getCursor('from'));
+      },
+      async revealOffset(offset: number) {
+        // setCursor treats a bare number as a line index, so convert first.
+        const pos = editor.offsetToPos(offset);
+        editor.setCursor(pos);
+        editor.scrollIntoView({ from: pos, to: pos }, true);
+        editor.focus();
+      },
     };
   }
 

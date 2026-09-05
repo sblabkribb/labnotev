@@ -66,6 +66,16 @@ export interface EditTarget {
    * document text) with `text`.
    */
   replaceRange(start: number, end: number, text: string): Promise<void>;
+  /**
+   * Current cursor (selection start) as a character offset into the document.
+   * Optional: hosts without cursor tracking may omit it.
+   */
+  getCursorOffset?(): Promise<number>;
+  /**
+   * Move the cursor to `offset`, scroll it into view, and focus the editor.
+   * Optional: hosts without cursor control may omit it.
+   */
+  revealOffset?(offset: number): Promise<void>;
 }
 
 /**

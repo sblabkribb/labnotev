@@ -343,3 +343,99 @@ export function appendUnitOpToWorkflowToc(
 
   return lines.join(newline);
 }
+
+/**
+ * Regenerate the entire `## Related Unit Operations` TOC so its entries match
+ * the **document order** of the `### [opId opName]` unit-op headings.
+ *
+ * Unlike {@link appendUnitOpToWorkflowToc} (which always appends), this scans
+ * the body for the actual headings and rewrites the entry list in that order.
+ * This keeps the TOC correct even when a unit op is inserted at an arbitrary
+ * cursor position, and self-heals any previously mis-ordered list.
+ *
+ * The edit is confined to the entry lines inside the section (heading → first
+ * `## ` heading or `---`); surrounding blanks and the template hint blockquotes
+ * are preserved. Returns the input unchanged when the section is absent.
+ * CRLF vs LF line endings are detected and preserved.
+ */
+export function rebuildUnitOpToc(md: string): string {
+  const newline = md.includes('\r\n') ? '\r\n' : '\n';
+  const lines = md.split(/\r?\n/);
+
+  const headingIdx = lines.findIndex(l => l.trim() === '## Related Unit Operations');
+  if (headingIdx === -1) return md;
+
+  // The entry region ends at the next `## ` heading or the first `---` break.
+  let tocEndIdx = lines.length;
+  for (let j = headingIdx + 1; j < lines.length; j++) {
+    if (/^##\s/.test(lines[j]) || lines[j].trim() === '---') {
+      tocEndIdx = j;
+      break;
+    }
+  }
+
+  // Collect unit-op headings across the body, in document order. TOC lines start
+  // with `- [`, so they never match the `### [` heading pattern.
+  const newEntries: string[] = [];
+  for (let j = headingIdx + 1; j < lines.length; j++) {
+    const m = lines[j].match(UNIT_OP_HEADING_PATTERN);
+    if (m) newEntries.push(buildUnitOpTocLine(m[1], m[2].trim(), m[3]?.trim() || undefined));
+  }
+
+  // Replace the existing contiguous run of entry lines with the new ordered list.
+  let firstEntry = -1;
+  let lastEntry = -1;
+  for (let j = headingIdx + 1; j < tocEndIdx; j++) {
+    if (/^\s*- \[/.test(lines[j])) {
+      if (firstEntry === -1) firstEntry = j;
+      lastEntry = j;
+    }
+  }
+
+  if (firstEntry !== -1) {
+    lines.splice(firstEntry, lastEntry - firstEntry + 1, ...newEntries);
+  } else if (newEntries.length > 0) {
+    let insertAt = headingIdx + 1;
+    if (lines[insertAt] !== undefined && lines[insertAt].trim() === '') insertAt++;
+    const toInsert = [...newEntries];
+    if (lines[insertAt] !== undefined && lines[insertAt].trim() !== '') toInsert.push('');
+    lines.splice(insertAt, 0, ...toInsert);
+  }
+
+  return lines.join(newline);
+}
+
+/**
+ * Given the post-insert markdown, the pre-insert cursor offset, and the
+ * TOC-rebuilt markdown, return the character offset of the just-inserted
+ * `### [..]` unit-op heading within the rebuilt text (or -1 if none).
+ *
+ * The inserted block sits at `cursorBefore`, so the first `### [` at/after that
+ * offset is ours. Since {@link rebuildUnitOpToc} only rewrites `- [..]` lines
+ * (never `### [..]`), the heading keeps its ordinal index among all headings;
+ * we map by that index into the rebuilt text.
+ */
+export function locateInsertedUnitOpHeading(
+  mdAfterInsert: string,
+  cursorBefore: number,
+  rebuiltMd: string
+): number {
+  const HEAD = '### [';
+  const headingInMd = mdAfterInsert.indexOf(HEAD, Math.max(0, cursorBefore));
+  if (headingInMd === -1) return -1;
+
+  // Ordinal (0-based) index of our heading among all headings in mdAfterInsert.
+  let idx = 0;
+  for (
+    let p = mdAfterInsert.indexOf(HEAD);
+    p !== -1 && p < headingInMd;
+    p = mdAfterInsert.indexOf(HEAD, p + 1)
+  ) {
+    idx++;
+  }
+
+  // Find the idx-th heading in the rebuilt text.
+  let p = rebuiltMd.indexOf(HEAD);
+  for (let c = 0; c < idx && p !== -1; c++) p = rebuiltMd.indexOf(HEAD, p + 1);
+  return p;
+}
