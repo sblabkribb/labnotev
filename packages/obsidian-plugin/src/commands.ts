@@ -10,7 +10,7 @@
  * `join('', 'labnote', ...)` yields vault-relative `labnote/...` paths that the
  * adapter understands.
  */
-import type { App } from 'obsidian';
+import { TFile, type App, type Editor } from 'obsidian';
 import type {
   LabnoteHost,
   WorkflowItem,
@@ -104,6 +104,34 @@ async function createWorkflowFromChoice(
   labnoteDir: string,
   chosen: WorkflowItem
 ): Promise<void> {
+  const created = await createWorkflowFile(app, host, labnoteDir, chosen);
+  if (!created) return;
+  await host.openFile(created.path);
+  host.notify('info', host.t('Workflow created: {0}', created.fileName));
+}
+
+/** Details of a freshly created workflow file. */
+interface CreatedWorkflow {
+  /** Vault-relative path of the new workflow file. */
+  path: string;
+  /** File name (basename with extension). */
+  fileName: string;
+  /** Human-readable `id name [alias]` used for checklist/link display. */
+  displayTitle: string;
+}
+
+/**
+ * Prompt for an optional alias, write the workflow file and register it in the
+ * README checklist. Does NOT open the file — callers decide what to do with the
+ * result (open it, or insert a link at the cursor). Returns undefined if the
+ * alias prompt was cancelled.
+ */
+async function createWorkflowFile(
+  app: App,
+  host: LabnoteHost,
+  labnoteDir: string,
+  chosen: WorkflowItem
+): Promise<CreatedWorkflow | undefined> {
   // Ask for an optional per-instance alias. The catalog name stays inside the
   // `[id name]` prefix; the alias (if any) is appended after it.
   const alias = await workflowAliasModal(app, {
@@ -112,7 +140,7 @@ async function createWorkflowFromChoice(
     title: host.t('Workflow name'),
     placeholder: host.t('Enter a name for this workflow'),
   });
-  if (alias === undefined) return; // cancelled
+  if (alias === undefined) return undefined; // cancelled
   const cleanAlias = alias.trim();
 
   const readmePath = posix.join(labnoteDir, README);
@@ -132,20 +160,35 @@ async function createWorkflowFromChoice(
     createWorkflowContent(info, experimenter, cleanAlias || undefined)
   );
 
+  const displayTitle = cleanAlias
+    ? `${chosen.id} ${chosen.name} ${cleanAlias}`
+    : `${chosen.id} ${chosen.name}`;
+
   // Register in the README "Related Workflows" checklist (non-destructive).
   if (await host.fs.exists(readmePath)) {
     const readme = await host.fs.read(readmePath);
     const items = parseWorkflowChecklistFromReadme(readme);
-    const displayTitle = cleanAlias
-      ? `${chosen.id} ${chosen.name} ${cleanAlias}`
-      : `${chosen.id} ${chosen.name}`;
     items.push({ done: false, title: displayTitle, fileName });
     const updated = updateReadmeWorkflowSection(readme, generateWorkflowChecklist(items));
     await host.fs.write(readmePath, updated);
   }
 
-  await host.openFile(workflowPath);
-  host.notify('info', host.t('Workflow created: {0}', fileName));
+  return { path: workflowPath, fileName, displayTitle };
+}
+
+/** Present the workflow catalog picker (seeding catalog resources first). */
+async function pickWorkflow(host: LabnoteHost): Promise<WorkflowItem | undefined> {
+  await ensureWorkflowResources(host.fs, VAULT_ROOT);
+  const catalog = await loadWorkflows(host.fs, VAULT_ROOT);
+  return host.pick(
+    catalog.workflows.map<PickItem<WorkflowItem>>(wf => ({
+      label: `${wf.id}: ${wf.name}`,
+      description: wf.category,
+      detail: wf.description,
+      value: wf,
+    })),
+    { title: host.t('Select workflow'), placeholder: host.t('Search workflows') }
+  );
 }
 
 /**
@@ -168,20 +211,47 @@ export async function createWorkflowCommand(app: App, host: LabnoteHost): Promis
   const labnoteDir = await resolveLabnoteDir(app, host);
   if (!labnoteDir) return;
 
-  await ensureWorkflowResources(host.fs, VAULT_ROOT);
-  const catalog = await loadWorkflows(host.fs, VAULT_ROOT);
-  const chosen = await host.pick(
-    catalog.workflows.map<PickItem<WorkflowItem>>(wf => ({
-      label: `${wf.id}: ${wf.name}`,
-      description: wf.category,
-      detail: wf.description,
-      value: wf,
-    })),
-    { title: host.t('Select workflow'), placeholder: host.t('Search workflows') }
-  );
+  const chosen = await pickWorkflow(host);
   if (!chosen) return;
 
   await createWorkflowFromChoice(app, host, labnoteDir, chosen);
+}
+
+/**
+ * Create a workflow file (same flow as {@link createWorkflowCommand}) and insert
+ * a link to it at the current cursor position. Invoked from the editor
+ * right-click menu on a `.labnote.md` note.
+ */
+export async function insertWorkflowLinkCommand(
+  app: App,
+  host: LabnoteHost,
+  editor: Editor
+): Promise<void> {
+  const labnoteDir = await resolveLabnoteDir(app, host);
+  if (!labnoteDir) return;
+
+  const chosen = await pickWorkflow(host);
+  if (!chosen) return;
+
+  const created = await createWorkflowFile(app, host, labnoteDir, chosen);
+  if (!created) return;
+
+  // Resolve the TFile for a settings-aware link. A file written through the
+  // adapter may lag the vault index, so retry briefly before falling back.
+  let file = app.vault.getAbstractFileByPath(created.path);
+  for (let i = 0; i < 10 && !(file instanceof TFile); i++) {
+    await new Promise(resolve => setTimeout(resolve, 50));
+    file = app.vault.getAbstractFileByPath(created.path);
+  }
+
+  const sourcePath = app.workspace.getActiveFile()?.path ?? '';
+  const link =
+    file instanceof TFile
+      ? app.fileManager.generateMarkdownLink(file, sourcePath, undefined, created.displayTitle)
+      : `[[${created.fileName.replace(/\.md$/, '')}|${created.displayTitle}]]`;
+
+  editor.replaceSelection(link);
+  host.notify('info', host.t('Workflow created: {0}', created.fileName));
 }
 
 /**

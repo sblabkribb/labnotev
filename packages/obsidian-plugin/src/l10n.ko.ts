@@ -15,6 +15,7 @@ const obsidianKo: Record<string, string> = {
   // Commands
   'Create experiment': '실험 생성',
   'Create workflow': '워크플로 생성',
+  'Insert workflow': '워크플로 삽입',
   'Insert unit operation': '유닛 오퍼레이션 삽입',
   'Insert date': '날짜 삽입',
   'Insert date and time': '날짜 및 시간 삽입',

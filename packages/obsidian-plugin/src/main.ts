@@ -19,6 +19,7 @@ import {
   createExperimentCommand,
   createWorkflowCommand,
   insertUnitOperationCommand,
+  insertWorkflowLinkCommand,
 } from './commands';
 import { SampleEditorSuggest } from './sampleSuggest';
 import {
@@ -58,6 +59,7 @@ export default class LabnotePlugin extends Plugin {
     this.registerSampleFeatures();
     this.registerViews();
     this.registerFileMenu();
+    this.registerEditorMenu();
     this.addSettingTab(new LabnoteSettingTab(this.app, this));
 
     if (this.settings.mcpEnabled) {
@@ -163,6 +165,22 @@ export default class LabnotePlugin extends Plugin {
             .setTitle(this.t('Export tables to CSV'))
             .setIcon('table')
             .onClick(() => void exportTablesToCsv(this, file))
+        );
+      })
+    );
+  }
+
+  /** Right-click in a lab-note editor → create a workflow + insert a link at the cursor. */
+  private registerEditorMenu(): void {
+    this.registerEvent(
+      this.app.workspace.on('editor-menu', (menu, editor, info) => {
+        const file = info.file;
+        if (!(file instanceof TFile) || !file.path.endsWith('.labnote.md')) return;
+        menu.addItem(item =>
+          item
+            .setTitle(this.t('Insert workflow'))
+            .setIcon('git-branch-plus')
+            .onClick(() => this.run(() => insertWorkflowLinkCommand(this.app, this.host, editor)))
         );
       })
     );

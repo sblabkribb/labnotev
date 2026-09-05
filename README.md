@@ -1,6 +1,6 @@
 # Labnote Assistant (LabnoteV)
 
-**v0.71.0** · [한국어 → README.ko.md](README.ko.md)
+**v0.72.0** · [한국어 → README.ko.md](README.ko.md)
 
 A VS Code extension that helps you write experiment notes in Markdown. It opens `.labnote.md` files in a webview-based Section Editor, providing a UI optimized for lab note keeping — Front Matter forms, workflow checklists, unit operation accordions, sample definition buttons, clipboard image paste/thumbnails, and more.
 
@@ -271,7 +271,7 @@ Starting with v0.70.0, the same lab-note workflow is available as an Obsidian pl
 2. Copy the three files into `<vault>/.obsidian/plugins/labnotev/`.
 3. In Obsidian, open **Settings → Community plugins**, turn off **Restricted mode**, then enable **"Labnote Assistant"**.
 
-The Obsidian plugin supports experiment/workflow creation, unit-operation insertion (with non-destructive TOC updates), sample autocomplete and highlighting, workflow/sample sidebar views, CSV export, and optional local LLM/MCP integration (desktop only). PDF export uses Obsidian's built-in Export to PDF.
+The Obsidian plugin supports experiment/workflow creation (including right-clicking in a `.labnote.md` editor to create a workflow and insert a link at the cursor), unit-operation insertion (with non-destructive TOC updates), sample autocomplete and highlighting, workflow/sample sidebar views, CSV export, and optional local LLM/MCP integration (desktop only). PDF export uses Obsidian's built-in Export to PDF.
 
 ## Commands
 
