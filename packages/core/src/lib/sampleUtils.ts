@@ -61,6 +61,45 @@ export function buildSampleDefSuffix(
 }
 
 /**
+ * Build a full sample *definition* string: `@type;ID[;alias[;description]]`.
+ *
+ * The type prefix is lower-cased (matching the `@dna;` completion/highlight
+ * convention) while the ID is kept verbatim. Alias/description positions are
+ * kept stable via {@link buildSampleDefSuffix}. Shared by the Obsidian
+ * autocomplete "create" flow and the sidebar "insert definition" action so both
+ * emit an identical, re-syncable definition.
+ */
+export function buildSampleDefinitionText(
+  type: string,
+  id: string,
+  alias?: string | null,
+  description?: string | null
+): string {
+  return `@${type.toLowerCase()};${id}${buildSampleDefSuffix(alias, description)}`;
+}
+
+/**
+ * Decide which synthetic autocomplete actions to offer for a parsed sample
+ * trigger. Mirrors the VS Code completion provider:
+ * - a concrete single type gets a manual ("Enter info") action,
+ * - and additionally a "Generate new ID" action unless it is `Equip`
+ *   (Equip ids come from the reference DB, not generated),
+ * - `@sample` expands to many types, so it gets no create actions.
+ *
+ * Typed structurally (not against `SampleTrigger`) to avoid a module cycle
+ * between `lib/sampleUtils` and `sample/sampleSuggest`.
+ */
+export function sampleSuggestActionFlags(trigger: {
+  typesToSearch: readonly string[];
+}): { generate: boolean; manual: boolean } {
+  const specific = trigger.typesToSearch.length === 1 ? trigger.typesToSearch[0] : null;
+  return {
+    manual: !!specific,
+    generate: !!specific && specific !== 'Equip',
+  };
+}
+
+/**
  * Colors for each sample type (used in highlighting and UI)
  */
 export const sampleTypeColors: Record<SampleType, string> = {

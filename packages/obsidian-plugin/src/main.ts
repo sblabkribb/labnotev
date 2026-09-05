@@ -242,6 +242,7 @@ export default class LabnotePlugin extends Plugin {
         fs: this.fs,
         customTypes: () => this.settings.customSampleTypes,
         globalFolder: () => this.settings.globalSampleFolder,
+        plugin: this,
       })
     );
 

@@ -21,11 +21,24 @@ import {
   type SampleCompletionEntry,
   type LabnoteFs,
 } from '@labnotev/core';
-import { getSampleDisplayMeta } from '@labnotev/core/lib/sampleUtils';
+import {
+  getSampleDisplayMeta,
+  sampleSuggestActionFlags,
+} from '@labnotev/core/lib/sampleUtils';
 import {
   loadSamplesByType,
   getLabsamplesFolder,
 } from '@labnotev/core/lib/sampleStorage';
+import type LabnotePlugin from './main';
+import { createSampleInteractive } from './sampleActions';
+
+/**
+ * A rendered suggestion: either an existing sample reference, or a synthetic
+ * "create" action (generate a new id, or enter one manually).
+ */
+type SuggestEntry =
+  | { kind: 'existing'; entry: SampleCompletionEntry }
+  | { kind: 'generate' | 'manual'; type: string };
 
 export interface SampleSuggestDeps {
   fs: LabnoteFs;
@@ -33,9 +46,11 @@ export interface SampleSuggestDeps {
   customTypes: () => string[];
   /** Live getter for the vault-global labsamples folder (vault-relative). */
   globalFolder: () => string;
+  /** Owning plugin (for translator, app, and interactive sample creation). */
+  plugin: LabnotePlugin;
 }
 
-export class SampleEditorSuggest extends EditorSuggest<SampleCompletionEntry> {
+export class SampleEditorSuggest extends EditorSuggest<SuggestEntry> {
   constructor(app: App, private readonly deps: SampleSuggestDeps) {
     super(app);
   }
@@ -60,7 +75,7 @@ export class SampleEditorSuggest extends EditorSuggest<SampleCompletionEntry> {
 
   async getSuggestions(
     context: EditorSuggestContext
-  ): Promise<SampleCompletionEntry[]> {
+  ): Promise<SuggestEntry[]> {
     const trigger = parseSampleTrigger(context.query, this.types);
     if (!trigger) return [];
 
@@ -82,22 +97,88 @@ export class SampleEditorSuggest extends EditorSuggest<SampleCompletionEntry> {
       }));
     }
 
-    return buildSampleCompletionEntries(trigger, recordsByType);
+    const existing: SuggestEntry[] = buildSampleCompletionEntries(
+      trigger,
+      recordsByType
+    ).map(entry => ({ kind: 'existing', entry }));
+
+    // Append synthetic create actions for a concrete type (never for @sample);
+    // this also guarantees a non-empty list so the popup shows even with no
+    // existing samples — the root cause of "autocomplete does nothing".
+    const actions: SuggestEntry[] = [];
+    if (trigger.typesToSearch.length === 1) {
+      const type = trigger.typesToSearch[0];
+      const flags = sampleSuggestActionFlags(trigger);
+      if (flags.generate) actions.push({ kind: 'generate', type });
+      if (flags.manual) actions.push({ kind: 'manual', type });
+    }
+
+    return [...existing, ...actions];
   }
 
-  renderSuggestion(entry: SampleCompletionEntry, el: HTMLElement): void {
-    el.createEl('div', { text: entry.label });
-    el.createEl('small', { text: `${entry.type} Sample`, cls: 'labnote-suggest-detail' });
+  renderSuggestion(item: SuggestEntry, el: HTMLElement): void {
+    const t = this.deps.plugin.t;
+    if (item.kind === 'existing') {
+      el.createEl('div', { text: item.entry.label });
+      el.createEl('small', {
+        text: `${item.entry.type} Sample`,
+        cls: 'labnote-suggest-detail',
+      });
+      return;
+    }
+    if (item.kind === 'generate') {
+      el.createEl('div', { text: t('Generate new {0} ID', item.type) });
+      el.createEl('small', {
+        text: t('Automatically generate a new sample ID'),
+        cls: 'labnote-suggest-detail',
+      });
+      return;
+    }
+    el.createEl('div', { text: t('Enter info') });
+    el.createEl('small', {
+      text: t('Manually enter sample ID, alias, and description'),
+      cls: 'labnote-suggest-detail',
+    });
   }
 
-  selectSuggestion(entry: SampleCompletionEntry): void {
+  selectSuggestion(item: SuggestEntry): void {
     const ctx = this.context;
     if (!ctx) return;
-    ctx.editor.replaceRange(entry.insertText, ctx.start, ctx.end);
-    ctx.editor.setCursor({
-      line: ctx.start.line,
-      ch: ctx.start.ch + entry.insertText.length,
-    });
+    // Capture positions/editor/file BEFORE close() invalidates this.context.
+    const editor = ctx.editor;
+    const start = ctx.start;
+    const end = ctx.end;
+    const filePath = ctx.file.path;
+
+    if (item.kind === 'existing') {
+      editor.replaceRange(item.entry.insertText, start, end);
+      editor.setCursor({
+        line: start.line,
+        ch: start.ch + item.entry.insertText.length,
+      });
+      this.close();
+      return;
+    }
+
+    // Create flow: close first, then run the interactive modals, then insert
+    // the resulting `@type;id;...` definition at the captured range.
     this.close();
+    const { plugin } = this.deps;
+    const type = item.type;
+    const mode = item.kind;
+    void (async () => {
+      const folder = getLabsamplesFolder(filePath);
+      const created = await createSampleInteractive(plugin.app, plugin, {
+        type,
+        folder,
+        mode,
+      });
+      if (!created) return;
+      editor.replaceRange(created.definitionText, start, end);
+      editor.setCursor({
+        line: start.line,
+        ch: start.ch + created.definitionText.length,
+      });
+    })();
   }
 }

@@ -8,17 +8,33 @@
  */
 import { ItemView, Menu, Notice, WorkspaceLeaf } from 'obsidian';
 import { buildSampleTree, type TreeNode } from '@labnotev/core';
-import { getSampleDisplayMeta } from '@labnotev/core/lib/sampleUtils';
-import { getLabsamplesFolder } from '@labnotev/core/lib/sampleStorage';
+import {
+  getSampleDisplayMeta,
+  buildSampleDefinitionText,
+} from '@labnotev/core/lib/sampleUtils';
+import { getLabsamplesFolder, type SampleRecord } from '@labnotev/core/lib/sampleStorage';
 import type LabnotePlugin from '../main';
 import { renderTree } from './treeRender';
+import {
+  resolveScopeFolder,
+  createSampleInteractive,
+  editSampleInteractive,
+  deleteSampleInteractive,
+  type SampleScope,
+} from '../sampleActions';
 
 export const SAMPLE_VIEW_TYPE = 'labnote-sample-view';
 
+interface TypePayload {
+  scope: SampleScope;
+  type: string;
+}
+
 interface SamplePayload {
-  scope: 'local' | 'global';
+  scope: SampleScope;
   type: string;
   id: string;
+  record: SampleRecord;
 }
 
 export class SampleTreeView extends ItemView {
@@ -81,10 +97,38 @@ export class SampleTreeView extends ItemView {
   }
 
   private onContext(node: TreeNode, evt: MouseEvent): void {
-    if (node.kind !== 'sample') return;
-    const sample = node.payload as SamplePayload;
+    if (node.kind === 'sampleType') {
+      this.onTypeContext(node.payload as TypePayload, evt);
+      return;
+    }
+    if (node.kind === 'sample') {
+      this.onSampleContext(node.payload as SamplePayload, evt);
+    }
+  }
 
+  /** Type node: create a new sample in that scope's folder. */
+  private onTypeContext(payload: TypePayload, evt: MouseEvent): void {
     const menu = new Menu();
+    menu.addItem(item =>
+      item
+        .setTitle(this.plugin.t('Add sample'))
+        .setIcon('plus')
+        .onClick(() => {
+          void createSampleInteractive(this.app, this.plugin, {
+            type: payload.type,
+            folder: resolveScopeFolder(this.plugin, payload.scope),
+            mode: 'manual',
+          });
+        })
+    );
+    menu.showAtMouseEvent(evt);
+  }
+
+  /** Sample node: copy / insert reference / insert definition / edit / delete. */
+  private onSampleContext(sample: SamplePayload, evt: MouseEvent): void {
+    const folder = resolveScopeFolder(this.plugin, sample.scope);
+    const menu = new Menu();
+
     menu.addItem(item =>
       item
         .setTitle(this.plugin.t('Copy sample ID'))
@@ -107,6 +151,52 @@ export class SampleTreeView extends ItemView {
           void target.insertAtCursor(`@${sample.type};${sample.id}`);
         })
     );
+    menu.addItem(item =>
+      item
+        .setTitle(this.plugin.t('Insert definition at cursor'))
+        .setIcon('file-plus')
+        .onClick(() => {
+          const target = this.plugin.host.editTarget();
+          if (!target) {
+            new Notice(this.plugin.t('Open a note to insert into.'));
+            return;
+          }
+          void target.insertAtCursor(
+            buildSampleDefinitionText(
+              sample.type,
+              sample.id,
+              sample.record.alias,
+              sample.record.descriptions?.[0]
+            )
+          );
+        })
+    );
+    menu.addItem(item =>
+      item
+        .setTitle(this.plugin.t('Edit sample'))
+        .setIcon('pencil')
+        .onClick(() => {
+          void editSampleInteractive(this.app, this.plugin, {
+            folder,
+            type: sample.type,
+            id: sample.id,
+            record: sample.record,
+          });
+        })
+    );
+    menu.addItem(item =>
+      item
+        .setTitle(this.plugin.t('Delete sample'))
+        .setIcon('trash')
+        .onClick(() => {
+          void deleteSampleInteractive(this.app, this.plugin, {
+            folder,
+            type: sample.type,
+            id: sample.id,
+          });
+        })
+    );
+
     menu.showAtMouseEvent(evt);
   }
 }
