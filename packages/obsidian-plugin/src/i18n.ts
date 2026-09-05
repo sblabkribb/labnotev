@@ -10,6 +10,9 @@
 import { createTranslator, type Translator } from '@labnotev/core';
 // Reuse the extension's Korean catalog verbatim (single source of truth).
 import koBundle from '../../../l10n/bundle.l10n.ko.json';
+// Obsidian-only keys not present in the shared bundle (kept separate so the VS
+// Code l10n coverage test does not flag them as stale). Merged over koBundle.
+import obsidianKo from './l10n.ko';
 
 /** Resolve Obsidian's active UI language (e.g. 'en', 'ko'). */
 export function getObsidianLanguage(): string {
@@ -23,7 +26,7 @@ export function getObsidianLanguage(): string {
 /** Build a {@link Translator} appropriate for the current Obsidian locale. */
 export function createObsidianTranslator(lang = getObsidianLanguage()): Translator {
   if (lang === 'ko') {
-    return createTranslator(koBundle as Record<string, string>);
+    return createTranslator({ ...(koBundle as Record<string, string>), ...obsidianKo });
   }
   return createTranslator();
 }

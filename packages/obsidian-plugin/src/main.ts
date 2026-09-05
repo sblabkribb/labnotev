@@ -7,7 +7,7 @@
  * highlighting, sidebar views, the settings tab and the LLM/MCP layer are added
  * by subsequent modules that all consume the same `LabnoteHost` built here.
  */
-import { Plugin, MarkdownView, Notice, TFile } from 'obsidian';
+import { Plugin, Notice, TFile } from 'obsidian';
 import type { LabnoteHost, Translator } from '@labnotev/core';
 import { getSeoulDateString, getSeoulDateTimeString } from '@labnotev/core/lib/dateUtils';
 import { getSampleDisplayMeta } from '@labnotev/core/lib/sampleUtils';
@@ -71,6 +71,19 @@ export default class LabnotePlugin extends Plugin {
     // Views/events registered via this.register*() are auto-cleaned by Obsidian.
   }
 
+  /**
+   * Run an async command body, surfacing any failure as an error Notice instead
+   * of letting the rejected promise vanish (which left commands failing
+   * silently with nothing shown to the user).
+   */
+  private run(fn: () => Promise<void>): void {
+    fn().catch((err: unknown) => {
+      console.error('[labnotev] command failed:', err);
+      const msg = err instanceof Error ? err.message : String(err);
+      this.host.notify('error', this.t('Command failed: {0}', msg));
+    });
+  }
+
   private registerCommands(): void {
     this.addCommand({
       id: 'insert-date',
@@ -91,51 +104,52 @@ export default class LabnotePlugin extends Plugin {
     this.addCommand({
       id: 'create-experiment',
       name: this.t('Create experiment'),
-      callback: () => void createExperimentCommand(this.app, this.host),
+      callback: () => this.run(() => createExperimentCommand(this.app, this.host)),
     });
 
     this.addCommand({
       id: 'create-workflow',
       name: this.t('Create workflow'),
-      callback: () => void createWorkflowCommand(this.app, this.host),
+      callback: () => this.run(() => createWorkflowCommand(this.app, this.host)),
     });
 
     this.addCommand({
       id: 'insert-unit-operation',
       name: this.t('Insert unit operation'),
-      callback: () => void insertUnitOperationCommand(this.app, this.host),
+      callback: () => this.run(() => insertUnitOperationCommand(this.app, this.host)),
     });
 
     this.addCommand({
       id: 'export-tables-csv',
       name: this.t('Export tables to CSV'),
-      callback: () => void exportActiveNoteTablesToCsv(this),
+      callback: () => this.run(() => exportActiveNoteTablesToCsv(this)),
     });
 
     // --- AI commands ---
     this.addCommand({
       id: 'ai-draft-method',
       name: this.t('AI: Draft Method section'),
-      callback: () => void draftMethodCommand(this),
+      callback: () => this.run(() => draftMethodCommand(this)),
     });
     this.addCommand({
       id: 'ai-summarize-results',
       name: this.t('AI: Summarize results'),
-      callback: () => void summarizeResultsCommand(this),
+      callback: () => this.run(() => summarizeResultsCommand(this)),
     });
     this.addCommand({
       id: 'ai-extract-samples',
       name: this.t('AI: Extract sample definitions'),
-      callback: () => void extractSamplesCommand(this),
+      callback: () => this.run(() => extractSamplesCommand(this)),
     });
 
     this.addCommand({
       id: 'toggle-mcp-server',
       name: this.t('Toggle MCP server'),
-      callback: () => {
-        if (this.mcpServer.running) this.mcpServer.stop();
-        else this.mcpServer.start();
-      },
+      callback: () =>
+        this.run(async () => {
+          if (this.mcpServer.running) this.mcpServer.stop();
+          else this.mcpServer.start();
+        }),
     });
   }
 
@@ -242,10 +256,16 @@ export default class LabnotePlugin extends Plugin {
     }
   }
 
-  /** The path of the active markdown note, if any (vault-relative). */
+  /**
+   * The path of the most recently active file, if any (vault-relative).
+   *
+   * Uses `getActiveFile()` rather than `getActiveViewOfType(MarkdownView)` so it
+   * keeps returning the last note when focus moves to a sidebar (e.g. the sample
+   * view itself). The old approach returned undefined on sidebar focus, which
+   * collapsed the sample tree's Local scope to Global and made samples vanish.
+   */
   activeNotePath(): string | undefined {
-    const view = this.app.workspace.getActiveViewOfType(MarkdownView);
-    return view?.file?.path;
+    return this.app.workspace.getActiveFile()?.path;
   }
 
   notify(message: string): void {

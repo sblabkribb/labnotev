@@ -105,12 +105,13 @@ export function getNextWorkflowNumber(existingFiles: string[]): string {
 /**
  * Sanitize workflow name for use in filename
  * - Replaces spaces with underscores
- * - Removes special characters except alphanumeric and underscores
+ * - Removes punctuation/symbols but keeps Unicode letters (e.g. Korean),
+ *   digits and underscores, so non-ASCII aliases survive in file names
  */
 export function sanitizeWorkflowName(name: string): string {
   return name
     .replace(/\s+/g, '_')
-    .replace(/[^\w_]/g, '')
+    .replace(/[^\p{L}\p{N}_]/gu, '')
     .replace(/_+/g, '_')
     .replace(/^_|_$/g, '');
 }
@@ -122,10 +123,15 @@ export function sanitizeWorkflowName(name: string): string {
  */
 export function createWorkflowContent(
   workflow: WorkflowInfo,
-  experimenter: string
+  experimenter: string,
+  alias?: string
 ): string {
   const today = getSeoulDateString(new Date());
-  const title = `${workflow.id} ${workflow.name}`;
+  // An optional per-instance alias is appended *after* the bracketed catalog
+  // name (e.g. `[WT010 Nucleotide Sequencing] Genetic Circuit Sequencing`),
+  // leaving the `[id name]` prefix intact for downstream parsing.
+  const suffix = alias && alias.trim() ? ` ${alias.trim()}` : '';
+  const title = `${workflow.id} ${workflow.name}${suffix}`;
   
   return `---
 title: ${title}
@@ -135,7 +141,7 @@ last_updated_date: ${today}
 end_date: ''
 ---
 
-## [${workflow.id} ${workflow.name}]
+## [${workflow.id} ${workflow.name}]${suffix}
 
 > ${workflow.description}
 
@@ -158,11 +164,13 @@ end_date: ''
  */
 export function createWorkflowFileName(
   sequence: string,
-  workflow: WorkflowInfo
+  workflow: WorkflowInfo,
+  alias?: string
 ): string {
   const safeName = sanitizeWorkflowName(workflow.name);
-  
-  return `${sequence}_${workflow.id}_${safeName}.labnote.md`;
+  const safeAlias = alias && alias.trim() ? `_${sanitizeWorkflowName(alias)}` : '';
+
+  return `${sequence}_${workflow.id}_${safeName}${safeAlias}.labnote.md`;
 }
 
 /**

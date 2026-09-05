@@ -76,9 +76,19 @@ export function createObsidianHost(
     editTarget,
 
     async openFile(path: string) {
-      const file = app.vault.getAbstractFileByPath(path);
+      let file = app.vault.getAbstractFileByPath(path);
+      // A file just written through the adapter (VaultFileSystem.write) may not
+      // be registered in the vault index yet, so getAbstractFileByPath returns
+      // null for a brief moment. Retry briefly before falling back.
+      for (let i = 0; i < 10 && !(file instanceof TFile); i++) {
+        await new Promise(resolve => setTimeout(resolve, 50));
+        file = app.vault.getAbstractFileByPath(path);
+      }
       if (file instanceof TFile) {
         await app.workspace.getLeaf(false).openFile(file);
+      } else {
+        // Last resort: resolve lazily by link text (vault-relative path).
+        await app.workspace.openLinkText(path, '', false);
       }
     },
 

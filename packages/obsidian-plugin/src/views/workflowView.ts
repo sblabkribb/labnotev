@@ -7,14 +7,19 @@
  * shared command helper, so behaviour matches the command palette exactly).
  */
 import { ItemView, Menu, WorkspaceLeaf } from 'obsidian';
-import { buildWorkflowTree, type TreeNode, type UnitOperationItem } from '@labnotev/core';
+import {
+  buildWorkflowTree,
+  type TreeNode,
+  type UnitOperationItem,
+  type WorkflowItem,
+} from '@labnotev/core';
 import {
   ensureWorkflowResources,
   loadWorkflows,
   loadUnitOperations,
 } from '@labnotev/core/lib/workflowDataLoader';
 import type LabnotePlugin from '../main';
-import { insertUnitOpAndUpdateToc } from '../commands';
+import { insertUnitOpAndUpdateToc, createWorkflowForItem } from '../commands';
 import { renderTree } from './treeRender';
 
 export const WORKFLOW_VIEW_TYPE = 'labnote-workflow-view';
@@ -67,6 +72,19 @@ export class WorkflowTreeView extends ItemView {
   }
 
   private onContext(node: TreeNode, evt: MouseEvent): void {
+    if (node.kind === 'workflow') {
+      const wf = node.payload as WorkflowItem;
+      const menu = new Menu();
+      menu.addItem(item =>
+        item
+          .setTitle(this.plugin.t('Create workflow'))
+          .setIcon('plus')
+          .onClick(() => void createWorkflowForItem(this.plugin.app, this.plugin.host, wf))
+      );
+      menu.showAtMouseEvent(evt);
+      return;
+    }
+
     if (node.kind !== 'unitOperation') return;
     const op = node.payload as UnitOperationItem & { opType: 'hw' | 'sw' };
 

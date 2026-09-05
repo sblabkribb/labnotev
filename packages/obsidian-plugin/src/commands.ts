@@ -23,6 +23,7 @@ import {
   appendUnitOpToWorkflowToc,
 } from '@labnotev/core';
 import * as posix from '@labnotev/core/posix';
+import { workflowAliasModal } from './modals';
 import { createLabnoteStructure } from '@labnotev/core/lib/labnoteStructure';
 import {
   ensureWorkflowResources,
@@ -56,27 +57,19 @@ function labnoteDirFromPath(p: string): string | undefined {
 }
 
 /**
- * Resolve the target experiment folder: prefer the active note's folder, else
- * let the user pick from `labnote/###_*`. Returns undefined if none / cancelled.
+ * Resolve the target experiment folder from the active note's path. Warns and
+ * returns undefined when no lab note (a file under `labnote/###_*`) is open.
  */
-async function resolveLabnoteDir(host: LabnoteHost): Promise<string | undefined> {
-  const active = host.editTarget()?.path;
-  if (active) {
-    const dir = labnoteDirFromPath(active);
-    if (dir) return dir;
-  }
-
-  const entries = await host.fs.list('labnote');
-  const folders = entries.filter(name => /^\d{3}_/.test(name));
-  if (folders.length === 0) {
-    host.notify('warn', host.t('No experiment folder found. Create one first.'));
+async function resolveLabnoteDir(app: App, host: LabnoteHost): Promise<string | undefined> {
+  // Use the active *file* (not the active MarkdownView) so resolution still
+  // works when focus is on a sidebar/tree, e.g. the workflow view context menu.
+  const active = app.workspace.getActiveFile()?.path;
+  const dir = active ? labnoteDirFromPath(active) : undefined;
+  if (!dir) {
+    host.notify('warn', host.t('Open a lab note first.'));
     return undefined;
   }
-  const picked = await host.pick(
-    folders.map<PickItem<string>>(name => ({ label: name, value: name })),
-    { title: host.t('Select experiment folder') }
-  );
-  return picked ? posix.join('labnote', picked) : undefined;
+  return dir;
 }
 
 /** Create a new experiment folder (labnote/###_Title) + README scaffold. */
@@ -100,9 +93,79 @@ export async function createExperimentCommand(app: App, host: LabnoteHost): Prom
   host.notify('info', host.t('Experiment created: {0}', posix.basename(structure.labnoteFolder)));
 }
 
+/**
+ * Create the workflow file for an already-chosen catalog item inside a resolved
+ * experiment folder, register it in the README checklist, and open it. Shared by
+ * the command (after the picker) and the sidebar context menu.
+ */
+async function createWorkflowFromChoice(
+  app: App,
+  host: LabnoteHost,
+  labnoteDir: string,
+  chosen: WorkflowItem
+): Promise<void> {
+  // Ask for an optional per-instance alias. The catalog name stays inside the
+  // `[id name]` prefix; the alias (if any) is appended after it.
+  const alias = await workflowAliasModal(app, {
+    id: chosen.id,
+    catalogName: chosen.name,
+    title: host.t('Workflow name'),
+    placeholder: host.t('Enter a name for this workflow'),
+  });
+  if (alias === undefined) return; // cancelled
+  const cleanAlias = alias.trim();
+
+  const readmePath = posix.join(labnoteDir, README);
+  let experimenter = '';
+  if (await host.fs.exists(readmePath)) {
+    experimenter = parseExperimenterFromReadme(await host.fs.read(readmePath));
+  }
+
+  const existingFiles = await host.fs.list(labnoteDir);
+  const sequence = getNextWorkflowNumber(existingFiles);
+  const info = { id: chosen.id, name: chosen.name, description: chosen.description };
+  const fileName = createWorkflowFileName(sequence, info, cleanAlias || undefined);
+  const workflowPath = posix.join(labnoteDir, fileName);
+
+  await host.fs.write(
+    workflowPath,
+    createWorkflowContent(info, experimenter, cleanAlias || undefined)
+  );
+
+  // Register in the README "Related Workflows" checklist (non-destructive).
+  if (await host.fs.exists(readmePath)) {
+    const readme = await host.fs.read(readmePath);
+    const items = parseWorkflowChecklistFromReadme(readme);
+    const displayTitle = cleanAlias
+      ? `${chosen.id} ${chosen.name} ${cleanAlias}`
+      : `${chosen.id} ${chosen.name}`;
+    items.push({ done: false, title: displayTitle, fileName });
+    const updated = updateReadmeWorkflowSection(readme, generateWorkflowChecklist(items));
+    await host.fs.write(readmePath, updated);
+  }
+
+  await host.openFile(workflowPath);
+  host.notify('info', host.t('Workflow created: {0}', fileName));
+}
+
+/**
+ * Create a specific catalog workflow into the current experiment, resolving the
+ * target experiment folder from the active note. Used by the workflow sidebar's
+ * context menu, where the workflow is already known.
+ */
+export async function createWorkflowForItem(
+  app: App,
+  host: LabnoteHost,
+  chosen: WorkflowItem
+): Promise<void> {
+  const labnoteDir = await resolveLabnoteDir(app, host);
+  if (!labnoteDir) return;
+  await createWorkflowFromChoice(app, host, labnoteDir, chosen);
+}
+
 /** Create a new workflow file inside an experiment + register it in the README. */
 export async function createWorkflowCommand(app: App, host: LabnoteHost): Promise<void> {
-  const labnoteDir = await resolveLabnoteDir(host);
+  const labnoteDir = await resolveLabnoteDir(app, host);
   if (!labnoteDir) return;
 
   await ensureWorkflowResources(host.fs, VAULT_ROOT);
@@ -118,31 +181,7 @@ export async function createWorkflowCommand(app: App, host: LabnoteHost): Promis
   );
   if (!chosen) return;
 
-  const readmePath = posix.join(labnoteDir, README);
-  let experimenter = '';
-  if (await host.fs.exists(readmePath)) {
-    experimenter = parseExperimenterFromReadme(await host.fs.read(readmePath));
-  }
-
-  const existingFiles = await host.fs.list(labnoteDir);
-  const sequence = getNextWorkflowNumber(existingFiles);
-  const info = { id: chosen.id, name: chosen.name, description: chosen.description };
-  const fileName = createWorkflowFileName(sequence, info);
-  const workflowPath = posix.join(labnoteDir, fileName);
-
-  await host.fs.write(workflowPath, createWorkflowContent(info, experimenter));
-
-  // Register in the README "Related Workflows" checklist (non-destructive).
-  if (await host.fs.exists(readmePath)) {
-    const readme = await host.fs.read(readmePath);
-    const items = parseWorkflowChecklistFromReadme(readme);
-    items.push({ done: false, title: `${chosen.id} ${chosen.name}`, fileName });
-    const updated = updateReadmeWorkflowSection(readme, generateWorkflowChecklist(items));
-    await host.fs.write(readmePath, updated);
-  }
-
-  await host.openFile(workflowPath);
-  host.notify('info', host.t('Workflow created: {0}', fileName));
+  await createWorkflowFromChoice(app, host, labnoteDir, chosen);
 }
 
 /**

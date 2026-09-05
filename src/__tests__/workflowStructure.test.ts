@@ -121,6 +121,14 @@ describe('Workflow Structure', () => {
       
       expect(result).toBe('Test_Workflow_1');
     });
+
+    it('preserves non-ASCII (e.g. Korean) letters', async () => {
+      const { sanitizeWorkflowName } = await import('../lib/workflowStructure');
+
+      const result = sanitizeWorkflowName('벡터 설계 2차');
+
+      expect(result).toBe('벡터_설계_2차');
+    });
   });
 
   describe('createWorkflowContent', () => {
@@ -151,6 +159,32 @@ describe('Workflow Structure', () => {
       }, '');
 
       expect(result).toContain('## [WD010 General Design of Experiment]');
+    });
+
+    it('appends the alias after the bracketed catalog name when provided', async () => {
+      const { createWorkflowContent } = await import('../lib/workflowStructure');
+
+      const result = createWorkflowContent(
+        { id: 'WT010', name: 'Nucleotide Sequencing', description: 'Desc' },
+        '',
+        'Genetic Circuit Sequencing'
+      );
+
+      expect(result).toContain('## [WT010 Nucleotide Sequencing] Genetic Circuit Sequencing');
+      expect(result).toContain('title: WT010 Nucleotide Sequencing Genetic Circuit Sequencing');
+    });
+
+    it('omits the alias from the header/title when it is blank', async () => {
+      const { createWorkflowContent } = await import('../lib/workflowStructure');
+
+      const result = createWorkflowContent(
+        { id: 'WT010', name: 'Nucleotide Sequencing', description: 'Desc' },
+        '',
+        '   '
+      );
+
+      expect(result).toMatch(/## \[WT010 Nucleotide Sequencing\]\r?\n/);
+      expect(result).toMatch(/title: WT010 Nucleotide Sequencing\r?\n/);
     });
 
     it('should include Related Unit Operations section', async () => {
@@ -227,6 +261,42 @@ sample_tracking: yes
       });
 
       expect(result).toBe('001_WD010_General_Design_of_Experiment.labnote.md');
+    });
+
+    it('appends the sanitized alias when provided', async () => {
+      const { createWorkflowFileName } = await import('../lib/workflowStructure');
+
+      const result = createWorkflowFileName(
+        '001',
+        { id: 'WT010', name: 'Nucleotide Sequencing', description: '' },
+        'Genetic Circuit Sequencing'
+      );
+
+      expect(result).toBe('001_WT010_Nucleotide_Sequencing_Genetic_Circuit_Sequencing.labnote.md');
+    });
+
+    it('ignores a blank alias', async () => {
+      const { createWorkflowFileName } = await import('../lib/workflowStructure');
+
+      const result = createWorkflowFileName(
+        '001',
+        { id: 'WT010', name: 'Nucleotide Sequencing', description: '' },
+        '  '
+      );
+
+      expect(result).toBe('001_WT010_Nucleotide_Sequencing.labnote.md');
+    });
+
+    it('keeps a Korean alias in the file name', async () => {
+      const { createWorkflowFileName } = await import('../lib/workflowStructure');
+
+      const result = createWorkflowFileName(
+        '002',
+        { id: 'WD070', name: 'Vector Design', description: '' },
+        '벡터 설계'
+      );
+
+      expect(result).toBe('002_WD070_Vector_Design_벡터_설계.labnote.md');
     });
   });
 
