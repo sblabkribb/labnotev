@@ -136,3 +136,34 @@ export function findSampleIdRanges(text: string, types: readonly string[]): Samp
   }
   return ranges.sort((a, b) => a.start - b.start);
 }
+
+/** A sample reference located at a specific column of a line. */
+export interface SampleReferenceAt {
+  type: string;
+  id: string;
+  start: number;
+  end: number;
+}
+
+/**
+ * Find the sample id token that the cursor column `ch` sits inside on a single
+ * `line` (boundaries inclusive). Returns the type/id and its range, or null.
+ * Used by the editor "Go to definition" context menu.
+ */
+export function findSampleReferenceAt(
+  line: string,
+  ch: number,
+  types: readonly string[]
+): SampleReferenceAt | null {
+  for (const range of findSampleIdRanges(line, types)) {
+    if (ch >= range.start && ch <= range.end) {
+      return {
+        type: range.type,
+        id: line.slice(range.start, range.end),
+        start: range.start,
+        end: range.end,
+      };
+    }
+  }
+  return null;
+}

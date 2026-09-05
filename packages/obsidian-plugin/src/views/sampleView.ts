@@ -11,6 +11,7 @@ import { buildSampleTree, type TreeNode } from '@labnotev/core';
 import {
   getSampleDisplayMeta,
   buildSampleDefinitionText,
+  buildSampleReferenceText,
 } from '@labnotev/core/lib/sampleUtils';
 import { getLabsamplesFolder, type SampleRecord } from '@labnotev/core/lib/sampleStorage';
 import type LabnotePlugin from '../main';
@@ -148,7 +149,9 @@ export class SampleTreeView extends ItemView {
             new Notice(this.plugin.t('Open a note to insert into.'));
             return;
           }
-          void target.insertAtCursor(`@${sample.type};${sample.id}`);
+          void target.insertAtCursor(
+            buildSampleReferenceText(sample.id, sample.record.alias)
+          );
         })
     );
     menu.addItem(item =>

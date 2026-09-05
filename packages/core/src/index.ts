@@ -81,10 +81,12 @@ export {
   buildSampleCompletionLabel,
   buildSampleInsertText,
   findSampleIdRanges,
+  findSampleReferenceAt,
   type SampleTrigger,
   type SampleCandidate,
   type SampleCompletionEntry,
   type SampleIdRange,
+  type SampleReferenceAt,
 } from './sample/sampleSuggest';
 
 // === Platform-neutral tree model (VS Code providers + Obsidian ItemViews) ===

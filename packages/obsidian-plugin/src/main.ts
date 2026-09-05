@@ -9,6 +9,7 @@
  */
 import { Plugin, Notice, TFile } from 'obsidian';
 import type { LabnoteHost, Translator } from '@labnotev/core';
+import { findSampleReferenceAt } from '@labnotev/core';
 import { getSeoulDateString, getSeoulDateTimeString } from '@labnotev/core/lib/dateUtils';
 import { getSampleDisplayMeta } from '@labnotev/core/lib/sampleUtils';
 import { isValidWorkflowPath } from '@labnotev/core/lib/workflowStructure';
@@ -23,6 +24,7 @@ import {
   insertWorkflowLinkCommand,
 } from './commands';
 import { SampleEditorSuggest } from './sampleSuggest';
+import { openSampleDefinition } from './sampleDefinitionModal';
 import {
   createSampleHighlightPlugin,
   createSampleReadingHighlighter,
@@ -176,7 +178,34 @@ export default class LabnotePlugin extends Plugin {
     this.registerEvent(
       this.app.workspace.on('editor-menu', (menu, editor, info) => {
         const file = info.file;
-        if (!(file instanceof TFile) || !file.path.endsWith('.labnote.md')) return;
+        if (!(file instanceof TFile) || file.extension !== 'md') return;
+
+        // Go to definition works in ANY markdown note (references may appear
+        // outside `.labnote.md`), so add it before the workflow-file gate below.
+        if (this.settings.sampleTracking) {
+          const cur = editor.getCursor();
+          const types = getSampleDisplayMeta(this.settings.customSampleTypes).types;
+          const hit = findSampleReferenceAt(editor.getLine(cur.line), cur.ch, types);
+          if (hit) {
+            menu.addItem(item =>
+              item
+                .setTitle(this.t('Go to definition'))
+                .setIcon('search')
+                .onClick(() =>
+                  this.run(() =>
+                    openSampleDefinition(this.app, this, {
+                      type: hit.type,
+                      id: hit.id,
+                      docPath: file.path,
+                    })
+                  )
+                )
+            );
+          }
+        }
+
+        // The remaining items only belong in lab-note documents.
+        if (!file.path.endsWith('.labnote.md')) return;
         menu.addItem(item =>
           item
             .setTitle(this.t('Insert workflow'))
@@ -281,8 +310,21 @@ export default class LabnotePlugin extends Plugin {
         this.settings.globalSampleFolder,
         this.settings.customSampleTypes
       );
+      this.refreshSampleViews();
     } catch (err) {
       console.warn('[labnotev] sample sync failed:', err);
+    }
+  }
+
+  /**
+   * Refresh any open Samples sidebar(s). Called explicitly after sample JSON
+   * writes because those go through the low-level `adapter.write`
+   * ([VaultFileSystem](./vaultFileSystem.ts)), which bypasses the Vault event
+   * pipeline — so `vault.on('modify')` cannot be relied on for `{Type}.json`.
+   */
+  refreshSampleViews(): void {
+    for (const leaf of this.app.workspace.getLeavesOfType(SAMPLE_VIEW_TYPE)) {
+      if (leaf.view instanceof SampleTreeView) void leaf.view.refresh();
     }
   }
 

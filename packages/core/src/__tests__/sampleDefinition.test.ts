@@ -3,7 +3,9 @@
 // so we rely on `globals: true` + tsconfig `types: ["vitest/globals"]`.
 import {
   buildSampleDefinitionText,
-  sampleSuggestActionFlags,
+  buildSampleReferenceText,
+  isCatalogSampleType,
+  sampleSuggestActions,
 } from '../lib/sampleUtils';
 import { parseSampleTrigger } from '../sample/sampleSuggest';
 
@@ -29,24 +31,50 @@ describe('buildSampleDefinitionText', () => {
   });
 });
 
-describe('sampleSuggestActionFlags', () => {
-  it('offers generate + manual for a concrete non-Equip type', () => {
-    const t = parseSampleTrigger('@dna:', TYPES)!;
-    expect(sampleSuggestActionFlags(t)).toEqual({ generate: true, manual: true });
+describe('buildSampleReferenceText', () => {
+  it('emits bare id when there is no alias', () => {
+    expect(buildSampleReferenceText('DNA-123')).toBe('DNA-123');
+    expect(buildSampleReferenceText('DNA-123', '')).toBe('DNA-123');
+    expect(buildSampleReferenceText('DNA-123', null)).toBe('DNA-123');
   });
 
-  it('offers only manual for Equip (reference-DB type)', () => {
+  it('emits id;alias when an alias is present', () => {
+    expect(buildSampleReferenceText('DNA-123', '별칭')).toBe('DNA-123;별칭');
+  });
+});
+
+describe('isCatalogSampleType', () => {
+  it('is true for reference-DB types', () => {
+    expect(isCatalogSampleType('Reagent')).toBe(true);
+    expect(isCatalogSampleType('Labware')).toBe(true);
+    expect(isCatalogSampleType('Equip')).toBe(true);
+  });
+
+  it('is false for authored types', () => {
+    expect(isCatalogSampleType('DNA')).toBe(false);
+    expect(isCatalogSampleType('RNA')).toBe(false);
+    expect(isCatalogSampleType('Custom')).toBe(false);
+  });
+});
+
+describe('sampleSuggestActions', () => {
+  it('offers generate + manual for a concrete authored type', () => {
+    const t = parseSampleTrigger('@dna:', TYPES)!;
+    expect(sampleSuggestActions(t)).toEqual({ generate: true, manual: true, catalog: false });
+  });
+
+  it('offers only catalog for Equip (reference-DB type)', () => {
     const t = parseSampleTrigger('@equip:', TYPES)!;
-    expect(sampleSuggestActionFlags(t)).toEqual({ generate: false, manual: true });
+    expect(sampleSuggestActions(t)).toEqual({ generate: false, manual: false, catalog: true });
+  });
+
+  it('offers only catalog for @item (Labware, reference-DB type)', () => {
+    const t = parseSampleTrigger('@item:', TYPES)!;
+    expect(sampleSuggestActions(t)).toEqual({ generate: false, manual: false, catalog: true });
   });
 
   it('offers no actions for @sample (multi-type)', () => {
     const t = parseSampleTrigger('@sample:', TYPES)!;
-    expect(sampleSuggestActionFlags(t)).toEqual({ generate: false, manual: false });
-  });
-
-  it('treats @item as Labware (concrete → generate + manual)', () => {
-    const t = parseSampleTrigger('@item:', TYPES)!;
-    expect(sampleSuggestActionFlags(t)).toEqual({ generate: true, manual: true });
+    expect(sampleSuggestActions(t)).toEqual({ generate: false, manual: false, catalog: false });
   });
 });

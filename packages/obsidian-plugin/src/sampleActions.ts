@@ -8,20 +8,24 @@
  * the modals, persists JSON via the vault fs, and surfaces notices.
  */
 import { App, Notice } from 'obsidian';
+import type { PickItem } from '@labnotev/core';
 import {
   generateSampleId,
   buildSampleIdPattern,
   buildSampleDefinitionText,
+  buildSampleReferenceText,
+  isCatalogSampleType,
 } from '@labnotev/core/lib/sampleUtils';
 import {
   loadSamplesByType,
+  loadReferenceSamplesByType,
   saveSamplesByType,
   getLabsamplesFolder,
   findSampleDefinitionMatch,
   type SampleRecord,
 } from '@labnotev/core/lib/sampleStorage';
 import type LabnotePlugin from './main';
-import { promptModal, confirmModal } from './modals';
+import { promptModal, confirmModal, pickModal } from './modals';
 
 export type SampleScope = 'local' | 'global';
 
@@ -64,7 +68,10 @@ export interface CreatedSample {
   id: string;
   alias: string | null;
   description: string | null;
+  /** `@type;id;alias;desc` — optional, for the "insert definition" action. */
   definitionText: string;
+  /** `id;alias` (or bare `id`) — the registry-first document insert form. */
+  referenceText: string;
 }
 
 /**
@@ -109,6 +116,7 @@ export async function createSampleInteractive(
   const description = clean(descRaw);
 
   await upsertSampleRecord(plugin, folder, type, id, alias, description);
+  plugin.refreshSampleViews();
   new Notice(plugin.t('Sample added: {0}', id));
 
   return {
@@ -116,7 +124,57 @@ export async function createSampleInteractive(
     alias,
     description,
     definitionText: buildSampleDefinitionText(type, id, alias, description),
+    referenceText: buildSampleReferenceText(id, alias),
   };
+}
+
+/**
+ * Search the read-only product catalog (`{Type}_*.json`) for a catalog type
+ * (Reagent/Labware/Equip) and return the chosen entry's reference text
+ * (`id;alias`). Merges the document's local catalog with the vault-global one
+ * (local wins). When no catalog exists, guides the user and falls back to
+ * manually registering a sample (returning its reference).
+ */
+export async function pickCatalogReference(
+  app: App,
+  plugin: LabnotePlugin,
+  opts: { type: string; docPath: string }
+): Promise<string | undefined> {
+  const { type, docPath } = opts;
+  const localFolder = getLabsamplesFolder(docPath);
+  const globalFolder = plugin.settings.globalSampleFolder;
+
+  const local = await loadReferenceSamplesByType(plugin.fs, localFolder, type);
+  const global = globalFolder
+    ? await loadReferenceSamplesByType(plugin.fs, globalFolder, type)
+    : {};
+  const merged: Record<string, SampleRecord> = { ...global, ...local };
+
+  const items: PickItem<string>[] = Object.entries(merged).map(([id, rec]) => ({
+    label: rec.alias ? `${id} — ${rec.alias}` : id,
+    value: id,
+    description: rec.descriptions?.[0],
+  }));
+
+  if (items.length === 0) {
+    new Notice(
+      plugin.t('No {0} catalog found. Add resources/labsamples/{0}_*.json.', type)
+    );
+    // Fallback: register a custom sample manually, then reference it.
+    const created = await createSampleInteractive(app, plugin, {
+      type,
+      folder: localFolder,
+      mode: 'manual',
+    });
+    return created?.referenceText;
+  }
+
+  const chosen = await pickModal(app, items, {
+    title: plugin.t('Search {0} catalog', type),
+    placeholder: plugin.t('Search catalog'),
+  });
+  if (chosen === undefined) return undefined;
+  return buildSampleReferenceText(chosen, merged[chosen]?.alias);
 }
 
 /**
@@ -147,6 +205,7 @@ export async function editSampleInteractive(
   const alias = clean(aliasRaw);
   const description = clean(descRaw);
   await upsertSampleRecord(plugin, folder, type, id, alias, description);
+  plugin.refreshSampleViews();
 
   // Best-effort: keep the active note's definition in sync (single file only).
   const target = plugin.host.editTarget();
@@ -164,6 +223,46 @@ export async function editSampleInteractive(
 
   new Notice(plugin.t('Sample updated: {0}', id));
   return true;
+}
+
+/** A sample definition located in a JSON registry (or read-only catalog). */
+export interface ResolvedSampleDefinition {
+  scope: 'local' | 'global' | 'catalog';
+  folder: string;
+  record: SampleRecord;
+}
+
+/**
+ * Resolve a `(type, id)` reference to its definition record: local `{Type}.json`
+ * first, then the vault-global one, then (for catalog types) the read-only
+ * `{Type}_*.json` product catalog. Returns undefined when nothing matches.
+ */
+export async function resolveSampleDefinition(
+  plugin: LabnotePlugin,
+  opts: { type: string; id: string; docPath: string }
+): Promise<ResolvedSampleDefinition | undefined> {
+  const { type, id, docPath } = opts;
+  const localFolder = getLabsamplesFolder(docPath);
+  const globalFolder = plugin.settings.globalSampleFolder;
+
+  const localDb = await loadSamplesByType(plugin.fs, localFolder, type);
+  if (localDb[id]) return { scope: 'local', folder: localFolder, record: localDb[id] };
+
+  if (globalFolder) {
+    const globalDb = await loadSamplesByType(plugin.fs, globalFolder, type);
+    if (globalDb[id]) return { scope: 'global', folder: globalFolder, record: globalDb[id] };
+  }
+
+  if (isCatalogSampleType(type)) {
+    const localCat = await loadReferenceSamplesByType(plugin.fs, localFolder, type);
+    if (localCat[id]) return { scope: 'catalog', folder: localFolder, record: localCat[id] };
+    if (globalFolder) {
+      const globalCat = await loadReferenceSamplesByType(plugin.fs, globalFolder, type);
+      if (globalCat[id]) return { scope: 'catalog', folder: globalFolder, record: globalCat[id] };
+    }
+  }
+
+  return undefined;
 }
 
 /** Confirm + delete a sample from its `{Type}.json`. Returns false when cancelled. */
@@ -185,6 +284,7 @@ export async function deleteSampleInteractive(
     delete db[id];
     await saveSamplesByType(plugin.fs, folder, type, db);
   }
+  plugin.refreshSampleViews();
   new Notice(plugin.t('Sample deleted: {0}', id));
   return true;
 }

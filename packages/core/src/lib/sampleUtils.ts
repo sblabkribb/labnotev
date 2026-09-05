@@ -79,24 +79,49 @@ export function buildSampleDefinitionText(
 }
 
 /**
+ * Build a sample *reference* string: `id;alias` when an alias is present, else
+ * the bare `id`. Matches the format of the existing completion insert text
+ * (`buildSampleInsertText` in `sample/sampleSuggest`). Used when inserting a
+ * reference into a document (registry-first: definitions live in JSON, the
+ * document only references them).
+ */
+export function buildSampleReferenceText(id: string, alias?: string | null): string {
+  return alias && alias.trim() ? `${id};${alias.trim()}` : id;
+}
+
+/**
+ * Catalog (reference-DB) sample types whose entries come from read-only
+ * `{Type}_*.json` product catalogs rather than being authored. New ids are not
+ * generated for these; the user searches the catalog instead.
+ */
+export const CATALOG_SAMPLE_TYPES = ['Reagent', 'Labware', 'Equip'] as const;
+
+/** True when `type` is a catalog (reference-DB) type. */
+export function isCatalogSampleType(type: string): boolean {
+  return (CATALOG_SAMPLE_TYPES as readonly string[]).includes(type);
+}
+
+/**
  * Decide which synthetic autocomplete actions to offer for a parsed sample
  * trigger. Mirrors the VS Code completion provider:
- * - a concrete single type gets a manual ("Enter info") action,
- * - and additionally a "Generate new ID" action unless it is `Equip`
- *   (Equip ids come from the reference DB, not generated),
- * - `@sample` expands to many types, so it gets no create actions.
+ * - a concrete authored single type gets `generate` ("Generate new ID") and
+ *   `manual` ("Enter info") actions,
+ * - a concrete catalog type (Reagent/Labware/Equip) gets a single `catalog`
+ *   ("Search catalog") action instead — its definitions are curated, not authored,
+ * - `@sample` expands to many types, so it gets no actions.
  *
  * Typed structurally (not against `SampleTrigger`) to avoid a module cycle
  * between `lib/sampleUtils` and `sample/sampleSuggest`.
  */
-export function sampleSuggestActionFlags(trigger: {
+export function sampleSuggestActions(trigger: {
   typesToSearch: readonly string[];
-}): { generate: boolean; manual: boolean } {
+}): { generate: boolean; manual: boolean; catalog: boolean } {
   const specific = trigger.typesToSearch.length === 1 ? trigger.typesToSearch[0] : null;
-  return {
-    manual: !!specific,
-    generate: !!specific && specific !== 'Equip',
-  };
+  if (!specific) return { generate: false, manual: false, catalog: false };
+  if (isCatalogSampleType(specific)) {
+    return { generate: false, manual: false, catalog: true };
+  }
+  return { generate: true, manual: true, catalog: false };
 }
 
 /**

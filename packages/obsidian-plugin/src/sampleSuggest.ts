@@ -23,22 +23,23 @@ import {
 } from '@labnotev/core';
 import {
   getSampleDisplayMeta,
-  sampleSuggestActionFlags,
+  sampleSuggestActions,
 } from '@labnotev/core/lib/sampleUtils';
 import {
   loadSamplesByType,
   getLabsamplesFolder,
 } from '@labnotev/core/lib/sampleStorage';
 import type LabnotePlugin from './main';
-import { createSampleInteractive } from './sampleActions';
+import { createSampleInteractive, pickCatalogReference } from './sampleActions';
 
 /**
  * A rendered suggestion: either an existing sample reference, or a synthetic
- * "create" action (generate a new id, or enter one manually).
+ * "create"/"search" action. Registry-first: create/catalog insert a *reference*
+ * (`id;alias`) into the document while the definition lives in JSON.
  */
 type SuggestEntry =
   | { kind: 'existing'; entry: SampleCompletionEntry }
-  | { kind: 'generate' | 'manual'; type: string };
+  | { kind: 'generate' | 'manual' | 'catalog'; type: string };
 
 export interface SampleSuggestDeps {
   fs: LabnoteFs;
@@ -108,9 +109,10 @@ export class SampleEditorSuggest extends EditorSuggest<SuggestEntry> {
     const actions: SuggestEntry[] = [];
     if (trigger.typesToSearch.length === 1) {
       const type = trigger.typesToSearch[0];
-      const flags = sampleSuggestActionFlags(trigger);
+      const flags = sampleSuggestActions(trigger);
       if (flags.generate) actions.push({ kind: 'generate', type });
       if (flags.manual) actions.push({ kind: 'manual', type });
+      if (flags.catalog) actions.push({ kind: 'catalog', type });
     }
 
     return [...existing, ...actions];
@@ -130,6 +132,14 @@ export class SampleEditorSuggest extends EditorSuggest<SuggestEntry> {
       el.createEl('div', { text: t('Generate new {0} ID', item.type) });
       el.createEl('small', {
         text: t('Automatically generate a new sample ID'),
+        cls: 'labnote-suggest-detail',
+      });
+      return;
+    }
+    if (item.kind === 'catalog') {
+      el.createEl('div', { text: t('Search {0} catalog', item.type) });
+      el.createEl('small', {
+        text: t('Insert a reference from the product catalog'),
         cls: 'labnote-suggest-detail',
       });
       return;
@@ -160,24 +170,33 @@ export class SampleEditorSuggest extends EditorSuggest<SuggestEntry> {
       return;
     }
 
-    // Create flow: close first, then run the interactive modals, then insert
-    // the resulting `@type;id;...` definition at the captured range.
+    // Create/catalog flow: close first, then run the interactive modals, then
+    // insert a *reference* (registry-first: the definition lives in JSON) at the
+    // captured range.
     this.close();
     const { plugin } = this.deps;
     const type = item.type;
-    const mode = item.kind;
+    const kind = item.kind;
     void (async () => {
-      const folder = getLabsamplesFolder(filePath);
-      const created = await createSampleInteractive(plugin.app, plugin, {
-        type,
-        folder,
-        mode,
-      });
-      if (!created) return;
-      editor.replaceRange(created.definitionText, start, end);
+      let referenceText: string | undefined;
+      if (kind === 'catalog') {
+        referenceText = await pickCatalogReference(plugin.app, plugin, {
+          type,
+          docPath: filePath,
+        });
+      } else {
+        const created = await createSampleInteractive(plugin.app, plugin, {
+          type,
+          folder: getLabsamplesFolder(filePath),
+          mode: kind,
+        });
+        referenceText = created?.referenceText;
+      }
+      if (!referenceText) return;
+      editor.replaceRange(referenceText, start, end);
       editor.setCursor({
         line: start.line,
-        ch: start.ch + created.definitionText.length,
+        ch: start.ch + referenceText.length,
       });
     })();
   }
