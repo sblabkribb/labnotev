@@ -10,6 +10,7 @@
 ### Fixed
 - **webview 테스트 hang 해결**: Mantine 오버레이(Popover/Modal)를 사용하는 webview 테스트가 각 ~50초 멈춘 뒤 실패하던 문제를 해결함. 원인은 jsdom의 CSS 셀렉터 엔진 `nwsapi`가 상위 버전(2.2.2x)에서 `:has()` 리졸버 무한 재귀에 빠져 이벤트 루프를 굶기던 것으로, `overrides`로 `nwsapi`를 안정 버전 `2.2.13`에 고정해 해결함. 이로써 `npm run test:all`이 멈춤 없이 통과함
 - **테스트 안전장치 추가**: `webview-section` vitest에 `testTimeout`(15초)을 추가해, 향후 환경/의존성 회귀 시 장시간 CI hang 대신 빠르게 실패하도록 함
+- **크로스플랫폼 lockfile 복원**: Windows에서 lockfile을 재생성하는 과정에서 비-Windows 플랫폼용 네이티브 바이너리(`@rollup/rollup-*`, `@esbuild/*`, `fsevents`) 항목이 누락되어, Linux CI에서 `Cannot find module @rollup/rollup-linux-x64-gnu`로 테스트가 실패하던 문제를 해결함(npm optional dependencies 이슈). 누락된 플랫폼 항목을 `package-lock.json`에 복원해 Linux/macOS/Windows 모두에서 `npm ci`가 정상 동작하도록 함
 
 ## [v0.77.0] - 2026-09-06
 
