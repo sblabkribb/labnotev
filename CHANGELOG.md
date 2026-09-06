@@ -5,6 +5,12 @@
 형식은 [Keep a Changelog](https://keepachangelog.com/ko/1.1.0/)를 기반으로 하며,
 이 프로젝트는 [유의적 버전 관리](https://semver.org/lang/ko/)를 따릅니다.
 
+## [v0.77.1] - 2026-09-06
+
+### Fixed
+- **webview 테스트 hang 해결**: Mantine 오버레이(Popover/Modal)를 사용하는 webview 테스트가 각 ~50초 멈춘 뒤 실패하던 문제를 해결함. 원인은 jsdom의 CSS 셀렉터 엔진 `nwsapi`가 상위 버전(2.2.2x)에서 `:has()` 리졸버 무한 재귀에 빠져 이벤트 루프를 굶기던 것으로, `overrides`로 `nwsapi`를 안정 버전 `2.2.13`에 고정해 해결함. 이로써 `npm run test:all`이 멈춤 없이 통과함
+- **테스트 안전장치 추가**: `webview-section` vitest에 `testTimeout`(15초)을 추가해, 향후 환경/의존성 회귀 시 장시간 CI hang 대신 빠르게 실패하도록 함
+
 ## [v0.77.0] - 2026-09-06
 
 ### Removed

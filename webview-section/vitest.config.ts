@@ -19,5 +19,11 @@ export default defineConfig({
     environment: 'jsdom',
     setupFiles: [resolve(__dirname, 'src/__tests__/setup.ts')],
     include: ['src/**/*.{test,spec}.{ts,tsx}'],
+    // Safety net so a future environment/dependency regression surfaces as a
+    // fast failure instead of a multi-minute CI hang. Note: this only fires
+    // when the event loop is free; a fully synchronous hang would still block
+    // it (as happened with the nwsapi :has() recursion), so it complements —
+    // not replaces — keeping problematic deps pinned.
+    testTimeout: 15000,
   },
 });
