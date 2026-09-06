@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach } from 'vitest';
+// Globals convention (no `import ... from 'vitest'`) — see sampleDefinition.test.ts.
 import { MemFileSystem } from '../fs/memFileSystem';
 import { createLabnoteTools, runTool, type ToolContext } from '../tools';
 

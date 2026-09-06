@@ -1,6 +1,6 @@
 # Labnote Assistant (LabnoteV)
 
-**v0.76.0** · [한국어 → README.ko.md](README.ko.md)
+**v0.77.0** · [한국어 → README.ko.md](README.ko.md)
 
 A VS Code extension that helps you write experiment notes in Markdown. It opens `.labnote.md` files in a webview-based Section Editor, providing a UI optimized for lab note keeping — Front Matter forms, workflow checklists, unit operation accordions, sample definition buttons, clipboard image paste/thumbnails, and more.
 
@@ -262,16 +262,6 @@ When a regular `.md` file is opened in the text editor:
 2. In VS Code, run `Ctrl+Shift+P` → `Extensions: Install from VSIX...`
 3. Select the downloaded `.vsix`.
 4. After installation, restart VS Code, open your workspace, press `F1`, and run any command starting with `Labnote`.
-
-### Obsidian plugin (Labnote Assistant)
-
-Starting with v0.70.0, the same lab-note workflow is available as an Obsidian plugin built from `packages/obsidian-plugin` (shared logic lives in the `@labnotev/core` package).
-
-1. Download `main.js`, `manifest.json`, and `versions.json` from the [Releases](https://github.com/sblabkribb/labnotev/releases) page (or build locally with `npm run build:obsidian`).
-2. Copy the three files into `<vault>/.obsidian/plugins/labnotev/`.
-3. In Obsidian, open **Settings → Community plugins**, turn off **Restricted mode**, then enable **"Labnote Assistant"**.
-
-The Obsidian plugin supports experiment/workflow creation (including right-clicking in a `.labnote.md` editor to create a workflow and insert a link at the cursor), unit-operation insertion (from the workflow sidebar's context menu or by right-clicking at the cursor in a workflow file; after insertion the `## Related Unit Operations` TOC is rebuilt in document order and the cursor moves to the inserted unit operation), and sample autocomplete/highlighting. Samples follow a **registry-first** model: definitions (alias/description) live only in local/global `{Type}.json`, while documents contain references (`ID;alias`) only. In autocomplete, authored types use "Generate new ID" / "Enter info" to register a definition and then insert a reference, while catalog types (Reagent/Labware/Equip) use "Search catalog" to pick from the read-only product DB and insert a reference. Right-clicking a reference in the body opens a "Go to definition" popup to view/edit/delete the definition or open its JSON file. It also supports sample management from the Samples sidebar context menu (add / edit / delete / insert reference or definition, with the sidebar auto-refreshing after saves), workflow/sample sidebar views, CSV export, and optional local LLM/MCP integration (desktop only). PDF export uses Obsidian's built-in Export to PDF.
 
 ## Commands
 

@@ -1,4 +1,4 @@
-import { describe, it, expect } from 'vitest';
+// Globals convention (no `import ... from 'vitest'`) — see sampleDefinition.test.ts.
 import { insertUnitOperationAtCursor } from '../commands/insertUnitOperation';
 import { MemFileSystem } from '../fs/memFileSystem';
 import type { EditTarget, LabnoteHost, NotifyKind } from '../host';

@@ -1,4 +1,4 @@
-import { describe, it, expect } from 'vitest';
+// Globals convention (no `import ... from 'vitest'`) — see sampleDefinition.test.ts.
 import { parseLabNoteMd, serializeLabNoteMd } from '../sections/labnoteSectionParser';
 import { parseWorkflowMd, serializeWorkflowMd } from '../sections/workflowSectionParser';
 

@@ -15,9 +15,6 @@ export default tseslint.config(
       'esbuild.js',
       '**/*.mjs',
       '**/*.cjs',
-      // Bundled build artifacts (not source).
-      'packages/obsidian-plugin/main.js',
-      'packages/obsidian-plugin/main.js.map',
     ],
   },
   js.configs.recommended,
@@ -26,10 +23,6 @@ export default tseslint.config(
     files: [
       'src/**/*.ts',
       'packages/core/src/**/*.ts',
-      // The Obsidian plugin runs in Electron/browser and uses DOM + CodeMirror
-      // globals; TS + its own tsconfig already type-check these, so the same
-      // no-undef relaxation applies here as to the rest of the codebase.
-      'packages/obsidian-plugin/src/**/*.ts',
     ],
     rules: {
       // TypeScript already checks for undefined identifiers and unreachable

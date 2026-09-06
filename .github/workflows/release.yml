@@ -34,9 +34,6 @@ jobs:
       - name: Sync package versions
         run: npm run sync:versions
 
-      - name: Build Obsidian plugin
-        run: npm run build:obsidian
-      
       - name: Package Extension
         run: npx @vscode/vsce package --no-dependencies
       
@@ -54,9 +51,6 @@ jobs:
         with:
           files: |
             *.vsix
-            packages/obsidian-plugin/main.js
-            packages/obsidian-plugin/manifest.json
-            packages/obsidian-plugin/versions.json
           name: Lab Note Editor v${{ steps.get_version.outputs.VERSION }}
           body: |
             ## 설치 방법
@@ -78,11 +72,6 @@ jobs:
             3. `Ctrl+Shift+P` → "Extensions: Install from VSIX..." 선택
             4. 다운로드한 파일 선택
 
-            ### 방법 4: Obsidian 플러그인 (수동 설치)
-            1. `main.js`, `manifest.json`, `versions.json` 3개 파일 다운로드
-            2. 보관함(vault)의 `.obsidian/plugins/labnotev/` 폴더를 만들고 3개 파일을 복사
-            3. Obsidian 설정 → 커뮤니티 플러그인에서 "Labnote Assistant" 활성화
-            
             ## 변경 사항
             [CHANGELOG.md](https://github.com/${{ github.repository }}/blob/main/CHANGELOG.md) 참조
           draft: false

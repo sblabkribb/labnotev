@@ -1,4 +1,4 @@
-import { describe, it, expect } from 'vitest';
+// Globals convention (no `import ... from 'vitest'`) — see sampleDefinition.test.ts.
 import { CORE_VERSION } from '../index';
 
 describe('@labnotev/core smoke', () => {

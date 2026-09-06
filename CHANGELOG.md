@@ -5,6 +5,18 @@
 형식은 [Keep a Changelog](https://keepachangelog.com/ko/1.1.0/)를 기반으로 하며,
 이 프로젝트는 [유의적 버전 관리](https://semver.org/lang/ko/)를 따릅니다.
 
+## [v0.77.0] - 2026-09-06
+
+### Removed
+- **Obsidian 플러그인 제거 (VS Code 전용 복귀)**: `packages/obsidian-plugin` 패키지를 저장소에서 제거함. 옵시디언 플러그인은 별도 저장소로 분리되었으며, 본 저장소는 VS Code 확장 전용으로 유지됨. VS Code 확장과 공용 로직(`packages/core`)의 동작에는 변화가 없음
+
+### Changed
+- **빌드/CI/릴리스 정리**: `build:obsidian`·`typecheck:obsidian` 스크립트, CI의 옵시디언 빌드 스텝, 릴리스 아티팩트(main.js/manifest.json/versions.json) 및 수동 설치 안내를 제거함. 버전 동기화 스크립트(`syncVersions.mjs`)와 ESLint 설정에서도 옵시디언 관련 항목을 정리함
+- **문서 정리**: `README.md`/`README.ko.md`에서 Obsidian 플러그인 섹션을 제거함
+
+### Fixed
+- **core 테스트 안정화**: core 테스트 파일에서 명시적 `import ... from 'vitest'`를 제거하고 전역(globals) 규약으로 통일해, 테스트 러너가 스위트를 인식하지 못해 CI가 멈추던 문제를 해결함
+
 ## [v0.76.0] - 2026-09-05
 
 ### Changed

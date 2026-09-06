@@ -6,9 +6,6 @@
  * place that must agree for a release to be valid:
  *
  *   - packages/core/package.json
- *   - packages/obsidian-plugin/package.json
- *   - packages/obsidian-plugin/manifest.json          (Obsidian plugin version)
- *   - packages/obsidian-plugin/versions.json          ({version: minAppVersion})
  *
  * Run via `npm run sync:versions` (the auto-versioning workflow calls this after
  * bumping the root version). Idempotent: safe to run repeatedly.
@@ -36,7 +33,6 @@ if (!version) {
 
 const targets = [
   join(root, 'packages/core/package.json'),
-  join(root, 'packages/obsidian-plugin/package.json'),
 ];
 for (const path of targets) {
   const pkg = readJson(path);
@@ -44,21 +40,4 @@ for (const path of targets) {
   writeJson(path, pkg);
 }
 
-// Obsidian manifest.
-const manifestPath = join(root, 'packages/obsidian-plugin/manifest.json');
-const manifest = readJson(manifestPath);
-manifest.version = version;
-writeJson(manifestPath, manifest);
-
-// Obsidian versions.json ({ pluginVersion: minAppVersion }).
-const versionsPath = join(root, 'packages/obsidian-plugin/versions.json');
-let versions = {};
-try {
-  versions = readJson(versionsPath);
-} catch {
-  versions = {};
-}
-versions[version] = manifest.minAppVersion;
-writeJson(versionsPath, versions);
-
-console.log(`[sync:versions] synced all packages to v${version} (minAppVersion ${manifest.minAppVersion})`);
+console.log(`[sync:versions] synced all packages to v${version}`);
